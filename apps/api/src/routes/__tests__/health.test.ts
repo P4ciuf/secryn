@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { app } from "../app.js";
+import { app } from "./../routes/health";
 
 describe("API /health", () => {
   it("GET /health returns 200 with status ok", async () => {
