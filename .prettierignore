@@ -18,3 +18,5 @@ docs/
 .vercel/
 swagger.*
 nginx.*
+*.yml
+*yaml
