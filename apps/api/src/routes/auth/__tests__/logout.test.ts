@@ -4,6 +4,13 @@ import cookie from "@fastify/cookie";
 import { AppError } from "../../../core/errors/appError.js";
 import route from "../logout.route.js";
 
+/**
+ * Hoisted factory: runs before vi.mock evaluation so mockAuthenticate and
+ * MockAuthService are defined when the module-level vi.mock call replaces
+ * AuthService in the import graph.
+ * MockAuthService is empty because the logout route only uses static properties
+ * (cookieConfig) and the preHandler's authenticate decorator.
+ */
 const { mockAuthenticate, MockAuthService } = vi.hoisted(() => {
   const mockAuthenticate = vi.fn();
   function MockAuthService() {}
@@ -21,14 +28,17 @@ vi.mock("../../../core/auth/service.js", () => ({
   AuthService: MockAuthService,
 }));
 
-vi.mock("../../../lib/fastify.js", () => ({
-  fastifyApp: { authenticate: mockAuthenticate },
-}));
-
+/**
+ * Creates a minimal Fastify instance with cookie parsing, the authenticate
+ * decorator mocked, and the logout route registered.
+ * The authenticate mock lets each test control whether the request passes
+ * auth (mockImplementation) or fails (mockRejectedValue).
+ */
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });
   app.register(cookie);
-  app.route(route);
+  app.decorate("authenticate", mockAuthenticate);
+  app.route(route(app));
   return app;
 }
 
@@ -38,6 +48,7 @@ describe("POST /auth/logout", () => {
   });
 
   it("should return 200 with ok:true and clear auth cookie when authenticated", async () => {
+    // Simulate a successful auth: attach a fake user to the request
     mockAuthenticate.mockImplementation(async (req: Record<string, unknown>) => {
       req.user = { uuid: "test-uuid", email: "user@test.com", username: "testuser" };
     });

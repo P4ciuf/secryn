@@ -4,6 +4,13 @@ import cookie from "@fastify/cookie";
 import { AppError } from "../../../core/errors/appError.js";
 import route from "../register.route.js";
 
+/**
+ * Hoisted factory: runs before vi.mock evaluation so mockRegister and
+ * MockAuthService are defined when the module-level vi.mock call replaces
+ * AuthService in the import graph.
+ * MockAuthService returns an object with a register method because the route
+ * only calls authService.register().
+ */
 const { mockRegister, MockAuthService } = vi.hoisted(() => {
   const mockRegister = vi.fn();
   function MockAuthService() {
@@ -23,10 +30,14 @@ vi.mock("../../../core/auth/service.js", () => ({
   AuthService: MockAuthService,
 }));
 
+/**
+ * Creates a minimal Fastify instance with cookie parsing and the register route.
+ * AJV strict mode is disabled because route schemas omit additionalProperties.
+ */
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });
   app.register(cookie);
-  app.route(route);
+  app.route(route(app));
   return app;
 }
 

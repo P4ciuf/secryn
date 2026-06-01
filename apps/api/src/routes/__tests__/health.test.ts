@@ -2,9 +2,14 @@ import { describe, it, expect } from "vitest";
 import Fastify from "fastify";
 import route from "../health.route.js";
 
+/**
+ * Creates a minimal Fastify instance with the health route registered.
+ * Each call returns an isolated instance so tests never share state.
+ * AJV strict mode is disabled because route schemas omit additionalProperties.
+ */
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });
-  app.route(route);
+  app.route(route(app));
   return app;
 }
 
