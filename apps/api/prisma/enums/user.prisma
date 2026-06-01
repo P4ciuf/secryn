@@ -1,0 +1,5 @@
+/// System-wide authorization roles for user accounts.
+enum UserRole {
+  USER  @map("user")
+  ADMIN @map("admin")
+}

@@ -1,0 +1,22 @@
+/// Hierarchical role that a TeamMember holds within a Team.
+enum TeamMemberRole {
+  OWNER   @map("owner")
+  MANAGER @map("manager")
+  MEMBER  @map("member")
+}
+
+/// Fine-grained operations a TeamMember can be authorized to perform.
+enum TeamMemberPermission {
+  READ_SECRETS   @map("read_secrets")
+  CREATE_SECRETS @map("create_secrets")
+  UPDATE_SECRETS @map("update_secrets")
+  DELETE_SECRETS @map("delete_secrets")
+
+  CREATE_INVITES @map("create_invites")
+  DELETE_INVITES @map("delete_invites")
+
+  MANAGE_MEMBERS @map("manage_members")
+  REMOVE_MEMBERS @map("remove_members")
+
+  ALL @map("all")
+}

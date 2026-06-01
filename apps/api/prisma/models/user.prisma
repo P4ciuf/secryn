@@ -1,0 +1,74 @@
+/// Represents a registered user account in the system.
+/// A User authenticates via email and password, supports optional MFA,
+/// and participates in Teams through the TeamMember join table.
+/// UserBan records track moderation actions against the account.
+model User {
+  id   String @id @default(cuid())
+  /// Public-facing unique identifier exposed in API responses,
+  /// distinct from the internal `id` to avoid leaking insertion order.
+  uuid String @unique @default(uuid())
+
+  email    String @unique
+  /// Bcrypt-hashed password; never stored in plain text.
+  password String
+
+  username String   @unique
+  role     UserRole @default(USER)
+
+  isVerified   Boolean @default(false) @map("is_verified")
+  isMFAEnabled Boolean @default(false) @map("is_mfa_enabled")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  mfaRecoveryCodes MFARecoveryCode[]
+  bans             UserBan[]         @relation("banned_user")
+  addedBans        UserBan[]         @relation("added_by_user")
+  members          TeamMember[]
+  teams            Team[]
+
+  @@map("users")
+}
+
+/// One-time use recovery codes for regaining account access
+/// when the user cannot provide their MFA token.
+model MFARecoveryCode {
+  id   String @id @default(cuid())
+  code String @unique
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isValid Boolean @default(true) @map("is_valid")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@map("mfa_recovery_codes")
+}
+
+/// Records a moderation action that restricts a User's access.
+/// Supports temporary (with expiresAt) and permanent bans,
+/// as well as manual reversal via isRevoked / revokedAt.
+model UserBan {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation("banned_user", fields: [userId], references: [id], onDelete: Cascade)
+
+  addedBy     String @map("added_by")
+  addedByUser User   @relation("added_by_user", fields: [addedBy], references: [id])
+
+  reason    String
+  ipAddress String @map("ip_address")
+
+  isPermanent Boolean @default(false) @map("is_permanent")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime? @map("expires_at")
+
+  isRevoked Boolean   @default(false) @map("is_revoked")
+  revokedAt DateTime? @map("revoked_at")
+
+  @@map("user_bans")
+}
