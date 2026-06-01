@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Auth module test suite with login, register and logout test cases
 - Module-based architecture with route auto-loader (`utils/loader.ts`) using fast-glob to discover `.route.ts` files under `modules/`
 - `AppRouteObject` type for type-safe route module exports (`types/route.ts`)
 - Plugin registrations for `@fastify/helmet`, `@fastify/cors`, `@fastify/rate-limit`, and `@fastify/jwt`
@@ -36,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Refactored health check tests to use self-contained Fastify instance instead of global singleton
+- Added test environment variables (DATABASE_URL, JWT_SECRET, etc.) to vitest config
 - Moved Swagger/OpenAPI and plugin registrations from `lib/fastify.ts` to `main.ts` (registered before route loading)
 - Migrated from `swagger-jsdoc` / `swagger-ui-express` to `@fastify/swagger` + `@fastify/swagger-ui` with Fastify-native plugin registration
 - Replaced flat `config/env.ts` with typed `utils/env.ts` using `EnvUtils` class
