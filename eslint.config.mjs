@@ -30,7 +30,7 @@ export default defineConfig([
       "**/env.ts",
       "**/register-paths.js",
       "**/.vercel/**",
-      "**/*todo.md"
+      "**/*todo.md",
     ],
   },
 
