@@ -3,6 +3,7 @@ import DailyRotateFile from "winston-daily-rotate-file";
 import path from "path";
 import fs from "fs";
 
+// Ensure the logs directory exists at import time — required before any transport writes
 const logsDir = path.resolve(process.cwd(), "logs");
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
@@ -18,7 +19,7 @@ const COLOURS: Record<string, string> = {
 
 const timestamp = winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" });
 
-// Console uses ANSI color codes per level; file output omits colours for grep-friendly archival
+// Console uses ANSI colour codes per level; file output omits colours for grep-friendly archival
 const colouredConsole = winston.format.printf(({ level, message, timestamp, ...meta }) => {
   const colour = COLOURS[level as string] ?? "";
   const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
@@ -62,20 +63,36 @@ const log = winston.createLogger({
   exitOnError: false,
 });
 
-export type LogMeta = Record<string, unknown>;
-
+/**
+ * Thin wrapper around a Winston logger instance.
+ *
+ * Exposes `error`, `warn`, `info`, and `debug` methods. The `debug` level is
+ * automatically suppressed in non-development environments to avoid verbosity.
+ * The underlying logger is configured with `exitOnError: false` so that logging
+ * failures never crash the process.
+ */
 export const logger = {
-  error(message: string, meta?: LogMeta): void {
+  /**
+   * Logs a message at the "error" severity level.
+   * Always emitted regardless of NODE_ENV.
+   */
+  error(message: string, meta?: unknown): void {
     log.error(message, meta);
   },
-  warn(message: string, meta?: LogMeta): void {
+
+  warn(message: string, meta?: unknown): void {
     log.warn(message, meta);
   },
-  info(message: string, meta?: LogMeta): void {
+
+  info(message: string, meta?: unknown): void {
     log.info(message, meta);
   },
-  debug(message: string, meta?: LogMeta): void {
-    // Suppress debug logs outside development — they are too verbose for production
+
+  /**
+   * Logs a message at the "debug" severity level.
+   * Suppressed in production — debug logs are too verbose for non-development environments.
+   */
+  debug(message: string, meta?: unknown): void {
     if (isDevelopment) {
       log.debug(message, meta);
     }
