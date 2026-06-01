@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
 ## 2026-06-01
@@ -23,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@fastify/cors`, `@fastify/helmet`, `@fastify/jwt`, `@fastify/rate-limit`, `fast-glob`, `winston`, and `winston-daily-rotate-file` dependencies
 - `*todo.md` pattern to ESLint ignore list
 - Inline JSDoc comments across `prisma.ts`, `logger.ts`, `main.ts`, and `env.ts` modules
+- `AppError` class with static factory methods for standardized HTTP error responses (`core/errors/appError.ts`)
+- Global Fastify error handler (`registerErrorHandler`) covering `AppError`, validation errors, and unexpected server errors (`core/errors/errorHandler.ts`)
+- Error code constants (`BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, etc.) for machine-readable error categorization
 
 ### Changed
 
@@ -36,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Simplified logger transports to a single rotating file for all levels instead of per-level files
 - Updated `.prettierignore` to exclude `CHANGELOG.md` and `LICENSE` from formatting
 - Moved test file from `src/__tests__/app.test.ts` to `src/routes/health/__tests__/health.test.ts`
+- Broadened logger `meta` type from `Record<string, unknown>` to `unknown` for wider compatibility
+- Added comprehensive JSDoc documentation to logger module
 
 ### Removed
 
