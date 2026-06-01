@@ -20,3 +20,5 @@ swagger.*
 nginx.*
 *.yml
 *yaml
+CHANGELOG.md
+LICENSE
