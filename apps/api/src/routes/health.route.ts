@@ -1,4 +1,4 @@
-import type { AppRouteObject } from "../../../types/route.js";
+import type { AppRouteObject } from "../types/route.js";
 
 /**
  * Health-check route module consumed by the auto-loader (loader.ts).

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fastifyApp } from "../../../lib/fastify.js";
+import { fastifyApp } from "../../lib/fastify.js";
 
 describe("API /health", () => {
   it("GET /health returns 200 with status ok", async () => {

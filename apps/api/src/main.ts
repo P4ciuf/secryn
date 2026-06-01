@@ -6,7 +6,7 @@ import fastifySwaggerUi from "@fastify/swagger-ui";
 import { fastifyApp } from "./lib/fastify.js";
 import { EnvUtils } from "./utils/env.js";
 import { loadRoutes } from "./utils/loader.js";
-import { logger } from "./utils/logger.js";
+import { logger } from "./core/logger/index.js";
 
 // Validate required env vars before any plugin registration — fail fast on missing configuration
 try {
