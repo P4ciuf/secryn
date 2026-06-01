@@ -1,6 +1,13 @@
-import { fastifyApp } from "../../lib/fastify.js";
+import type { AppRouteObject } from "../../../types/route.js";
 
-fastifyApp.get("/health", {
+/**
+ * Health-check route module consumed by the auto-loader (loader.ts).
+ * Returns a static payload so load balancers and monitoring tools can verify
+ * the service is alive without reaching any external dependency.
+ */
+export default {
+  method: "GET",
+  url: "/health",
   schema: {
     summary: "Health check",
     description:
@@ -23,4 +30,5 @@ fastifyApp.get("/health", {
   handler: async () => {
     return { status: "ok" };
   },
-});
+  // satisfies enforces AppRouteObject constraints while preserving the narrow literal type for schema inference
+} satisfies AppRouteObject;

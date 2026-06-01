@@ -3,13 +3,11 @@ import DailyRotateFile from "winston-daily-rotate-file";
 import path from "path";
 import fs from "fs";
 
-// Ensure the logs directory exists before any transport writes to it
 const logsDir = path.resolve(process.cwd(), "logs");
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// ANSI escape codes for coloured log output on the terminal
 const COLOURS: Record<string, string> = {
   error: "\x1b[31m",
   warn: "\x1b[33m",
@@ -20,6 +18,7 @@ const COLOURS: Record<string, string> = {
 
 const timestamp = winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" });
 
+// Console uses ANSI color codes per level; file output omits colours for grep-friendly archival
 const colouredConsole = winston.format.printf(({ level, message, timestamp, ...meta }) => {
   const colour = COLOURS[level as string] ?? "";
   const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
@@ -51,38 +50,20 @@ const transports: winston.transport[] = [
   }),
   new DailyRotateFile({
     ...rotateOptions,
-    level: "error",
-    filename: path.join(logsDir, "error-%DATE%.log"),
-  }),
-  new DailyRotateFile({
-    ...rotateOptions,
-    level: "warn",
-    // Filter to log only warn-level entries; DailyRotateFile with level "warn" would also capture errors
-    format: winston.format.combine(
-      winston.format((info) => (info.level === "warn" ? info : false))(),
-      timestamp,
-      winston.format.errors({ stack: true }),
-      plainFile,
-    ),
+    level: isDevelopment ? "debug" : "info",
+    filename: path.join(logsDir, "logs-data-%DATE%.log"),
   }),
 ];
 
+// Logger errors must never crash the process — logging is non-critical infrastructure
 const log = winston.createLogger({
   level: isDevelopment ? "debug" : "info",
   transports,
   exitOnError: false,
 });
 
-/**
- * Key-value pairs attached to a log entry.
- * Passed as the second argument to any logger method.
- */
 export type LogMeta = Record<string, unknown>;
 
-/**
- * Application-wide logger with level-specific methods.
- * Skips the winston call in production for debug to avoid unnecessary overhead.
- */
 export const logger = {
   error(message: string, meta?: LogMeta): void {
     log.error(message, meta);
@@ -94,7 +75,7 @@ export const logger = {
     log.info(message, meta);
   },
   debug(message: string, meta?: LogMeta): void {
-    // Avoid the winston call entirely in production to skip the level-filtering overhead
+    // Suppress debug logs outside development — they are too verbose for production
     if (isDevelopment) {
       log.debug(message, meta);
     }

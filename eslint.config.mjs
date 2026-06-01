@@ -17,6 +17,7 @@ const __dirname = dirname(__filename);
 
 export default defineConfig([
   {
+    // env.ts is auto-generated; register-paths.js is a build helper; *todo.md tracks internal notes
     ignores: [
       "**/*.test.ts",
       "**/*.test.tsx",
@@ -29,6 +30,7 @@ export default defineConfig([
       "**/env.ts",
       "**/register-paths.js",
       "**/.vercel/**",
+      "**/*todo.md"
     ],
   },
 
@@ -49,6 +51,7 @@ export default defineConfig([
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
+        // Requires TS 5.5+ — enables project references and type-aware linting
         projectService: true,
         tsconfigRootDir: __dirname,
       },
@@ -60,6 +63,7 @@ export default defineConfig([
     rules: {
       "no-unused-vars": "off",
       "no-undef": "off",
+      // Use TS-aware rule instead of base — handles enums, interfaces, and type imports correctly
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
@@ -69,6 +73,7 @@ export default defineConfig([
       semi: ["error", "always"],
       quotes: ["error", "double", { allowTemplateLiterals: true }],
       ...prettierConfig.rules,
+      // Enforce Prettier formatting as an ESLint error
       "prettier/prettier": "error",
     },
   },
