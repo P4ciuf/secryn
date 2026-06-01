@@ -1,4 +1,5 @@
 import { AuthService } from "../../core/auth/service.js";
+import { fastifyApp } from "../../lib/fastify.js";
 import type { AppRouteObject } from "../../types/route.js";
 
 /**
@@ -29,9 +30,12 @@ export default {
           ok: { type: "boolean" },
         },
       },
+      401: { description: "Unauthorized — missing or invalid JWT" },
       500: { description: "Internal server error" },
     },
+    security: [{ cookieAuth: [] }],
   },
+  preHandler: [fastifyApp.authenticate],
   handler: async (req, reply) => {
     reply.clearCookie("auth-token", AuthService.cookieConfig);
     return reply.send({ ok: true });

@@ -7,8 +7,8 @@ import type { CookieSerializeOptions } from "@fastify/cookie";
 import { EnvUtils } from "../../utils/env.js";
 
 /**
- * Handles authentication operations: registration, login, token refresh, and JWT verification.
- * Reads the current user from the Fastify request object and issues signed JWTs.
+ * AuthService handles user registration, login, token refresh, and JWT verification.
+ * Each instance is scoped to a single Fastify request, allowing access to cookies and the authenticated user.
  */
 export class AuthService {
   private readonly userService = new UserService();
@@ -72,7 +72,7 @@ export class AuthService {
   /**
    * Issues a new JWT for the currently authenticated user without re-authentication.
    *
-   * @returns A fresh JWT
+   * @returns A newly signed JWT for the currently authenticated user
    * @throws {AppError} Unauthorized if no user is attached to the request
    */
   async refreshJWT(): Promise<string> {
@@ -81,14 +81,37 @@ export class AuthService {
   }
 
   /**
-   * Verifies the JWT stored in the "auth-token" cookie.
-   * Does not throw on verification failure; that is handled internally.
+   * Decodes the JWT from the "auth-token" cookie without verifying its signature.
+   * Useful for pre-authentication checks where the full verify/handle flow is unwanted.
+   *
+   * @returns The decoded user payload
+   * @throws {AppError} Conflict if the user is already authenticated via the request
+   * @throws {AppError} Unauthorized if the token is missing or cannot be decoded
+   */
+  async decodeToken(): Promise<LoggedUser> {
+    if (this.req.user) throw AppError.Conflict("User is already logged in.");
+    const token = this.req.cookies[AuthService.cookieName];
+
+    if (!token) {
+      throw AppError.Unauthorized("Missing JWT");
+    }
+
+    try {
+      const decodedToken = fastifyApp.jwt.decode(token);
+      return decodedToken as LoggedUser;
+    } catch {
+      throw AppError.Unauthorized("Invalid JWT");
+    }
+  }
+
+  /**
+   * Verifies the JWT stored in the "auth-token" cookie using the server's secret.
    *
    * @returns true if the token is valid
    * @throws {AppError} Unauthorized if the token is missing or invalid
    */
   verifyJWT(): boolean {
-    const token = this.req.cookies["auth-token"];
+    const token = this.req.cookies[AuthService.cookieName];
 
     if (!token) {
       throw AppError.Unauthorized("Missing JWT");
@@ -113,4 +136,6 @@ export class AuthService {
     sameSite: "strict",
     maxAge: 30 * 60, // 30 minutes
   };
+
+  static cookieName: string = "auth-token";
 }

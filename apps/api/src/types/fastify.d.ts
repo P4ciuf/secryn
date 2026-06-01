@@ -12,4 +12,7 @@ declare module "fastify" {
   interface FastifyRequest {
     user?: LoggedUser;
   }
+  interface FastifyInstance {
+    authenticate: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
+  }
 }

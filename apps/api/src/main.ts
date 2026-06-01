@@ -9,6 +9,7 @@ import { fastifyApp } from "./lib/fastify.js";
 import { EnvUtils } from "./utils/env.js";
 import { loadRoutes } from "./utils/loader.js";
 import { logger } from "./core/logger/index.js";
+import authPlugin from "./core/auth/plugin.js";
 
 try {
   EnvUtils.checkEnv();
@@ -26,6 +27,7 @@ app.register(helmet, { global: true });
 app.register(fastifyRateLimit, { max: 50, timeWindow: "1 minute" });
 app.register(cors, { origin: true, credentials: true });
 app.register(fastifyJwt, { secret: ENV.jwtSecret });
+await app.register(authPlugin);
 
 // Swagger must be registered before routes so its onRoute hook is active
 app.register(fastifySwagger, {
@@ -52,7 +54,7 @@ app.register(fastifySwaggerUi, {
 // so Swagger's onRoute hook is guaranteed to be active when these routes are added
 app.register(loadRoutes);
 
-// Resolves the entire plugin tree before the server starts accepting connections
+// Fail fast: resolve plugin tree explicitly before listen() to catch registration errors early
 await app.ready();
 
 app.listen({ port, host: "0.0.0.0" }, (err) => {

@@ -11,4 +11,5 @@ export type AppRouteObject = {
   handler: RouteOptions["handler"];
   schema?: RouteOptions["schema"];
   config?: RouteOptions["config"];
+  preHandler?: RouteOptions["preHandler"];
 };
