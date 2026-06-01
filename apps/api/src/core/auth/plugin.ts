@@ -1,15 +1,16 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from "fastify";
 import { AuthService } from "./service.js";
 
 /**
- * Fastify plugin that decorates the instance with an `authenticate` preHandler hook.
- * Decodes the JWT from the request cookie and attaches the user payload to `req.user`.
- *
- * @param fastify - The Fastify instance to decorate
+ * Verifies JWT from the request cookie and attaches the decoded user to `req.user`.
+ * Registered as a root-level Fastify decorator so it is inherited by all plugin contexts.
  */
-export default async function authPlugin(fastify: FastifyInstance) {
-  fastify.decorate("authenticate", async function (req: FastifyRequest, _rep: FastifyReply) {
-    const authService = new AuthService(req);
-    req.user = authService.decodeToken();
-  });
-}
+export const authenticate: preHandlerHookHandler = async (
+  req: FastifyRequest,
+  _rep: FastifyReply,
+) => {
+  const authService = new AuthService(req);
+
+  const user = await authService.decodeToken();
+  req.user = user;
+};

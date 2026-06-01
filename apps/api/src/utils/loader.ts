@@ -18,6 +18,7 @@ import { logger } from "../core/logger/index.js";
 export async function loadRoutes(app: FastifyInstance) {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const routesDir = join(currentDir, "../routes");
+  // Match both .ts and .js so it works with tsx (dev) and compiled output (prod)
   const pattern = `${routesDir}/**/*.route.{ts,js}`;
   const isProd = process.env.NODE_ENV === "production";
 
@@ -33,8 +34,10 @@ export async function loadRoutes(app: FastifyInstance) {
 
   for (const file of files) {
     const mod = await import(file);
-    const route: AppRouteObject = mod.default;
-    if (!route) continue;
+    const factory: AppRouteObject = mod.default;
+    // Skip files that do not export a route factory (e.g. non-route modules caught by the glob)
+    if (!factory) continue;
+    const route = factory(app);
     app.route(route);
   }
 }

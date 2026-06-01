@@ -1,15 +1,9 @@
-import type { RouteOptions } from "fastify";
+import type { FastifyInstance, RouteOptions } from "fastify";
 
 /**
- * Subset of Fastify's RouteOptions that a route module must export as default.
- * The auto-loader (utils/loader.ts) discovers .route.ts files and expects each
- * to export a value conforming to this shape.
+ * A route module must export a function (default export) that receives a FastifyInstance
+ * and returns RouteOptions. This ensures all decorators (e.g. authenticate) are available
+ * when the route object is constructed, since the factory is invoked during plugin boot
+ * — after all preceding plugins have been registered.
  */
-export type AppRouteObject = {
-  method: RouteOptions["method"];
-  url: RouteOptions["url"];
-  handler: RouteOptions["handler"];
-  schema?: RouteOptions["schema"];
-  config?: RouteOptions["config"];
-  preHandler?: RouteOptions["preHandler"];
-};
+export type AppRouteObject = (fastify: FastifyInstance) => RouteOptions;

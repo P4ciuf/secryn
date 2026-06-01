@@ -13,6 +13,6 @@ declare module "fastify" {
     user?: LoggedUser;
   }
   interface FastifyInstance {
-    authenticate: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
+    authenticate: import("fastify").preHandlerHookHandler;
   }
 }

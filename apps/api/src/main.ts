@@ -9,7 +9,7 @@ import { fastifyApp } from "./lib/fastify.js";
 import { EnvUtils } from "./utils/env.js";
 import { loadRoutes } from "./utils/loader.js";
 import { logger } from "./core/logger/index.js";
-import authPlugin from "./core/auth/plugin.js";
+import { authenticate } from "./core/auth/plugin.js";
 
 try {
   EnvUtils.checkEnv();
@@ -22,12 +22,14 @@ const ENV = EnvUtils.envVariables();
 const port = Number(ENV.port);
 const app = fastifyApp;
 
+// Root-level decorator — inherited by all plugin contexts (including siblings)
+app.decorate("authenticate", authenticate);
+
 app.register(cookie);
 app.register(helmet, { global: true });
 app.register(fastifyRateLimit, { max: 50, timeWindow: "1 minute" });
 app.register(cors, { origin: true, credentials: true });
 app.register(fastifyJwt, { secret: ENV.jwtSecret });
-await app.register(authPlugin);
 
 // Swagger must be registered before routes so its onRoute hook is active
 app.register(fastifySwagger, {

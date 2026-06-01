@@ -1,3 +1,4 @@
+import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../types/route.js";
 
 /**
@@ -5,7 +6,7 @@ import type { AppRouteObject } from "../types/route.js";
  * Returns a static payload so load balancers and monitoring tools can verify
  * the service is alive without reaching any external dependency.
  */
-export default {
+export default ((_fastify: FastifyInstance) => ({
   method: "GET",
   url: "/health",
   schema: {
@@ -31,4 +32,4 @@ export default {
     return { status: "ok" };
   },
   // satisfies enforces AppRouteObject constraints while preserving the narrow literal type for schema inference
-} satisfies AppRouteObject;
+})) satisfies AppRouteObject;

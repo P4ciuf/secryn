@@ -1,5 +1,5 @@
 import { AuthService } from "../../core/auth/service.js";
-import { fastifyApp } from "../../lib/fastify.js";
+import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../types/route.js";
 
 /**
@@ -7,7 +7,7 @@ import type { AppRouteObject } from "../../types/route.js";
  * Clears the auth-token cookie to terminate the session.
  * Rate-limited to 5 requests per hour per client.
  */
-export default {
+export default ((fastify: FastifyInstance) => ({
   method: "POST",
   url: "/auth/logout",
   config: {
@@ -35,9 +35,9 @@ export default {
     },
     security: [{ cookieAuth: [] }],
   },
-  preHandler: [fastifyApp.authenticate],
+  preHandler: [fastify.authenticate],
   handler: async (req, reply) => {
     reply.clearCookie("auth-token", AuthService.cookieConfig);
     return reply.send({ ok: true });
   },
-} satisfies AppRouteObject;
+})) satisfies AppRouteObject;

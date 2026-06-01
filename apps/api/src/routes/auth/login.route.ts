@@ -1,4 +1,5 @@
 import { AuthService } from "../../core/auth/service.js";
+import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../types/route.js";
 
 /** Shape of the request body expected by the login endpoint. */
@@ -12,7 +13,7 @@ type LoginBody = {
  * Authenticates a user with email and password. Sets the JWT as an httpOnly cookie.
  * Rate-limited to 5 attempts per hour per client.
  */
-export default {
+export default ((_fastify: FastifyInstance) => ({
   method: "POST",
   url: "/auth/login",
   config: {
@@ -58,10 +59,11 @@ export default {
   },
   handler: async (req, reply) => {
     const authService = new AuthService(req);
+    // Cast is safe: the AJV schema defined above guarantees email and password exist
     const token = await authService.login(req.body as LoginBody);
 
     reply.setCookie("auth-token", token, AuthService.cookieConfig);
 
     return reply.send({ ok: true });
   },
-} satisfies AppRouteObject;
+})) satisfies AppRouteObject;
