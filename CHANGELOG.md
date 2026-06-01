@@ -27,6 +27,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `AppError` class with static factory methods for standardized HTTP error responses (`core/errors/appError.ts`)
 - Global Fastify error handler (`registerErrorHandler`) covering `AppError`, validation errors, and unexpected server errors (`core/errors/errorHandler.ts`)
 - Error code constants (`BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, etc.) for machine-readable error categorization
+- Auth module with `POST /auth/register`, `POST /auth/login`, and `POST /auth/logout` endpoints
+- `AuthService` class for JWT generation, verification, and refresh
+- `UserService` with bcrypt password hashing and user CRUD operations
+- `UserRepository` as Prisma data-access layer for user queries
+- `@fastify/cookie` and `bcrypt` dependencies
+- `LoggedUser` type and Fastify request type augmentation for authenticated requests
 
 ### Changed
 
@@ -42,6 +48,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Moved test file from `src/__tests__/app.test.ts` to `src/routes/health/__tests__/health.test.ts`
 - Broadened logger `meta` type from `Record<string, unknown>` to `unknown` for wider compatibility
 - Added comprehensive JSDoc documentation to logger module
+- Removed unused error codes (`RESOURCE_CREATED`, `RESOURCE_DELETED`, `RESOURCE_UPDATED`) and factory methods from `AppError`
+- Added default message and missing `@param` JSDoc tags to `AppError` factory methods
+- Updated Fastify singleton to use env-based logger and relaxed AJV validation
+- Reordered plugin registrations in `main.ts` (cookie, JWT, rate-limit, CORS registered before Swagger)
+- Switched route loading from direct function call to Fastify plugin registration with explicit `ready()` await
+- Rewrote route loader to discover route files dynamically via fast-glob from `routes/` directory
+- Added trailing comma in ESLint ignore list
+- Added `prisma generate` step to CI pipeline
 
 ### Removed
 
