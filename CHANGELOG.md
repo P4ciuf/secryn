@@ -5,7 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
-
 ## [Unreleased]
 
 ## 2026-06-01
@@ -40,7 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- MIT License
+- Apache 2.0 License
 - pnpm monorepo scaffold with API (Fastify + Prisma) and Web (React + Vite) applications
 - Shared TypeScript config, ESLint, Prettier, Vitest, Husky, and Docker setup
 - Database schema (Prisma) with initial models
