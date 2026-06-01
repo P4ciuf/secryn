@@ -7,16 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
-### Added
-
-- JWT authentication guard (`authenticate` preHandler) via root-level Fastify decorator
-- `decodeToken()` method to `AuthService` for cookie-based JWT decoding without signature verification
-- `authPlugin` Fastify plugin encapsulating the authenticate decorator
-- `preHandler` type to `AppRouteObject` for route-level middleware support
-- `authenticate` hook type to `FastifyInstance` type augmentation
-- Auth guard to `POST /auth/logout` route requiring valid JWT cookie
-- Logout test cases for unauthenticated (401) and internal error (500) scenarios
-
 ## 2026-06-01
 
 ### Added
@@ -44,6 +34,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `UserRepository` as Prisma data-access layer for user queries
 - `@fastify/cookie` and `bcrypt` dependencies
 - `LoggedUser` type and Fastify request type augmentation for authenticated requests
+- JWT authentication guard (`authenticate` preHandler) via root-level Fastify decorator
+- `decodeToken()` method to `AuthService` for cookie-based JWT decoding without signature verification
+- `authPlugin` Fastify plugin encapsulating the authenticate decorator
+- `preHandler` type to `AppRouteObject` for route-level middleware support
+- `authenticate` hook type to `FastifyInstance` type augmentation
+- Auth guard to `POST /auth/logout` route requiring valid JWT cookie
+- Logout test cases for unauthenticated (401) and internal error (500) scenarios
 
 ### Changed
 
