@@ -3,11 +3,13 @@ import DailyRotateFile from "winston-daily-rotate-file";
 import path from "path";
 import fs from "fs";
 
+// Ensure the logs directory exists before any transport writes to it
 const logsDir = path.resolve(process.cwd(), "logs");
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
+// ANSI escape codes for coloured log output on the terminal
 const COLOURS: Record<string, string> = {
   error: "\x1b[31m",
   warn: "\x1b[33m",
@@ -55,7 +57,7 @@ const transports: winston.transport[] = [
   new DailyRotateFile({
     ...rotateOptions,
     level: "warn",
-    filename: path.join(logsDir, "warn-%DATE%.log"),
+    // Filter to log only warn-level entries; DailyRotateFile with level "warn" would also capture errors
     format: winston.format.combine(
       winston.format((info) => (info.level === "warn" ? info : false))(),
       timestamp,
@@ -71,8 +73,16 @@ const log = winston.createLogger({
   exitOnError: false,
 });
 
+/**
+ * Key-value pairs attached to a log entry.
+ * Passed as the second argument to any logger method.
+ */
 export type LogMeta = Record<string, unknown>;
 
+/**
+ * Application-wide logger with level-specific methods.
+ * Skips the winston call in production for debug to avoid unnecessary overhead.
+ */
 export const logger = {
   error(message: string, meta?: LogMeta): void {
     log.error(message, meta);
@@ -84,6 +94,7 @@ export const logger = {
     log.info(message, meta);
   },
   debug(message: string, meta?: LogMeta): void {
+    // Avoid the winston call entirely in production to skip the level-filtering overhead
     if (isDevelopment) {
       log.debug(message, meta);
     }
