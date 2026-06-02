@@ -61,6 +61,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Changed `envVariables()` return type to `as const` for stricter type inference
 - Added `EMAIL` and `RESEND_API_KEY` to `EnvUtils` validated env accessors
 - Moved route registration to use `/api/v1` prefix in `main.ts`
+- Updated `SecretValue` mock in `SecretsTable.test.tsx` to include `onToggle` prop and Show/Hide button
+- Replaced `userEvent.type()` with `fireEvent.change()` in `LoginPage.test.tsx`, `RegisterPage.test.tsx`, and `CreateSecretModal.test.tsx`
+- Replaced direct `.click()` with `fireEvent.click()` in `ApiKeysPage.test.tsx`, `ProjectsPage.test.tsx`, `SecretsPage.test.tsx`, and `CreateProjectModal.test.tsx`
+- Replaced `MemoryRouter` with `createMemoryRouter`/`RouterProvider` in `DashboardLayout.test.tsx`
+- Removed `MobileSidebar` mock in `DashboardLayout.test.tsx`, now testing real component with `within()` queries
 
 ### Removed
 
@@ -70,6 +75,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `TeamMemberRole` enum
 - `uuid` field from `User` model (simplified to single `cuid()` identifier)
 - `apps/api/prisma/models/team.prisma` file
+
+### Fixed
+
+- Added DOM cleanup (`cleanup()`) to test setup `afterEach` to prevent cross-test DOM pollution (`test-setup.ts`)
+- Fixed `AuthLayout` import from default to named export in `AuthLayout.test.tsx`
+- Fixed `ApiDocsPage.test.tsx` assertion for duplicate text `/v1/projects` (`getByText` → `getAllByText`)
+- Fixed permission text case from "Read"/"Write" to "read"/"write" in `CreateApiKeyModal.test.tsx`
+- Added `waitFor` async assertions in `WebhooksPage.test.tsx` for modal show/hide operations
+- Fixed `RegisterPage.test.tsx` form submission to check terms checkbox and use `fireEvent.submit(form)`
+- Set non-empty project ID in `SecretsPage.test.tsx` missing-project test case
+- Added inline framer-motion mock to `ApiKeysPage.test.tsx`
 
 ## 2026-06-01
 
