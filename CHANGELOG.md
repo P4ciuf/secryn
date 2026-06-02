@@ -9,6 +9,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Web application scaffold**: Complete React + Vite + TypeScript frontend under `apps/web/src/` with shadcn/ui design system
+- 48 shadcn/ui reusable UI primitives under `components/ui/` (accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, chart, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, form, hover-card, input, input-otp, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner, switch, table, tabs, textarea, toggle, toggle-group, tooltip)
+- Landing page with Hero, Features, HowItWorks, Why, CTA sections, responsive Navbar, and Footer (`components/landing/`)
+- Authentication pages: `LoginPage` and `RegisterPage` with shared `AuthLayout` (`features/auth/`)
+- Dashboard layout: responsive layout with collapsible desktop sidebar, mobile sidebar drawer, top bar, and sidebar navigation (`layouts/DashboardLayout.tsx`, `features/dashboard/components/`)
+- Projects feature: `ProjectsPage`, `SecretsPage`, `CreateProjectModal`, `ProjectCard`, `CreateSecretModal`, `SecretRow`, `SecretsTable` (`features/projects/`)
+- API Keys feature: `ApiKeysPage`, `CreateApiKeyModal`, `ApiKeyRow` (`features/api-keys/`)
+- API Docs feature: `ApiDocsPage` for documentation display (`features/api-docs/`)
+- Webhooks feature: `WebhooksPage`, `CreateWebhookModal`, `WebhookCard` (`features/webhooks/`)
+- Settings feature: `SettingsPage` with `ProfileSection`, `SecuritySection`, `NotificationsSection`, `DangerZoneSection` (`features/settings/`)
+- Shared components: `EmptyState` (empty table placeholder), `Modal` (dialog wrapper), `PageHeader` (title with action button), `SecretValue` (clipboard copy + visibility toggle) (`components/common/`)
+- Custom hooks: `useClipboard` (copy-to-clipboard with timed feedback), `useMobile` (viewport breakpoint detection), `useToggleVisibility` (boolean toggle) (`hooks/`)
+- TypeScript types for projects, secrets, API keys, API docs, webhooks, and common utilities (`types/`)
+- Mock data for all entities used in UI development and testing (`data/`)
+- Centralized React Router v7 configuration with path constants (`routes.ts`, `routes/paths.ts`)
+- Tailwind CSS v4 design system with CSS custom properties, dark mode support (`next-themes`), and `tw-animate-css` animation utilities (`styles/`)
+- framer-motion test mock for jsdom compatibility (`__mocks__/framer-motion.tsx`)
+- 30+ frontend npm dependencies: Radix UI primitives (22 packages), Tailwind CSS v4, React Router v7, framer-motion, recharts, react-hook-form, lucide-react, sonner, vaul, cmdk, embla-carousel-react, input-otp, react-day-picker, class-variance-authority, clsx, tailwind-merge, tw-animate-css, next-themes
+- Comprehensive Vitest + Testing Library test suite (44 test files) covering all components, pages, hooks, and layouts
+- Test infrastructure: jsdom environment, `@` path alias, framer-motion mock alias, IntersectionObserver polyfill in `test-setup.ts`, `tsconfig.test.json`
+- Comprehensive JSDoc documentation across all source files, components, hooks, types, and data modules
 - Project module with `ProjectService`, `ProjectGuard`, `ProjectRepository`, and slug utility (`modules/project/`)
 - Project REST API routes: create (`POST /projects`), get (`GET /projects/:id`), update name (`PUT /projects/:id`), delete (`DELETE /projects/:id`), and transfer ownership (`POST /projects/:id/transfer`) under `routes/project/`
 - Comprehensive test suite for all project routes with mocked dependencies (`routes/project/__tests__/`)
@@ -24,6 +45,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Replaced placeholder "Hello, World!" React app with full `RouterProvider`-based application (`App.tsx` now renders React Router provider)
+- Migrated CSS entry point from `src/index.css` to `src/styles/index.css`
+- Added Tailwind CSS v4 Vite plugin to build configuration (`vite.config.ts`)
+- Updated vitest config with jsdom environment, `@` path alias, and framer-motion mock resolution
+- Added test file exclusions to `tsconfig.app.json`
+- Added `tsconfig.test.json` project reference to `tsconfig.json`
+- Added `test-setup.ts` to ESLint ignore patterns
+- Added JSDoc documentation to `App.tsx`, `main.tsx`, and `test-setup.ts`
 - Renamed Prisma models: `Team` → `Project`, `TeamMember` → `ProjectMember`, `TeamInvite` → `ProjectInvite`, `TeamMemberPermissionAssignment` → `ProjectMemberPermissionAssignment`
 - Renamed `TeamMemberPermission` enum to `ProjectMemberPermission`; removed `TeamMemberRole` enum
 - Switched user JWT payload identifier from `uuid` to `id` in `AuthService` and `LoggedUser` type
@@ -35,6 +64,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- `apps/web/src/index.css` (replaced by modular CSS under `styles/`)
+- Boilerplate URL comment from `vite.config.ts`
 - `Team`, `TeamMember`, `TeamInvite`, `TeamMemberPermissionAssignment` Prisma models
 - `TeamMemberRole` enum
 - `uuid` field from `User` model (simplified to single `cuid()` identifier)
