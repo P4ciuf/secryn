@@ -5,7 +5,7 @@
 /// Each User can own multiple Projects and be a member of many others.
 /// UserBan records track moderation actions against the account.
 model User {
-  id   String @id @default(cuid())
+  id String @id @default(cuid())
 
   /// Primary login identifier; used during authentication.
   email    String @unique
