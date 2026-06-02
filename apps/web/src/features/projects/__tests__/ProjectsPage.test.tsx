@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import ProjectsPage from "@/features/projects/ProjectsPage";
 
@@ -89,18 +89,18 @@ describe("ProjectsPage", () => {
   it("should show create modal when action button is clicked", async () => {
     renderWithRouter(<ProjectsPage />);
     const button = screen.getByTestId("header-action-btn");
-    button.click();
+    fireEvent.click(button);
     expect(screen.getByTestId("mock-create-modal")).toBeInTheDocument();
   });
 
   it("should close create modal when onClose is called", async () => {
     renderWithRouter(<ProjectsPage />);
     const openButton = screen.getByTestId("header-action-btn");
-    openButton.click();
+    fireEvent.click(openButton);
     expect(screen.getByTestId("mock-create-modal")).toBeInTheDocument();
 
     const closeButton = screen.getByTestId("modal-close-btn");
-    closeButton.click();
+    fireEvent.click(closeButton);
     expect(screen.queryByTestId("mock-create-modal")).not.toBeInTheDocument();
   });
 });

@@ -12,8 +12,19 @@ vi.mock("@/hooks/use-clipboard", () => ({
 }));
 
 vi.mock("@/components/common/SecretValue", () => ({
-  SecretValue: ({ value, isVisible }: { value: string; isVisible: boolean }) => (
-    <span data-testid="secret-value">{isVisible ? value : "••••••••"}</span>
+  SecretValue: ({
+    value,
+    isVisible,
+    onToggle,
+  }: {
+    value: string;
+    isVisible: boolean;
+    onToggle: () => void;
+  }) => (
+    <div>
+      <span data-testid="secret-value">{isVisible ? value : "••••••••"}</span>
+      <button onClick={onToggle}>{isVisible ? "Hide" : "Show"}</button>
+    </div>
   ),
 }));
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import LoginPage from "@/features/auth/LoginPage";
@@ -37,14 +37,13 @@ describe("LoginPage", () => {
   });
 
   it("should allow typing in email and password fields", async () => {
-    const user = userEvent.setup();
     renderWithRouter(<LoginPage />);
 
     const emailInput = screen.getByPlaceholderText("you@example.com");
     const passwordInput = screen.getByPlaceholderText("••••••••");
 
-    await user.type(emailInput, "test@example.com");
-    await user.type(passwordInput, "password123");
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.change(passwordInput, { target: { value: "password123" } });
 
     expect(emailInput).toHaveValue("test@example.com");
     expect(passwordInput).toHaveValue("password123");
@@ -54,8 +53,12 @@ describe("LoginPage", () => {
     const user = userEvent.setup();
     renderWithRouter(<LoginPage />);
 
-    await user.type(screen.getByPlaceholderText("you@example.com"), "test@example.com");
-    await user.type(screen.getByPlaceholderText("••••••••"), "password123");
+    fireEvent.change(screen.getByPlaceholderText("you@example.com"), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("••••••••"), {
+      target: { value: "password123" },
+    });
     await user.click(screen.getByRole("button", { name: "Sign In" }));
 
     expect(mockNavigate).toHaveBeenCalledWith("/dashboard/projects");

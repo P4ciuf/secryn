@@ -1,8 +1,15 @@
 /**
  * Test environment setup.
- * Provides a mock IntersectionObserver since jsdom does not implement it.
+ * Provides a mock IntersectionObserver since jsdom does not implement it,
+ * and ensures the DOM is cleaned after each test to prevent cross-test pollution.
  */
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(() => {
+  cleanup();
+});
 
 class MockIntersectionObserver {
   observe() {}

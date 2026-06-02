@@ -86,6 +86,6 @@ describe("ApiDocsPage", () => {
     expect(screen.getByText("GET")).toBeInTheDocument();
     expect(screen.getByText("POST")).toBeInTheDocument();
     expect(screen.getByText("DELETE")).toBeInTheDocument();
-    expect(screen.getByText("/v1/projects")).toBeInTheDocument();
+    expect(screen.getAllByText("/v1/projects")).toHaveLength(2);
   });
 });

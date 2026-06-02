@@ -38,8 +38,8 @@ describe("<CreateApiKeyModal />", () => {
     render(<CreateApiKeyModal open={true} onClose={onClose} onSubmit={onSubmit} />);
 
     expect(screen.getByPlaceholderText("My API Key")).toBeInTheDocument();
-    expect(screen.getByText("Read")).toBeInTheDocument();
-    expect(screen.getByText("Write")).toBeInTheDocument();
+    expect(screen.getByText("read")).toBeInTheDocument();
+    expect(screen.getByText("write")).toBeInTheDocument();
   });
 
   it("should have 'read' permission checked by default", () => {

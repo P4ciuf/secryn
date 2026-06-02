@@ -1,21 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
 import DashboardLayout from "@/layouts/DashboardLayout";
 
 vi.mock("@/features/dashboard/components/Sidebar", () => ({
   Sidebar: () => <div data-testid="mock-sidebar">Sidebar</div>,
-}));
-
-vi.mock("@/features/dashboard/components/MobileSidebar", () => ({
-  MobileSidebar: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="mock-mobile-sidebar">
-      <button data-testid="mobile-close-btn" onClick={onClose}>
-        Close
-      </button>
-    </div>
-  ),
 }));
 
 vi.mock("@/features/dashboard/components/TopBar", () => ({
@@ -29,6 +18,7 @@ vi.mock("@/features/dashboard/components/TopBar", () => ({
 import { createMemoryRouter, RouterProvider } from "react-router";
 
 function renderDashboardLayout() {
+  const user = userEvent.setup();
   const router = createMemoryRouter(
     [
       {
@@ -44,7 +34,8 @@ function renderDashboardLayout() {
     ],
     { initialEntries: ["/"] },
   );
-  return render(<RouterProvider router={router} />);
+  const result = render(<RouterProvider router={router} />);
+  return { user, ...result };
 }
 
 describe("DashboardLayout", () => {
@@ -65,24 +56,25 @@ describe("DashboardLayout", () => {
 
   it("should not show mobile sidebar by default", () => {
     renderDashboardLayout();
-    expect(screen.queryByTestId("mock-mobile-sidebar")).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 
-  it("should show mobile sidebar when topbar menu is clicked", () => {
-    renderDashboardLayout();
-    const menuButton = screen.getByTestId("mock-topbar-menu");
-    menuButton.click();
-    expect(screen.getByTestId("mock-mobile-sidebar")).toBeInTheDocument();
+  it("should show mobile sidebar when topbar menu is clicked", async () => {
+    const { user } = renderDashboardLayout();
+    await user.click(screen.getByTestId("mock-topbar-menu"));
+    expect(screen.getByRole("complementary")).toBeInTheDocument();
   });
 
-  it("should close mobile sidebar when close is called", () => {
-    renderDashboardLayout();
-    const menuButton = screen.getByTestId("mock-topbar-menu");
-    menuButton.click();
-    expect(screen.getByTestId("mock-mobile-sidebar")).toBeInTheDocument();
+  it("should close mobile sidebar when close is called", async () => {
+    const { user } = renderDashboardLayout();
+    await user.click(screen.getByTestId("mock-topbar-menu"));
 
-    const closeButton = screen.getByTestId("mobile-close-btn");
-    closeButton.click();
-    expect(screen.queryByTestId("mock-mobile-sidebar")).not.toBeInTheDocument();
+    const mobileSidebar = screen.getByRole("complementary");
+    expect(mobileSidebar).toBeInTheDocument();
+
+    const closeButton = within(mobileSidebar).getAllByRole("button")[0];
+    await user.click(closeButton);
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 });

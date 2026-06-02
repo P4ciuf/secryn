@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import AuthLayout from "@/features/auth/components/AuthLayout";
+import { AuthLayout } from "@/features/auth/components/AuthLayout";
 
 const mockNavigate = vi.fn();
 

@@ -1,6 +1,31 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import ApiKeysPage from "@/features/api-keys/ApiKeysPage";
+
+vi.mock("@/__mocks__/framer-motion", async () => {
+  const React = await import("react");
+  const cache = new Map<string, React.FC<any>>();
+  const motion = new Proxy(
+    {},
+    {
+      get(_target: unknown, prop: string) {
+        if (!cache.has(prop)) {
+          cache.set(
+            prop,
+            React.forwardRef((props: any, ref: any) =>
+              React.createElement(prop, { ...props, ref }),
+            ),
+          );
+        }
+        return cache.get(prop);
+      },
+    },
+  );
+  return {
+    motion,
+    AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
+  };
+});
 
 vi.mock("@/components/common/PageHeader", () => ({
   PageHeader: ({
@@ -98,20 +123,20 @@ describe("ApiKeysPage", () => {
 
   it("should show create modal when action button is clicked", async () => {
     render(<ApiKeysPage />);
-    screen.getByTestId("header-action-btn").click();
+    fireEvent.click(screen.getByTestId("header-action-btn"));
     expect(screen.getByTestId("mock-create-modal")).toBeInTheDocument();
   });
 
   it("should add a new API key on submit", async () => {
     render(<ApiKeysPage />);
-    screen.getByTestId("header-action-btn").click();
-    screen.getByTestId("modal-submit-btn").click();
+    fireEvent.click(screen.getByTestId("header-action-btn"));
+    fireEvent.click(screen.getByTestId("modal-submit-btn"));
     expect(screen.queryByTestId("mock-create-modal")).not.toBeInTheDocument();
   });
 
   it("should remove an API key on delete", async () => {
     render(<ApiKeysPage />);
-    screen.getByTestId("delete-1").click();
+    fireEvent.click(screen.getByTestId("delete-1"));
     expect(screen.queryByTestId("apikey-row-1")).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import SecretsPage from "@/features/projects/SecretsPage";
 
@@ -112,23 +112,23 @@ describe("SecretsPage", () => {
   it("should show create secret modal when action button is clicked", async () => {
     renderSecretsPage();
     const button = screen.getByTestId("header-action-btn");
-    button.click();
+    fireEvent.click(button);
     expect(screen.getByTestId("mock-create-secret-modal")).toBeInTheDocument();
   });
 
   it("should add a new secret on submit and close modal", async () => {
     renderSecretsPage();
     const openButton = screen.getByTestId("header-action-btn");
-    openButton.click();
+    fireEvent.click(openButton);
 
     const submitButton = screen.getByTestId("modal-submit-btn");
-    submitButton.click();
+    fireEvent.click(submitButton);
 
     expect(screen.queryByTestId("mock-create-secret-modal")).not.toBeInTheDocument();
   });
 
   it("should handle missing project ID gracefully", () => {
-    renderSecretsPage("");
+    renderSecretsPage("999");
     expect(screen.getByText("Project Secrets")).toBeInTheDocument();
   });
 });

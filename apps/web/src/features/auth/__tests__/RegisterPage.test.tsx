@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import RegisterPage from "@/features/auth/RegisterPage";
@@ -38,29 +38,40 @@ describe("RegisterPage", () => {
   });
 
   it("should allow filling all fields", async () => {
-    const user = userEvent.setup();
     renderWithRouter(<RegisterPage />);
 
-    await user.type(screen.getByPlaceholderText("John Doe"), "Jane Doe");
-    await user.type(screen.getByPlaceholderText("you@example.com"), "jane@example.com");
+    fireEvent.change(screen.getByPlaceholderText("John Doe"), {
+      target: { value: "Jane Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("you@example.com"), {
+      target: { value: "jane@example.com" },
+    });
     const passwords = screen.getAllByPlaceholderText("••••••••");
-    await user.type(passwords[0]!, "password123");
-    await user.type(passwords[1]!, "password123");
+    fireEvent.change(passwords[0]!, { target: { value: "password123" } });
+    fireEvent.change(passwords[1]!, { target: { value: "password123" } });
 
     expect(screen.getByPlaceholderText("John Doe")).toHaveValue("Jane Doe");
     expect(screen.getByPlaceholderText("you@example.com")).toHaveValue("jane@example.com");
   });
 
-  it("should navigate to projects on form submit", async () => {
-    const user = userEvent.setup();
+  it("should navigate to projects on form submit", () => {
     renderWithRouter(<RegisterPage />);
 
-    await user.type(screen.getByPlaceholderText("John Doe"), "Jane Doe");
-    await user.type(screen.getByPlaceholderText("you@example.com"), "jane@example.com");
+    fireEvent.change(screen.getByPlaceholderText("John Doe"), {
+      target: { value: "Jane Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("you@example.com"), {
+      target: { value: "jane@example.com" },
+    });
     const passwords = screen.getAllByPlaceholderText("••••••••");
-    await user.type(passwords[0]!, "password123");
-    await user.type(passwords[1]!, "password123");
-    await user.click(screen.getByRole("button", { name: "Create Account" }));
+    fireEvent.change(passwords[0]!, { target: { value: "password123" } });
+    fireEvent.change(passwords[1]!, { target: { value: "password123" } });
+
+    const termsCheckbox = screen.getByRole("checkbox") as HTMLInputElement;
+    termsCheckbox.checked = true;
+
+    const form = termsCheckbox.closest("form")!;
+    fireEvent.submit(form);
 
     expect(mockNavigate).toHaveBeenCalledWith("/dashboard/projects");
   });

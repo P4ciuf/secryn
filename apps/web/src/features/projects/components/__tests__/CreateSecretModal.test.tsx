@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateSecretModal } from "@/features/projects/components/CreateSecretModal";
 
@@ -55,8 +55,12 @@ describe("<CreateSecretModal />", () => {
 
     render(<CreateSecretModal open={true} onClose={onClose} onSubmit={onSubmit} />);
 
-    await user.type(screen.getByPlaceholderText("API_KEY"), "MY_KEY");
-    await user.type(screen.getByPlaceholderText("your-secret-value-here"), "my-secret");
+    fireEvent.change(screen.getByPlaceholderText("API_KEY"), {
+      target: { value: "MY_KEY" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("your-secret-value-here"), {
+      target: { value: "my-secret" },
+    });
     await user.click(screen.getByRole("button", { name: "Add Secret" }));
 
     expect(onSubmit).toHaveBeenCalledWith("MY_KEY", "my-secret");
@@ -69,7 +73,12 @@ describe("<CreateSecretModal />", () => {
 
     render(<CreateSecretModal open={true} onClose={onClose} onSubmit={onSubmit} />);
 
-    await user.type(screen.getByPlaceholderText("API_KEY"), "MY_KEY");
+    fireEvent.change(screen.getByPlaceholderText("API_KEY"), {
+      target: { value: "MY_KEY" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("your-secret-value-here"), {
+      target: { value: "my-secret" },
+    });
     await user.click(screen.getByRole("button", { name: "Add Secret" }));
 
     expect(screen.getByPlaceholderText("API_KEY")).toHaveValue("");
