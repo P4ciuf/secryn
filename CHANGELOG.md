@@ -41,6 +41,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Database migration recreating tables without `uuid` columns (`20260602100000`)
 - Comprehensive `///` documentation comments across Prisma schema, models, and enums
 - `ProjectMemberPermission` enum with `ALL` wildcard permission (`enums/team.prisma`)
+- `createInvite` and `acceptInvite` methods to `ProjectService` with permission validation, 7-day expiry, and HTML email notification via Resend
+- Project invite REST API routes: `POST /projects/:id/invites` and `GET /projects/invites/:slug` under `routes/project/invite/`
+- Swagger/OpenAPI schema documentation for invite create and accept routes
+- `JSDoc` documentation for `vi.hoisted()` Vitest pattern across all project test suites
 - Route prefix `/api/v1` to Fastify route registration
 
 ### Changed
@@ -66,6 +70,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Replaced direct `.click()` with `fireEvent.click()` in `ApiKeysPage.test.tsx`, `ProjectsPage.test.tsx`, `SecretsPage.test.tsx`, and `CreateProjectModal.test.tsx`
 - Replaced `MemoryRouter` with `createMemoryRouter`/`RouterProvider` in `DashboardLayout.test.tsx`
 - Removed `MobileSidebar` mock in `DashboardLayout.test.tsx`, now testing real component with `within()` queries
+- Reorganized project route files from flat `routes/project/` into `routes/project/core/` subdirectory for co-location with tests and invite routes
+- Moved `ProjectMemberPermission` enum from `enums/team.prisma` to `enums/project.prisma`
 
 ### Removed
 
@@ -75,6 +81,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `TeamMemberRole` enum
 - `uuid` field from `User` model (simplified to single `cuid()` identifier)
 - `apps/api/prisma/models/team.prisma` file
+- `@@unique([addedBy, permission])` unique constraint from `ProjectMemberPermissionAssignment` model
+- `@@index([projectMemberId, addedBy])` compound index from `ProjectMemberPermissionAssignment` model
+- `enums/team.prisma` file (replaced by `enums/project.prisma`)
 
 ### Fixed
 
