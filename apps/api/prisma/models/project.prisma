@@ -81,7 +81,8 @@ model ProjectInvite {
 model ProjectMemberPermissionAssignment {
   id String @id @default(cuid())
 
-  projectMemberId String     @map("project_member_id")
+  projectMemberId String        @map("project_member_id")
+  /// The member receiving this permission assignment.
   projectMember   ProjectMember @relation("MemberPermissions", fields: [projectMemberId], references: [id], onDelete: Cascade)
 
   /// The ProjectMember who granted this permission assignment.
@@ -96,9 +97,5 @@ model ProjectMemberPermissionAssignment {
 
   /// Each permission can only be assigned once per member.
   @@unique([projectMemberId, permission])
-  /// Prevents duplicate permission grants from the same granter.
-  @@unique([addedBy, permission])
-  /// Optimizes lookups of all permissions for a member and who granted them.
-  @@index([projectMemberId, addedBy])
   @@map("project_member_permission_assignments")
 }
