@@ -18,7 +18,7 @@ const { mockUpdateNameProject, mockAuthenticate, MockProjectService } = vi.hoist
   return { mockUpdateNameProject, mockAuthenticate, MockProjectService };
 });
 
-vi.mock("../../../modules/project/service.js", () => ({
+vi.mock("../../../../modules/project/service.js", () => ({
   ProjectService: MockProjectService,
 }));
 

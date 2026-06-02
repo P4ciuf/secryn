@@ -18,7 +18,7 @@ const { mockTransferOwnerProject, mockAuthenticate, MockProjectService } = vi.ho
   return { mockTransferOwnerProject, mockAuthenticate, MockProjectService };
 });
 
-vi.mock("../../../modules/project/service.js", () => ({
+vi.mock("../../../../modules/project/service.js", () => ({
   ProjectService: MockProjectService,
 }));
 

@@ -15,7 +15,7 @@ const { mockCreateProject, mockAuthenticate, MockProjectService } = vi.hoisted((
   return { mockCreateProject, mockAuthenticate, MockProjectService };
 });
 
-vi.mock("../../../modules/project/service.js", () => ({
+vi.mock("../../../../modules/project/service.js", () => ({
   ProjectService: MockProjectService,
 }));
 
