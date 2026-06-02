@@ -1,4 +1,5 @@
-/// System-wide authorization roles for user accounts.
+/// System-wide authorization roles governing access to the entire application.
+/// Elevated roles (ADMIN) bypass all project-level permission checks.
 enum UserRole {
   USER  @map("user")
   ADMIN @map("admin")

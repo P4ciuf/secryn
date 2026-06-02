@@ -1,3 +1,8 @@
+/// SecureVault — Prisma schema for the API service.
+/// Entry point for Prisma's multi-file schema composition; models and enums
+/// are pulled from the `models/` and `enums/` subdirectories.
+/// The database connection string is read from the `DATABASE_URL` environment variable.
+
 generator client {
   provider = "prisma-client-js"
 }

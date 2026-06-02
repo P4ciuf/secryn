@@ -1,0 +1,104 @@
+/// A workspace that owns Secrets and has Members.
+/// Each Project is owned by a single User and can have multiple
+/// ProjectMember join records and ProjectInvite links.
+model Project {
+  id   String @id @default(cuid())
+
+  name String
+  /// URL-friendly unique identifier used in routing and invite links.
+  slug String @unique
+
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  /// Users belonging to this project through the join table.
+  members     ProjectMember[]
+  /// Active invitation links that allow new users to join.
+  projectInvites ProjectInvite[]
+  /// Secrets stored within this project.
+  secrets     Secret[]        @relation("secret_project")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  /// Prevents duplicate project names under the same owner.
+  @@unique([name, ownerId])
+  @@map("projects")
+}
+
+/// Join table linking a User to a Project with a specific role.
+/// Tracks granular permission assignments and provides audit
+/// trails for Secret creation and modification by this member.
+model ProjectMember {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectId String @map("project_id")
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  /// Permission assignments granted to this member.
+  permissions      ProjectMemberPermissionAssignment[] @relation("MemberPermissions")
+  /// Permission assignments this member has granted to others.
+  addedPermissions ProjectMemberPermissionAssignment[] @relation("PermissionAddedBy")
+
+  /// Secrets created by this member within the project.
+  secretsAdded   Secret[] @relation("secret_added_by")
+  /// Secrets last modified by this member within the project.
+  secretsUpdated Secret[] @relation("secret_updated_by")
+
+  /// Ensures each user can only be a member of a given project once.
+  @@unique([userId, projectId])
+  @@map("project_members")
+}
+
+/// An invitation link that allows a user to join a Project.
+/// Each invite is identified by a unique slug and expires
+/// after a set duration.
+model ProjectInvite {
+  id String @id @default(cuid())
+
+  projectId String @map("project_id")
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// URL-safe code used in the invitation link.
+  slug String  @unique
+
+  createdAt DateTime @default(now()) @map("created_at")
+  /// The date and time after which this invite is no longer valid.
+  expiresAt DateTime @map("expires_at")
+
+  /// Prevents duplicate active invite slugs within the same project.
+  @@unique([slug, projectId])
+  @@map("project_invites")
+}
+
+/// Grants a specific ProjectMemberPermission to a ProjectMember.
+/// Allows composing custom access policies beyond the base role.
+model ProjectMemberPermissionAssignment {
+  id String @id @default(cuid())
+
+  projectMemberId String     @map("project_member_id")
+  projectMember   ProjectMember @relation("MemberPermissions", fields: [projectMemberId], references: [id], onDelete: Cascade)
+
+  /// The ProjectMember who granted this permission assignment.
+  addedBy     String     @map("added_by")
+  addedByUser ProjectMember @relation("PermissionAddedBy", fields: [addedBy], references: [id])
+
+  /// The specific permission operation being granted.
+  permission ProjectMemberPermission
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  /// Each permission can only be assigned once per member.
+  @@unique([projectMemberId, permission])
+  /// Prevents duplicate permission grants from the same granter.
+  @@unique([addedBy, permission])
+  /// Optimizes lookups of all permissions for a member and who granted them.
+  @@index([projectMemberId, addedBy])
+  @@map("project_member_permission_assignments")
+}

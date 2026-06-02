@@ -44,9 +44,9 @@ export class AuthService {
     const user = await this.userService.createUser(data);
     if (!user) throw new Error("Failed to create user");
 
-    const { uuid, email, username } = user;
+    const { id, email, username } = user;
 
-    return this.generateToken({ uuid, email, username });
+    return this.generateToken({ id, email, username });
   }
 
   /**
@@ -64,9 +64,9 @@ export class AuthService {
     const validPassword = await UserService.comparePassword(data.password, existingUser.password);
     if (!validPassword) throw AppError.Unauthorized();
 
-    const { uuid, email, username } = existingUser;
+    const { id, email, username } = existingUser;
 
-    return this.generateToken({ uuid, email, username });
+    return this.generateToken({ id, email, username });
   }
 
   /**

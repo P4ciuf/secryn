@@ -10,7 +10,7 @@ export type FullUser = Prisma.UserGetPayload<{
     bans: true;
     addedBans: true;
     members: true;
-    teams: true;
+    projects: true;
   };
 }>;
 
@@ -24,7 +24,7 @@ class UserRepository {
     bans: true,
     addedBans: true,
     members: true,
-    teams: true,
+    projects: true,
   };
 
   /**
