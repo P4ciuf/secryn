@@ -54,7 +54,9 @@ app.register(fastifySwaggerUi, {
 
 // Routes registered as a plugin — Fastify resolves the full plugin tree in order during ready(),
 // so Swagger's onRoute hook is guaranteed to be active when these routes are added
-app.register(loadRoutes);
+app.register(loadRoutes, {
+  prefix: "/api/v1",
+});
 
 // Fail fast: resolve plugin tree explicitly before listen() to catch registration errors early
 await app.ready();

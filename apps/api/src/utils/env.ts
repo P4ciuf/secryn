@@ -70,6 +70,8 @@ export class EnvUtils {
       postgresUser: process.env["POSTGRES_USER"],
       postgresPassword: process.env["POSTGRES_PASSWORD"],
       postgresDb: process.env["POSTGRES_DB"],
+      email: process.env["EMAIL"],
+      resendApiKey: process.env["RESEND_API_KEY"],
       encryptionKey: process.env["ENCRYPTION_KEY"],
       jwtSecret: process.env["JWT_SECRET"],
     };
@@ -92,8 +94,10 @@ export class EnvUtils {
       postgresUser: this.getKey("POSTGRES_USER"),
       postgresPassword: this.getKey("POSTGRES_PASSWORD"),
       postgresDb: this.getKey("POSTGRES_DB"),
+      email: this.getKey("EMAIL"),
+      resendApiKey: this.getKey("RESEND_API_KEY"),
       encryptionKey: this.getKey("ENCRYPTION_KEY"),
       jwtSecret: this.getKey("JWT_SECRET"),
-    };
+    } as const;
   }
 }

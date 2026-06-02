@@ -1,0 +1,30 @@
+import { Resend } from "resend";
+import { EnvUtils } from "./env.js";
+
+/**
+ * Utility wrapper around the Resend email API.
+ * The sender address and API key are read from environment variables.
+ */
+export class EmailUtils {
+  /** Resend client initialised once with the API key from the environment. */
+  private resend = new Resend(EnvUtils.envVariables().resendApiKey);
+
+  /**
+   * Sends a transactional email via Resend.
+   *
+   * @param to - Recipient email address
+   * @param subject - Email subject line
+   * @param html - HTML body content
+   * @returns The Resend API response containing the email ID and any errors
+   */
+  async sendEmail(to: string, subject: string, html: string) {
+    const result = await this.resend.emails.send({
+      from: EnvUtils.envVariables().email,
+      to,
+      subject,
+      html,
+    });
+
+    return result;
+  }
+}
