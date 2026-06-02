@@ -7,6 +7,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Added
+
+- Project module with `ProjectService`, `ProjectGuard`, `ProjectRepository`, and slug utility (`modules/project/`)
+- Project REST API routes: create (`POST /projects`), get (`GET /projects/:id`), update name (`PUT /projects/:id`), delete (`DELETE /projects/:id`), and transfer ownership (`POST /projects/:id/transfer`) under `routes/project/`
+- Comprehensive test suite for all project routes with mocked dependencies (`routes/project/__tests__/`)
+- `EmailUtils` class for transactional email delivery via Resend (`utils/email.ts`)
+- `EMAIL` and `RESEND_API_KEY` environment variables with `.env.example` entries
+- `resend` npm dependency to `package.json`
+- `@fastify/jwt` module augmentation for typed JWT payloads (`types/fastify.d.ts`)
+- Database migration to rename Team tables to Project tables (`20260601212532`)
+- Database migration recreating tables without `uuid` columns (`20260602100000`)
+- Comprehensive `///` documentation comments across Prisma schema, models, and enums
+- `ProjectMemberPermission` enum with `ALL` wildcard permission (`enums/team.prisma`)
+- Route prefix `/api/v1` to Fastify route registration
+
+### Changed
+
+- Renamed Prisma models: `Team` → `Project`, `TeamMember` → `ProjectMember`, `TeamInvite` → `ProjectInvite`, `TeamMemberPermissionAssignment` → `ProjectMemberPermissionAssignment`
+- Renamed `TeamMemberPermission` enum to `ProjectMemberPermission`; removed `TeamMemberRole` enum
+- Switched user JWT payload identifier from `uuid` to `id` in `AuthService` and `LoggedUser` type
+- Updated `FullUser` repository type include set from `teams` to `projects`
+- Updated `UserRole` enum documentation to clarify ADMIN bypasses project-level checks
+- Changed `envVariables()` return type to `as const` for stricter type inference
+- Added `EMAIL` and `RESEND_API_KEY` to `EnvUtils` validated env accessors
+- Moved route registration to use `/api/v1` prefix in `main.ts`
+
+### Removed
+
+- `Team`, `TeamMember`, `TeamInvite`, `TeamMemberPermissionAssignment` Prisma models
+- `TeamMemberRole` enum
+- `uuid` field from `User` model (simplified to single `cuid()` identifier)
+- `apps/api/prisma/models/team.prisma` file
+
 ## 2026-06-01
 
 ### Added
