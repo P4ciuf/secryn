@@ -21,6 +21,7 @@ export default defineConfig([
     ignores: [
       "**/*.test.ts",
       "**/*.test.tsx",
+      "**/test-setup.ts",
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",

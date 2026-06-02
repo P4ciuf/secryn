@@ -1,9 +1,16 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react()],
   cacheDir: "../../node_modules/.vite",
+  resolve: {
+    alias: {
+      "@": resolve(__dirname, "src"),
+      "framer-motion": resolve(__dirname, "src/__mocks__/framer-motion.tsx"),
+    },
+  },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
