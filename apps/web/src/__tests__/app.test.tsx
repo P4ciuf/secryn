@@ -1,15 +1,23 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import App from "../App.tsx";
+import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ComponentType } from "react";
+import Landing from "@/pages/Landing";
 
-describe("App", () => {
-  it("renders the heading", () => {
-    render(<App />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Hello, World!");
+function renderWithRouter(Comp: ComponentType) {
+  const router = createMemoryRouter([{ path: "/", Component: Comp }], { initialEntries: ["/"] });
+  return render(<RouterProvider router={router} />);
+}
+
+describe("Landing", () => {
+  it("renders the hero heading", () => {
+    renderWithRouter(Landing);
+    expect(screen.getByText("Secure Your Secrets, Simplify Your Workflow")).toBeInTheDocument();
   });
 
-  it("renders without crashing", () => {
-    const { container } = render(<App />);
-    expect(container).toBeInTheDocument();
+  it("renders the navbar with Get Started link", () => {
+    renderWithRouter(Landing);
+    const links = screen.getAllByText("Get Started");
+    expect(links.length).toBeGreaterThanOrEqual(1);
   });
 });

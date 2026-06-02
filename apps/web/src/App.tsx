@@ -1,9 +1,7 @@
-function App() {
-  return (
-    <>
-      <h1>Hello, World!</h1>
-    </>
-  );
-}
+import { RouterProvider } from "react-router";
+import { router } from "./routes";
 
-export default App;
+/** Root application component that renders the React Router provider. */
+export default function App() {
+  return <RouterProvider router={router} />;
+}
