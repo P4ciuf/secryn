@@ -3,10 +3,12 @@
 /// are pulled from the `models/` and `enums/` subdirectories.
 /// The database connection string is read from the `DATABASE_URL` environment variable.
 
+/// Generates the type-safe Prisma Client for database access.
 generator client {
   provider = "prisma-client-js"
 }
 
+/// PostgreSQL database connection; read from the `DATABASE_URL` environment variable.
 datasource db {
   provider = "postgresql"
 }

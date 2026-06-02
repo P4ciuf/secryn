@@ -55,6 +55,7 @@ model MFARecoveryCode {
   isValid Boolean @default(true) @map("is_valid")
 
   createdAt DateTime @default(now()) @map("created_at")
+  /// The date and time after which this recovery code is no longer valid.
   expiresAt DateTime @map("expires_at")
 
   @@map("mfa_recovery_codes")
@@ -79,12 +80,16 @@ model UserBan {
   /// The IP address of the user at the time the ban was applied.
   ipAddress String @map("ip_address")
 
+  /// When true, the ban never expires automatically; expiresAt is ignored.
   isPermanent Boolean @default(false) @map("is_permanent")
 
   createdAt DateTime  @default(now()) @map("created_at")
+  /// Optional expiry date for temporary bans; ignored when isPermanent is true.
   expiresAt DateTime? @map("expires_at")
 
+  /// When true, the ban has been manually lifted before its expiration.
   isRevoked Boolean   @default(false) @map("is_revoked")
+  /// Timestamp recording when the ban was manually revoked.
   revokedAt DateTime? @map("revoked_at")
 
   @@map("user_bans")
