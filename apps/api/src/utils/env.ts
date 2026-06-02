@@ -74,6 +74,7 @@ export class EnvUtils {
       resendApiKey: process.env["RESEND_API_KEY"],
       encryptionKey: process.env["ENCRYPTION_KEY"],
       jwtSecret: process.env["JWT_SECRET"],
+      appUrl: process.env["APP_URL"],
     };
   }
 
@@ -98,6 +99,7 @@ export class EnvUtils {
       resendApiKey: this.getKey("RESEND_API_KEY"),
       encryptionKey: this.getKey("ENCRYPTION_KEY"),
       jwtSecret: this.getKey("JWT_SECRET"),
+      appUrl: this.getKey("APP_URL"),
     } as const;
   }
 }

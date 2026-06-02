@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import type { AppRouteObject } from "../../types/route.js";
-import { ProjectService } from "../../modules/project/service.js";
-import { AppError } from "../../core/errors/appError.js";
+import type { AppRouteObject } from "../../../types/route.js";
+import { ProjectService } from "../../../modules/project/service.js";
+import { AppError } from "../../../core/errors/appError.js";
 
 /**
  * DELETE /projects/:id
