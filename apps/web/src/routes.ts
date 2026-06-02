@@ -1,0 +1,62 @@
+import { createBrowserRouter } from "react-router";
+import Landing from "./pages/Landing";
+import LoginPage from "./features/auth/LoginPage";
+import RegisterPage from "./features/auth/RegisterPage";
+import DashboardLayout from "./layouts/DashboardLayout";
+import ProjectsPage from "./features/projects/ProjectsPage";
+import SecretsPage from "./features/projects/SecretsPage";
+import ApiKeysPage from "./features/api-keys/ApiKeysPage";
+import ApiDocsPage from "./features/api-docs/ApiDocsPage";
+import WebhooksPage from "./features/webhooks/WebhooksPage";
+import SettingsPage from "./features/settings/SettingsPage";
+import NotFound from "./pages/NotFound";
+
+/** Application route definitions for public and authenticated sections. */
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    Component: Landing,
+  },
+  {
+    path: "/login",
+    Component: LoginPage,
+  },
+  {
+    path: "/register",
+    Component: RegisterPage,
+  },
+  {
+    path: "/dashboard",
+    Component: DashboardLayout,
+    children: [
+      {
+        path: "projects",
+        Component: ProjectsPage,
+      },
+      {
+        path: "projects/:projectId/secrets",
+        Component: SecretsPage,
+      },
+      {
+        path: "api-keys",
+        Component: ApiKeysPage,
+      },
+      {
+        path: "api-docs",
+        Component: ApiDocsPage,
+      },
+      {
+        path: "webhooks",
+        Component: WebhooksPage,
+      },
+      {
+        path: "settings",
+        Component: SettingsPage,
+      },
+    ],
+  },
+  {
+    path: "*",
+    Component: NotFound,
+  },
+]);
