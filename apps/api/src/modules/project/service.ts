@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, ProjectMemberPermission } from "@prisma/client";
 import { AppError } from "../../core/errors/appError.js";
 import { UserService } from "../user/service.js";
 import { projectRepository } from "./repository.js";
@@ -156,14 +156,14 @@ export class ProjectService {
   }
 
   /**
-   * Creates an invitation for a registered user to join a project and sends it via email.
-   * The inviter must have the `ALL` or `CREATE_INVITES` permission in the target project.
-   * Invites expire 7 days after creation. If the invitee is already a member, the request
-   * is rejected.
+   * Creates an invitation for a registered user to join a project.
+   * The inviter must hold the `ALL` or `CREATE_INVITES` permission in the target project.
+   * Invites expire 7 calendar days after creation. If the invitee is already a member, the request
+   * is rejected. On success, a styled HTML invitation email is dispatched to the invitee via Resend.
    *
+   * @async
    * @param toEmail - Email of the registered user to invite
    * @param projectId - ID of the project the user is being invited to
-   * @returns The created ProjectInvite record
    * @throws {AppError} ResourceNotFound — when the invitee or the inviter's membership is not found
    * @throws {AppError} Forbidden — when the inviter lacks the required permission
    * @throws {AppError} BadRequest — when the invited user is already a project member
@@ -327,5 +327,52 @@ export class ProjectService {
     await this.repository.deleteProjectInvite({
       slug_projectId: { slug, projectId: invite.projectId },
     });
+  }
+
+  /**
+   * Removes a member from a project. The caller must hold the `ALL` or `REMOVE_MEMBERS`
+   * permission in the target project. A user cannot remove themselves from a project.
+   *
+   * @async
+   * @param memberId - ID of the project member to remove
+   * @param projectId - ID of the project the member belongs to
+   * @throws {AppError} ResourceNotFound — when the project, the caller's user record,
+   *   or the target member does not exist
+   * @throws {AppError} Forbidden — when the caller lacks ALL or REMOVE_MEMBERS permission
+   * @throws {AppError} BadRequest — when the caller attempts to remove themselves
+   */
+  async removeMemberToProject(memberId: string, projectId: string): Promise<void> {
+    const user = await this.guard.getUserOrThrow(this.userId);
+    const project = await this.guard.getProjectOrThrow({ id: projectId });
+    const member = await this.repository.findProjectMember({ id: memberId });
+    if (!member) throw AppError.ResourceNotFound("Member not found");
+
+    const memberPermission = await this.repository.findProjectMemberPermissionAssignment({
+      projectMember: { id: member.id },
+    });
+    if (!memberPermission) throw Error("Member permission not found");
+    if (memberPermission.permission !== "ALL" && memberPermission.permission !== "REMOVE_MEMBERS") {
+      throw AppError.Forbidden("You don't have permission to remove members");
+    }
+    if (member.userId === user.id) throw AppError.BadRequest("You cannot remove yourself");
+
+    await this.repository.deleteProjectMember({ id: member.id, projectId: project.id });
+  }
+
+  /**
+   * Placeholder for future permission-granting logic.
+   * Not yet implemented — all parameters are prefixed with `_` to suppress unused-variable warnings.
+   *
+   * @deprecated This method is a stub and will throw if called before implementation is complete.
+   * @param _userId - Target user ID
+   * @param _projectId - Project scope
+   * @param _permissions - Set of permissions to grant
+   */
+  async addPermissionToMember(
+    _userId: string,
+    _projectId: string,
+    _permissions: Array<ProjectMemberPermission>,
+  ) {
+    // TODO: implement
   }
 }
