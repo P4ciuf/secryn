@@ -60,7 +60,7 @@ export default ((fastify: FastifyInstance) => ({
   handler: async (req, reply) => {
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
-    const projectService = new ProjectService(req.user.id);
+    const projectService = await ProjectService.Instance(req.user.id);
     const project = await projectService.createInvite(
       (req.body as { email: string }).email,
       (req.params as { id: string }).id,

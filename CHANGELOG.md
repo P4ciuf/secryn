@@ -10,15 +10,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - `README.md` with project overview, features, tech stack, configuration table, project structure, and available scripts
 - `CONTRIBUTING.md` with branching strategy (feature/fix/chore/refactor/release), Conventional Commits (feat, fix, chore, docs, refactor, test, perf, ci), pull request process, and code style guide
+- `ProjectService.Instance()` static async factory method replacing public constructor — loads full user record for authorization checks
+- `UserService.getUserOrThrow()` method returning user entity or throwing `ResourceNotFound`
+- `PolicyProject` authorization class with `hasPermission()` (ALL permission master override) and `isProjectOwner()` static methods (`modules/project/policy.ts`)
+- Project utility helpers: `generateSlugFromName()`, `ownsProject()` guard, and `generateInvitationExpiryDate()` (`modules/project/helper.ts`)
+- `projectInvitation.html` email template rendered from file system and sent via Resend (`modules/project/email/`)
+- `addPermissionsToMember()` and `removePermissionsFromMember()` methods in `ProjectService` with MANAGE_MEMBERS permission validation and batch assignment
+- `POST /projects/:projectId/members/:memberId/permissions` routes for adding and removing member permissions (`members/addPermissions.route.ts`, `members/removePermissions.route.ts`)
+- `DELETE /projects/:projectId/members/:memberId` route replacing old `remove.ts` with `remove.route.ts` following `.route.ts` module convention
+- Test suites for all three new member routes covering 204/400/401/403/404/500 scenarios (`members/__tests__/`)
+- OpenAPI schema documentation (summary, description, params, body, response) for add-permissions, remove-permissions, and remove-member routes
+- Route-level and JSDoc documentation for `PolicyProject`, `helper.ts`, `ProjectService.Instance`, and `alreadyExistsProject`
 
 ### Changed
+- Refactored `ProjectService` from constructor-based `new ProjectService(userId)` to async factory `ProjectService.Instance(userId)` with private constructor and pre-loaded `FullUser`
+- All project and invite route handlers updated to use `await ProjectService.Instance(req.user.id)` factory pattern
+- Switched authorization delegation from deleted `ProjectGuard` class to new `PolicyProject` static helpers
+- Moved slug generation from deleted `utils.ts` to `helper.ts`; consolidated ownership check and invite expiry logic
+- Updated `findProjectMemberPermissionAssignment` from `findFirst` to `findMany` returning all permission assignments per member
+- Updated `deleteProjectMemberPermissionAssignment` parameter type from `WhereUniqueInput` to `WhereInput` with inline cast for composite unique key
+- Added default message `"You don't have permission to perform this action"` to `AppError.Forbidden()` static factory
+- Improved JSDoc across `ProjectService`: fixed class description, added `@async`/`@throws`/`@returns` tags, documented `removePermissionsFromMember` and `alreadyExistsProject`
+- Added `@async` JSDoc tags to `UserService.createUser`, `deleteUser`, `getUser`, and `updateUser`
 - Filled `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` in `.env.example` with dummy values consistent with `DATABASE_URL`
 - Added `APP_URL` environment variable to `.env.example` (required by `EnvUtils` at startup)
-- Improved `ProjectService` JSDoc — added `@async` tags to `createProject`, `deleteProject`, `updateNameProject`, `transferOwnerProject`, `getProject`, and `acceptInvite`
 - Rewrote `addPermissionToMember` JSDoc block (removed incorrect `@deprecated`, added `@throws`, improved description and `@param` documentation)
 
 ### Fixed
-- Replaced `// TODO: implement` stub in `ProjectService.addPermissionToMember` with explicit `throw new Error(...)` so the unimplemented method fails loudly if called
+- `ProjectService.createInvite()` now loads and renders HTML email template from file system instead of inline string
+- `assignAllPermissionToMemberUnsafe` uses `this.user` directly instead of guard-mediated user lookup
+- Replaced `// TODO: implement` stub in `ProjectService.addPermissionToMember` with full implementation
+
+### Removed
+- `ProjectGuard` class (`modules/project/guard.ts`) — superseded by `PolicyProject` static authorization helpers
+- `utils.ts` utility module (`modules/project/utils.ts`) — functions migrated to `helper.ts`
+- `members/remove.ts` route file — replaced by `members/remove.route.ts` following `.route.ts` module convention
+- `**/*todo.md` from ESLint ignore list
 
 ## 2026-06-03
 

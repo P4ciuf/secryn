@@ -68,7 +68,10 @@ export class AppError extends Error {
    * @param message - Human-readable error description
    * @param code - Error code (default "FORBIDDEN")
    */
-  static Forbidden(message: string, code: ErrorCodeValue = "FORBIDDEN") {
+  static Forbidden(
+    message: string = "You don't have permission to perform this action",
+    code: ErrorCodeValue = "FORBIDDEN",
+  ) {
     return new this(message, 403, code);
   }
 

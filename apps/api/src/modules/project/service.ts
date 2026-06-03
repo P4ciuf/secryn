@@ -1,30 +1,48 @@
-import type { Prisma, ProjectMemberPermission } from "@prisma/client";
+import { ProjectMemberPermission, type Prisma } from "@prisma/client";
 import { AppError } from "../../core/errors/appError.js";
 import { UserService } from "../user/service.js";
-import { projectRepository } from "./repository.js";
-import { ProjectGuard } from "./guard.js";
-import { generateSlugFromName } from "./utils.js";
+import { projectRepository, type FullProject } from "./repository.js";
 import { EmailUtils } from "../../utils/email.js";
 import { EnvUtils } from "../../utils/env.js";
+import { PolicyProject } from "./policy.js";
+import { generateInvitationExpiryDate, generateSlugFromName, ownsProject } from "./helper.js";
+import type { FullUser } from "../user/repository.js";
+import path from "node:path";
+import { readFileSync } from "node:fs";
 
 /**
  * Business-logic layer for project operations.
- * Each instance is scoped to a single user (identified by `userId`) and
- * delegates authorization to `ProjectGuard` before mutating state via the repository.
- * The owner user is automatically added as a project member with the ALL permission.
+ * Each instance is scoped to a single authenticated user and delegates
+ * authorization to {@link PolicyProject} before mutating state via the repository.
  */
 export class ProjectService {
   private readonly repository = projectRepository;
   private readonly userService = new UserService();
-  private readonly guard: ProjectGuard;
-  private readonly userId: string;
+  private readonly policy = PolicyProject;
+  private readonly user: FullUser;
 
   /**
    * @param userId - The authenticated user on behalf of whom all operations are performed
    */
-  constructor(userId: string) {
-    this.userId = userId;
-    this.guard = new ProjectGuard(this.repository, this.userService, userId);
+  private constructor(user: FullUser) {
+    this.user = user;
+  }
+
+  /**
+   * Async factory that resolves the authenticated user and constructs a scoped instance.
+   * Must be used instead of the private constructor — it fetches the full user record
+   * required for authorization checks throughout the service.
+   *
+   * @async
+   * @param userId - The authenticated user's ID
+   * @returns A ProjectService instance bound to the resolved user
+   * @throws {AppError} ResourceNotFound — when the user does not exist
+   */
+  static async Instance(userId: string): Promise<ProjectService> {
+    const userService = new UserService();
+    const user = await userService.getUserOrThrow({ id: userId });
+    const instance = new ProjectService(user);
+    return instance;
   }
 
   /**
@@ -33,13 +51,23 @@ export class ProjectService {
    * the assignment is legitimate (e.g., the target user is the project owner).
    */
   private async assignAllPermissionToMemberUnsafe(memberId: string, projectId: string) {
-    const user = await this.guard.getUserOrThrow(this.userId);
-
     await this.repository.createMemberPermissionAssignment({
       projectMember: { connect: { id: memberId, projectId } },
       permission: "ALL",
-      addedByUser: { connect: { id: user.id } },
+      addedByUser: { connect: { id: this.user.id } },
     });
+  }
+
+  /**
+   * Checks whether a project matching the given criteria already exists.
+   * Throws {@link AppError.BadRequest} if a match is found — no return value on success.
+   *
+   * @param where - Search criteria to check for an existing project
+   * @throws {AppError} BadRequest — when a matching project already exists
+   */
+  private async alreadyExistsProject(where: Prisma.ProjectWhereInput) {
+    const project = await this.repository.findProject(where);
+    if (project) throw AppError.BadRequest("Project already exists");
   }
 
   /**
@@ -53,24 +81,22 @@ export class ProjectService {
    * @throws {AppError} BadRequest — when a project with the same name or slug already exists
    */
   async createProject(name: string) {
-    const user = await this.guard.getUserOrThrow(this.userId);
-
     const slug = generateSlugFromName(name);
 
-    await this.guard.alreadyExistsProject({ OR: [{ slug }, { name }] });
+    await this.alreadyExistsProject({ OR: [{ slug }, { name }] });
 
     const project = await this.repository.createProject({
       name,
       slug,
-      owner: { connect: { id: user.id } },
+      owner: { connect: { id: this.user.id } },
     });
 
-    const ownerMember = await this.repository.createMember({
-      user: { connect: { id: user.id } },
+    const ownMember = await this.repository.createMember({
+      user: { connect: { id: this.user.id } },
       project: { connect: { id: project.id } },
     });
 
-    await this.assignAllPermissionToMemberUnsafe(ownerMember.id, project.id);
+    await this.assignAllPermissionToMemberUnsafe(ownMember.id, project.id);
 
     return project;
   }
@@ -85,8 +111,8 @@ export class ProjectService {
    * @throws {AppError} Forbidden — when the current user is not the project owner
    */
   async deleteProject(where: Prisma.ProjectWhereUniqueInput): Promise<void> {
-    const project = await this.guard.getProjectOrThrow(where);
-    this.guard.validateProjectOwner(project);
+    const project = await this.getProjectOrThrow(where);
+    ownsProject(this.user.id, project.owner.id);
 
     await this.repository.deleteProject(where);
   }
@@ -104,12 +130,12 @@ export class ProjectService {
    * @throws {AppError} BadRequest — when the new name or derived slug conflicts with an existing project
    */
   async updateNameProject(where: Prisma.ProjectWhereUniqueInput, name: string) {
-    const project = await this.guard.getProjectOrThrow(where);
-    this.guard.validateProjectOwner(project);
+    const project = await this.getProjectOrThrow(where);
+    ownsProject(this.user.id, project.owner.id);
 
     const slug = generateSlugFromName(name);
 
-    await this.guard.alreadyExistsProject({ OR: [{ slug }, { name: name }] });
+    await this.alreadyExistsProject({ OR: [{ slug }, { name: name }] });
 
     return await this.repository.updateProject(where, { name: name, slug });
   }
@@ -126,16 +152,15 @@ export class ProjectService {
    * @throws {AppError} Forbidden — when the current user is not the current project owner
    */
   async transferOwnerProject(where: Prisma.ProjectWhereUniqueInput, toUserId: string) {
-    const project = await this.guard.getProjectOrThrow(where);
-    this.guard.validateProjectOwner(project);
+    const project = await this.getProjectOrThrow(where);
+    ownsProject(this.user.id, project.owner.id);
 
-    const user = await this.guard.getUserOrThrow(toUserId);
+    const user = await this.userService.getUserOrThrow({ id: toUserId });
 
-    const member = await this.repository.findProjectMember({
+    const member = await this.getMemberOrThrow({
       user: { id: user.id },
       project: { id: project.id },
     });
-    if (!member) throw AppError.ResourceNotFound("Member");
 
     await this.repository.updateProject(where, {
       owner: { connect: { id: user.id } },
@@ -143,7 +168,7 @@ export class ProjectService {
 
     await this.assignAllPermissionToMemberUnsafe(member.id, project.id);
 
-    return await this.guard.getProjectOrThrow(where);
+    return await this.getProjectOrThrow(where);
   }
 
   /**
@@ -157,7 +182,13 @@ export class ProjectService {
    * @throws {AppError} NotFound — when the project does not exist
    */
   async getProject(where: Prisma.ProjectWhereUniqueInput) {
-    return await this.guard.getProjectOrThrow(where);
+    return await this.repository.findProject(where);
+  }
+
+  async getProjectOrThrow(where: Prisma.ProjectWhereUniqueInput): Promise<FullProject> {
+    const project = await this.repository.findProject(where);
+    if (!project) throw AppError.ResourceNotFound("Project");
+    return project;
   }
 
   /**
@@ -180,127 +211,60 @@ export class ProjectService {
       throw AppError.ResourceNotFound("User not found");
     }
 
-    const project = await this.guard.getProjectOrThrow({ id: projectId });
+    const project = await this.getProjectOrThrow({ id: projectId });
 
-    const fromMember = await this.repository.findProjectMember({
-      user: { id: this.userId },
+    const fromMember = await this.getMemberOrThrow({
+      user: { id: this.user.id },
       project: { id: project.id },
     });
-    if (!fromMember) throw AppError.ResourceNotFound("Member not found");
 
     const fromMemberPermission = await this.repository.findProjectMemberPermissionAssignment({
       projectMember: { id: fromMember.id },
     });
 
     if (!fromMemberPermission) throw Error("Member permission not found");
-    if (
-      fromMemberPermission.permission !== "ALL" &&
-      fromMemberPermission.permission !== "CREATE_INVITES"
-    ) {
+    if (!this.policy.hasPermission(fromMemberPermission, ProjectMemberPermission.CREATE_INVITES)) {
       throw AppError.Forbidden("You don't have permission to create invites");
     }
 
-    const existsUserMember = await this.repository.findProjectMember({
+    const existsUserMember = await this.getMember({
       user: { id: toUser.id },
       project: { id: project.id },
     });
     if (existsUserMember) throw AppError.BadRequest("User is already a member of this project");
 
-    const expiresAt = new Date();
-    // Invitation expires 7 calendar days from creation
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresAt = generateInvitationExpiryDate();
+
     const invite = await this.repository.createInvite({
       project: { connect: { id: projectId } },
-      // Derive a deterministic, unique slug per user-project pair to prevent collisions
       slug: generateSlugFromName(toUser.email + project.id),
       expiresAt,
     });
 
-    const emailHTMLContent = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Project Invitation</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f0f4ff;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4ff;padding:40px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(37,99,235,0.10);">
+    const template = readFileSync(path.join(__dirname, "emails/project-invitation.html"), "utf-8");
 
-          <!-- Header -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#1d4ed8 0%,#2563eb 60%,#3b82f6 100%);padding:48px 40px 40px;text-align:center;">
-              <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:50%;width:64px;height:64px;line-height:64px;font-size:30px;margin-bottom:20px;">📬</div>
-              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">You're Invited!</h1>
-              <p style="margin:10px 0 0;color:#bfdbfe;font-size:15px;">You have been invited to collaborate on a project</p>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:40px 40px 32px;">
-              <p style="margin:0 0 16px;color:#1e3a5f;font-size:16px;line-height:1.6;">
-                Hi <strong>${toUser.email}</strong>,
-              </p>
-              <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.7;">
-                A team member has invited you to join a project. Collaborate, share ideas, and build something great together.
-              </p>
-
-              <!-- CTA Button -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">
-                <tr>
-                  <td align="center" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);border-radius:8px;">
-                    <a href=${EnvUtils.envVariables().appUrl + "/join/" + invite.slug} style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;letter-spacing:0.3px;">
-                      Accept Invitation →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Info box -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="background:#eff6ff;border-left:4px solid #2563eb;border-radius:0 8px 8px 0;padding:16px 20px;">
-                    <p style="margin:0;color:#1e40af;font-size:13px;line-height:1.6;">
-                      🔒 &nbsp;This invitation is personal and intended only for you. If you weren't expecting this, you can safely ignore this email.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Divider -->
-          <tr>
-            <td style="padding:0 40px;">
-              <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:24px 40px 36px;text-align:center;">
-              <p style="margin:0 0 6px;color:#9ca3af;font-size:12px;">
-                You received this email because someone invited you to a project.
-              </p>
-              <p style="margin:0;color:#9ca3af;font-size:12px;">
-                © ${new Date().getFullYear()} SecureVault. All rights reserved.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`;
+    const emailHTMLContent = template
+      .replace("{{EMAIL}}", toUser.email)
+      .replace("{{INVITE_URL}}", `${EnvUtils.envVariables().appUrl}/join/${invite.slug}`)
+      .replace("{{YEAR}}", String(new Date().getFullYear()));
 
     await new EmailUtils().sendEmail(toUser.email, "Invitation to join project", emailHTMLContent);
+  }
+
+  async getMember(where: Prisma.ProjectMemberWhereInput) {
+    return await this.repository.findProjectMember(where);
+  }
+
+  async getMemberOrThrow(where: Prisma.ProjectMemberWhereInput) {
+    const member = await this.getMember(where);
+    if (!member) throw AppError.ResourceNotFound("Member");
+    return member;
+  }
+
+  async getInviteOrThrow(where: Prisma.ProjectInviteWhereUniqueInput) {
+    const invite = await this.repository.findProjectInvite(where);
+    if (!invite) throw AppError.ResourceNotFound("Invite");
+    return invite;
   }
 
   /**
@@ -313,20 +277,18 @@ export class ProjectService {
    * @throws {AppError} BadRequest — when the invite has expired or the user is already a member
    */
   async acceptInvite(slug: string): Promise<void> {
-    const invite = await this.repository.findProjectInvite({ slug: slug });
-    if (!invite) throw AppError.ResourceNotFound("Invite not found");
+    const invite = await this.getInviteOrThrow({ slug });
 
     if (invite.expiresAt < new Date()) throw AppError.BadRequest("Invite has expired");
 
-    const user = await this.guard.getUserOrThrow(this.userId);
-    const existsUserMember = await this.repository.findProjectMember({
-      user: { id: user.id },
+    const existsUserMember = await this.getMember({
+      user: { id: this.user.id },
       project: { id: invite.projectId },
     });
     if (existsUserMember) throw AppError.BadRequest("User is already a member of this project");
 
     await this.repository.createMember({
-      user: { connect: { id: user.id } },
+      user: { connect: { id: this.user.id } },
       project: { connect: { id: invite.projectId } },
     });
 
@@ -348,39 +310,108 @@ export class ProjectService {
    * @throws {AppError} BadRequest — when the caller attempts to remove themselves
    */
   async removeMemberToProject(memberId: string, projectId: string): Promise<void> {
-    const user = await this.guard.getUserOrThrow(this.userId);
-    const project = await this.guard.getProjectOrThrow({ id: projectId });
-    const member = await this.repository.findProjectMember({ id: memberId });
-    if (!member) throw AppError.ResourceNotFound("Member not found");
+    const project = await this.getProjectOrThrow({ id: projectId });
+    const member = await this.getMemberOrThrow({ id: memberId });
 
-    const memberPermission = await this.repository.findProjectMemberPermissionAssignment({
+    const memberPermission = await this.getPermissionAssignmentOrThrow({
       projectMember: { id: member.id },
     });
-    if (!memberPermission) throw Error("Member permission not found");
-    if (memberPermission.permission !== "ALL" && memberPermission.permission !== "REMOVE_MEMBERS") {
+
+    if (!this.policy.hasPermission(memberPermission, ProjectMemberPermission.REMOVE_MEMBERS)) {
       throw AppError.Forbidden("You don't have permission to remove members");
     }
-    if (member.userId === user.id) throw AppError.BadRequest("You cannot remove yourself");
+
+    if (member.userId === this.user.id) throw AppError.BadRequest("You cannot remove yourself");
 
     await this.repository.deleteProjectMember({ id: member.id, projectId: project.id });
   }
 
   /**
    * Grants one or more permissions to a project member.
-   * Not yet implemented — throws unconditionally. Parameters are prefixed with `_`
-   * to suppress unused-variable warnings until the implementation is complete.
+   * The caller must hold the `ALL` or `MANAGE_MEMBERS` permission in the target project.
    *
    * @async
-   * @param _userId - Target user ID receiving the permissions
-   * @param _projectId - Project in which the permissions are granted
-   * @param _permissions - Set of `ProjectMemberPermission` values to assign
-   * @throws {Error} Always — implementation is pending
+   * @param memberId - ID of the project member receiving the permissions
+   * @param projectId - Project in which the permissions are granted
+   * @param permissions - Set of `ProjectMemberPermission` values to assign
+   * @throws {AppError} ResourceNotFound — when the member, the caller's membership,
+   *   or the permission assignment is not found
+   * @throws {AppError} Forbidden — when the caller lacks MANAGE_MEMBERS or ALL permission
    */
-  async addPermissionToMember(
-    _userId: string,
-    _projectId: string,
-    _permissions: Array<ProjectMemberPermission>,
+  async addPermissionsToMember(
+    memberId: string,
+    projectId: string,
+    permissions: Array<ProjectMemberPermission>,
   ) {
-    throw new Error("addPermissionToMember is not yet implemented");
+    const member = await this.getMemberOrThrow({ id: memberId });
+    const adminMember = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+      project: { id: projectId },
+    });
+
+    const adminPermission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: adminMember.id },
+    });
+
+    if (!this.policy.hasPermission(adminPermission, ProjectMemberPermission.MANAGE_MEMBERS)) {
+      throw AppError.Forbidden("You don't have permission to add permissions");
+    }
+
+    for (const permission of permissions) {
+      await this.repository.createMemberPermissionAssignment({
+        permission: permission,
+        projectMember: { connect: { id: member.id } },
+        addedByUser: { connect: { id: this.user.id } },
+      });
+    }
+  }
+
+  /**
+   * Revokes one or more permissions from a project member.
+   * The caller must hold the `ALL` or `MANAGE_MEMBERS` permission in the target project.
+   *
+   * @async
+   * @param memberId - ID of the project member whose permissions are being revoked
+   * @param projectId - Project the member belongs to
+   * @param permissions - Set of `ProjectMemberPermission` values to revoke
+   * @throws {AppError} ResourceNotFound — when the member, the caller's membership,
+   *   or the permission assignment is not found
+   * @throws {AppError} Forbidden — when the caller lacks MANAGE_MEMBERS or ALL permission
+   */
+  async removePermissionsFromMember(
+    memberId: string,
+    projectId: string,
+    permissions: Array<ProjectMemberPermission>,
+  ) {
+    const member = await this.getMemberOrThrow({ id: memberId });
+    const adminMember = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+      project: { id: projectId },
+    });
+
+    const adminPermission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: adminMember.id },
+    });
+
+    if (!this.policy.hasPermission(adminPermission, ProjectMemberPermission.MANAGE_MEMBERS)) {
+      throw AppError.Forbidden("You don't have permission to remove permissions");
+    }
+
+    for (const permission of permissions) {
+      await this.repository.deleteProjectMemberPermissionAssignment({
+        permission: permission,
+        projectMember: { id: member.id },
+      });
+    }
+  }
+
+  async getPermissionAssignment(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
+    return await this.repository.findProjectMemberPermissionAssignment(where);
+  }
+
+  async getPermissionAssignmentOrThrow(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
+    const permissionAssignment = await this.getPermissionAssignment(where);
+    if (!permissionAssignment) throw AppError.ResourceNotFound("Permission assignment");
+    return permissionAssignment;
   }
 }

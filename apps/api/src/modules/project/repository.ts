@@ -101,13 +101,18 @@ export class ProjectRepository {
   async findProjectMemberPermissionAssignment(
     where: Prisma.ProjectMemberPermissionAssignmentWhereInput,
   ) {
-    return await prisma.projectMemberPermissionAssignment.findFirst({ where });
+    // A member can hold multiple permissions; findMany returns the full assignment list.
+    return await prisma.projectMemberPermissionAssignment.findMany({ where });
   }
 
   async deleteProjectMemberPermissionAssignment(
-    where: Prisma.ProjectMemberPermissionAssignmentWhereUniqueInput,
+    where: Prisma.ProjectMemberPermissionAssignmentWhereInput,
   ) {
-    return await prisma.projectMemberPermissionAssignment.delete({ where });
+    // Prisma's delete method requires a unique input type, but the caller
+    // supplies a composite `where` object that uniquely identifies the row.
+    return await prisma.projectMemberPermissionAssignment.delete({
+      where: where as Prisma.ProjectMemberPermissionAssignmentWhereUniqueInput,
+    });
   }
 
   async updateProjectMemberPermissionAssignment(

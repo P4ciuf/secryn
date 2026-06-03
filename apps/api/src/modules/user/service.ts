@@ -85,6 +85,19 @@ export class UserService {
   }
 
   /**
+   * Retrieves a user by unique identifier, throwing an error if not found.
+   *
+   * @param where - Prisma unique identifier
+   * @returns The user entity
+   * @throws {AppError} ResourceNotFound if the user does not exist
+   */
+  async getUserOrThrow(where: Prisma.UserWhereUniqueInput) {
+    const user = await this.repository.find(where);
+    if (!user) throw AppError.ResourceNotFound("User");
+    return user;
+  }
+
+  /**
    * Updates a user after confirming existence.
    *
    * @param where - Prisma unique identifier
