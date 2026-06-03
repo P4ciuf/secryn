@@ -15,7 +15,7 @@
 - [x] Prisma ORM configuration
 - [x] Project architecture (routes, services, plugins)
 - [x] User model
-- [x] Team model
+- [x] Team model _(renamed to Project model)_
 - [x] Secret model
 
 ## Authentication
@@ -47,11 +47,11 @@
 
 ## API Security
 
-- [ ] Request validation
-- [ ] Rate limiting
+- [x] Request validation _(schema validation on auth + project routes)_
+- [x] Rate limiting _(`@fastify/rate-limit`, 50 req/min)_
 - [ ] Brute-force protection
-- [ ] Secure JWT strategy
-- [ ] CORS hardening
+- [x] Secure JWT strategy _(httpOnly cookies + bcrypt)_
+- [x] CORS hardening _(`@fastify/cors`, credentials)_
 
 ## Security Review
 
@@ -65,21 +65,21 @@
 
 ## Authentication UI
 
-- [ ] Login page
-- [ ] Registration page
+- [x] Login page
+- [x] Registration page
 
 ## Project Management
 
-- [ ] Dashboard overview
-- [ ] Create project
-- [ ] Project settings
+- [x] Dashboard overview
+- [x] Create project
+- [x] Project settings _(user settings: profile, security, notifications, danger zone)_
 
 ## Secret Management UI
 
-- [ ] Secret listing
-- [ ] Add secret
-- [ ] Delete secret
-- [ ] Search and filtering
+- [x] Secret listing
+- [x] Add secret
+- [x] Delete secret
+- [x] Search and filtering
 
 ---
 
@@ -100,8 +100,8 @@
 
 ## Documentation
 
-- [ ] API reference
-- [ ] Quick start guide
+- [x] API reference _(Swagger UI at /docs, OpenAPI 3.1.0)_
+- [x] Quick start guide _(README.md Getting Started)_
 - [ ] Authentication guide
 
 ---
@@ -130,14 +130,14 @@
 - [ ] Production database
 - [ ] Backend deployment
 - [ ] Frontend deployment
-- [ ] Monitoring and logging
+- [x] Monitoring and logging _(Winston with daily rotate file)_
 - [ ] Backup strategy
 
 ## Operations
 
-- [ ] Environment management
-- [ ] Error tracking
-- [ ] Health checks
+- [x] Environment management _(`EnvUtils`, `.env.example`)_
+- [x] Error tracking _(`AppError`, global error handler)_
+- [x] Health checks _(`GET /api/v1/health`)_
 
 ---
 
@@ -145,9 +145,9 @@
 
 ## Open Source Readiness
 
-- [ ] README
-- [ ] Contribution guide
-- [ ] License
+- [x] README
+- [x] Contribution guide
+- [x] License _(Apache 2.0)_
 - [ ] GitHub release
 
 ## Community

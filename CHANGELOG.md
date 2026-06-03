@@ -7,16 +7,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Added
+- `README.md` with project overview, features, tech stack, configuration table, project structure, and available scripts
+- `CONTRIBUTING.md` with branching strategy (feature/fix/chore/refactor/release), Conventional Commits (feat, fix, chore, docs, refactor, test, perf, ci), pull request process, and code style guide
+
+### Changed
+- Filled `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` in `.env.example` with dummy values consistent with `DATABASE_URL`
+- Added `APP_URL` environment variable to `.env.example` (required by `EnvUtils` at startup)
+- Improved `ProjectService` JSDoc — added `@async` tags to `createProject`, `deleteProject`, `updateNameProject`, `transferOwnerProject`, `getProject`, and `acceptInvite`
+- Rewrote `addPermissionToMember` JSDoc block (removed incorrect `@deprecated`, added `@throws`, improved description and `@param` documentation)
+
+### Fixed
+- Replaced `// TODO: implement` stub in `ProjectService.addPermissionToMember` with explicit `throw new Error(...)` so the unimplemented method fails loudly if called
+
 ## 2026-06-03
 
 ### Added
 - Test suite for project invite create route covering 200/400/401/403/404/500 scenarios (`routes/project/invite/__tests__/create.test.ts`)
 - Test suite for project invite accept route covering 204/400/401/404/500 scenarios (`routes/project/invite/__tests__/accept.test.ts`)
 - Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
+- VS Code workspace settings for TypeScript SDK path (`.vscode/settings.json`, `apps/web/.vscode/settings.json`)
+- SecureVault project roadmap with phased milestone tracking (`todo.md`)
 
 ### Changed
 - Extended `ProjectService` with `removeMemberToProject` method supporting permission validation (ALL/REMOVE_MEMBERS), member-not-found checks, and self-removal prevention
 - Added `addPermissionToMember` stub method to `ProjectService` (pending implementation)
+- Removed `.vscode` and `todo.md` from `.gitignore` to version-control workspace settings and roadmap
 
 ## 2026-06-02
 
