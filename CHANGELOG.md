@@ -21,6 +21,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Test suites for all three new member routes covering 204/400/401/403/404/500 scenarios (`members/__tests__/`)
 - OpenAPI schema documentation (summary, description, params, body, response) for add-permissions, remove-permissions, and remove-member routes
 - Route-level and JSDoc documentation for `PolicyProject`, `helper.ts`, `ProjectService.Instance`, and `alreadyExistsProject`
+- Test suite for project invite create route covering 200/400/401/403/404/500 scenarios (`routes/project/invite/__tests__/create.test.ts`)
+- Test suite for project invite accept route covering 204/400/401/404/500 scenarios (`routes/project/invite/__tests__/accept.test.ts`)
+- Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
+- VS Code workspace settings for TypeScript SDK path (`.vscode/settings.json`, `apps/web/.vscode/settings.json`)
+- SecureVault project roadmap with phased milestone tracking (`todo.md`)
 
 ### Changed
 - Refactored `ProjectService` from constructor-based `new ProjectService(userId)` to async factory `ProjectService.Instance(userId)` with private constructor and pre-loaded `FullUser`
@@ -35,6 +40,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Filled `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` in `.env.example` with dummy values consistent with `DATABASE_URL`
 - Added `APP_URL` environment variable to `.env.example` (required by `EnvUtils` at startup)
 - Rewrote `addPermissionToMember` JSDoc block (removed incorrect `@deprecated`, added `@throws`, improved description and `@param` documentation)
+- Extended `ProjectService` with `removeMemberToProject` method supporting permission validation (ALL/REMOVE_MEMBERS), member-not-found checks, and self-removal prevention
+- Added `addPermissionToMember` stub method to `ProjectService` (pending implementation)
+- Removed `.vscode` and `todo.md` from `.gitignore` to version-control workspace settings and roadmap
 
 ### Fixed
 - `ProjectService.createInvite()` now loads and renders HTML email template from file system instead of inline string
@@ -46,20 +54,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `utils.ts` utility module (`modules/project/utils.ts`) — functions migrated to `helper.ts`
 - `members/remove.ts` route file — replaced by `members/remove.route.ts` following `.route.ts` module convention
 - `**/*todo.md` from ESLint ignore list
-
-## 2026-06-03
-
-### Added
-- Test suite for project invite create route covering 200/400/401/403/404/500 scenarios (`routes/project/invite/__tests__/create.test.ts`)
-- Test suite for project invite accept route covering 204/400/401/404/500 scenarios (`routes/project/invite/__tests__/accept.test.ts`)
-- Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
-- VS Code workspace settings for TypeScript SDK path (`.vscode/settings.json`, `apps/web/.vscode/settings.json`)
-- SecureVault project roadmap with phased milestone tracking (`todo.md`)
-
-### Changed
-- Extended `ProjectService` with `removeMemberToProject` method supporting permission validation (ALL/REMOVE_MEMBERS), member-not-found checks, and self-removal prevention
-- Added `addPermissionToMember` stub method to `ProjectService` (pending implementation)
-- Removed `.vscode` and `todo.md` from `.gitignore` to version-control workspace settings and roadmap
 
 ## 2026-06-02
 
