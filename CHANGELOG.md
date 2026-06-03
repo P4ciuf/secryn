@@ -7,6 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+## 2026-06-03
+
+### Added
+- Test suite for project invite create route covering 200/400/401/403/404/500 scenarios (`routes/project/invite/__tests__/create.test.ts`)
+- Test suite for project invite accept route covering 204/400/401/404/500 scenarios (`routes/project/invite/__tests__/accept.test.ts`)
+- Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
+
+### Changed
+- Extended `ProjectService` with `removeMemberToProject` method supporting permission validation (ALL/REMOVE_MEMBERS), member-not-found checks, and self-removal prevention
+- Added `addPermissionToMember` stub method to `ProjectService` (pending implementation)
+
+## 2026-06-02
+
 ### Added
 
 - **Web application scaffold**: Complete React + Vite + TypeScript frontend under `apps/web/src/` with shadcn/ui design system
