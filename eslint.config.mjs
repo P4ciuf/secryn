@@ -30,6 +30,7 @@ export default defineConfig([
       "**/coverage/**",
       "**/env.ts",
       "**/register-paths.js",
+      "**/TODO.md",
       "**/.vercel/**",
     ],
   },
