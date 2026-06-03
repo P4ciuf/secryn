@@ -47,6 +47,7 @@ export class ProjectService {
    * The owner is automatically added as a project member with the ALL permission.
    * The project slug is derived from the name.
    *
+   * @async
    * @param name - The display name of the project
    * @returns The newly created project, including owner, members, invites, and secrets
    * @throws {AppError} BadRequest — when a project with the same name or slug already exists
@@ -78,6 +79,7 @@ export class ProjectService {
    * Permanently deletes a project and all associated data (secrets, members, invites).
    * Only the project owner is allowed to delete.
    *
+   * @async
    * @param where - Unique identifier for the project to delete
    * @throws {AppError} NotFound — when the project does not exist
    * @throws {AppError} Forbidden — when the current user is not the project owner
@@ -93,6 +95,7 @@ export class ProjectService {
    * Updates the name (and derived slug) of a project.
    * Only the project owner is allowed to rename.
    *
+   * @async
    * @param where - Unique identifier for the project to update
    * @param name - The new project name
    * @returns The updated project with the new name and slug
@@ -115,6 +118,7 @@ export class ProjectService {
    * Transfers project ownership to another user who must already be a member.
    * The new owner receives the `ALL` permission after the transfer.
    *
+   * @async
    * @param where - Unique identifier for the project to transfer
    * @param toUserId - ID of the existing member who will become the new owner
    * @returns The updated project reflecting the new owner
@@ -147,6 +151,7 @@ export class ProjectService {
    * Authorization is implicit: if the user can access the project at all,
    * it is returned in full; otherwise the guard throws NotFound.
    *
+   * @async
    * @param where - Unique identifier for the project
    * @returns The full project including owner, members, invites, and secrets
    * @throws {AppError} NotFound — when the project does not exist
@@ -302,6 +307,7 @@ export class ProjectService {
    * Accepts a project invitation identified by its slug, adding the authenticated user
    * as a project member and consuming the invite so it cannot be reused.
    *
+   * @async
    * @param slug - The unique invitation slug from the invite link
    * @throws {AppError} ResourceNotFound — when the invite does not exist
    * @throws {AppError} BadRequest — when the invite has expired or the user is already a member
@@ -360,19 +366,21 @@ export class ProjectService {
   }
 
   /**
-   * Placeholder for future permission-granting logic.
-   * Not yet implemented — all parameters are prefixed with `_` to suppress unused-variable warnings.
+   * Grants one or more permissions to a project member.
+   * Not yet implemented — throws unconditionally. Parameters are prefixed with `_`
+   * to suppress unused-variable warnings until the implementation is complete.
    *
-   * @deprecated This method is a stub and will throw if called before implementation is complete.
-   * @param _userId - Target user ID
-   * @param _projectId - Project scope
-   * @param _permissions - Set of permissions to grant
+   * @async
+   * @param _userId - Target user ID receiving the permissions
+   * @param _projectId - Project in which the permissions are granted
+   * @param _permissions - Set of `ProjectMemberPermission` values to assign
+   * @throws {Error} Always — implementation is pending
    */
   async addPermissionToMember(
     _userId: string,
     _projectId: string,
     _permissions: Array<ProjectMemberPermission>,
   ) {
-    // TODO: implement
+    throw new Error("addPermissionToMember is not yet implemented");
   }
 }
