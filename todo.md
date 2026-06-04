@@ -1,12 +1,14 @@
 # SecureVault Roadmap
 
+<!-- eslint-disable markdown/no-missing-label-refs -->
+
 > SecureVault is a secure secrets management platform for developers and teams.
 >
 > Goal: build a simple, secure, and developer-friendly solution for storing and managing environment variables and application secrets.
 
 ---
 
-# Phase 1 — MVP Core
+## Phase 1 — MVP Core
 
 ## Backend Foundation
 
@@ -36,7 +38,7 @@
 
 ---
 
-# Phase 2 — Security
+## Phase 2 — Security
 
 ## Encryption
 
@@ -61,7 +63,7 @@
 
 ---
 
-# Phase 3 — Web Dashboard
+## Phase 3 — Web Dashboard
 
 ## Authentication UI
 
@@ -83,7 +85,7 @@
 
 ---
 
-# Phase 4 — Developer Platform
+## Phase 4 — Developer Platform
 
 ## API Access
 
@@ -106,7 +108,7 @@
 
 ---
 
-# Phase 5 — Billing & Plans
+## Phase 5 — Billing & Plans
 
 ## Free Tier
 
@@ -123,7 +125,7 @@
 
 ---
 
-# Phase 6 — Deployment
+## Phase 6 — Deployment
 
 ## Infrastructure
 
@@ -141,7 +143,7 @@
 
 ---
 
-# Phase 7 — Launch
+## Phase 7 — Launch
 
 ## Open Source Readiness
 
@@ -159,7 +161,7 @@
 
 ---
 
-# Long-Term Vision
+## Long-Term Vision
 
 - [ ] Teams and organizations
 - [ ] Secret versioning
@@ -173,7 +175,7 @@
 
 ---
 
-# Guiding Principles
+## Guiding Principles
 
 - Security by default
 - Simple developer experience
