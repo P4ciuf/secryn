@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - JSDoc documentation for `pickColor()` hash function (`ProjectCard`) explaining the DJB2 deterministic color algorithm
 - JSDoc documentation for 7 previously undocumented `ProjectService` methods (`getProjectOrThrow`, `getUserProjects`, `getMember`, `getMemberOrThrow`, `getInviteOrThrow`, `getPermissionAssignment`, `getPermissionAssignmentOrThrow`)
 - JSDoc documentation for `ErrorBoundary` component describing the four error-type handling priorities
+- `update.route.ts` route handler superseding `updateName.route.ts` — supports partial updates of `name` and `description` via `updateProject({ name?, description? })`
 
 ### Changed
 - Migrated frontend type definitions from `apps/web/src/types/` to shared `packages/shared/` package — all components and data modules now import from `@repo/shared`
@@ -37,11 +38,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Updated 3 frontend test files with modal signature assertion fixes (two-argument → single-object)
 - Updated `RegisterPage` test assertion from `name` to `username` matching `RegisterBody` DTO shape
 - Updated `ProjectsPage` test `api.get` mock responses from `{ projects: [...] }` wrapper to direct array
+- `updateNameProject(name)` refactored to `updateProject({ name?, description? })` — slug regeneration only triggers when the name changes; omitted fields retain current values
+- `removeMemberToProject` JSDoc corrected: permission check applies to the member being removed (not the caller)
+- `getPermissionAssignment` and `getPermissionAssignmentOrThrow` JSDoc corrected: return a single record (not an array)
+- `updateName.test.ts` import updated from `updateName.route.js` to `update.route.js`
 
 ### Fixed
 - All project core, invite, and member test suites now use `MockProjectService.Instance` static factory — fixes 500 error from undefined `ProjectService.Instance()`
 - All project core and invite tests now register the global error handler — fixes 500 error from unhandled error propagation
 - `removePermissions` route test descriptions corrected from `POST` to `DELETE` matching the route's HTTP method
+- Invite create route response schema now returns the full invite object (id, slug, projectId, expiresAt, createdAt) instead of `{ ok: boolean }`
 
 ### Removed
 - `apps/web/src/types/api-keys.ts` — type definitions migrated to `@repo/shared`
@@ -49,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `apps/web/src/types/secrets.ts` — type definitions migrated to `@repo/shared`
 - `apps/web/src/types/webhooks.ts` — type definitions migrated to `@repo/shared`
 - Dead `vi.mock("@/data/webhooks")` block from `CreateWebhookModal` test (source no longer imports from this module)
+- `updateName.route.ts` (apps/api/src/routes/project/core/updateName.route.ts) — replaced by `update.route.ts` with partial-update support
 
 ## 03/06/2026
 
