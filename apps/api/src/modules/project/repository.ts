@@ -141,6 +141,10 @@ export class ProjectRepository {
   async updateSecret(where: Prisma.SecretWhereUniqueInput, data: Prisma.SecretUpdateInput) {
     return await prisma.secret.update({ where, data });
   }
+
+  async findManySecrets(where: Prisma.SecretWhereInput) {
+    return await prisma.secret.findMany({ where });
+  }
 }
 
 /** Singleton repository instance used throughout the application. */

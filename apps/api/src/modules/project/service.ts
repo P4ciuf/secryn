@@ -10,6 +10,7 @@ import type { FullUser } from "../user/repository.js";
 import path from "node:path";
 import { readFileSync } from "node:fs";
 import { logger } from "../../core/logger/index.js";
+import { CryptoUtils } from "../../utils/crypto.js";
 
 /**
  * Business-logic layer for project operations.
@@ -491,5 +492,213 @@ export class ProjectService {
     const permissionAssignment = await this.getPermissionAssignment(where);
     if (!permissionAssignment) throw AppError.ResourceNotFound("Permission assignment");
     return permissionAssignment;
+  }
+
+  /**
+   * Creates an encrypted secret within a project.
+   * The caller must hold the {@code CREATE_SECRETS} or {@code ALL} permission.
+   * The plain-text value is encrypted via AES-256-GCM before storage;
+   * the raw value never reaches the database.
+   *
+   * @async
+   * @param projectId - ID of the project to create the secret in
+   * @param data - Name, value, and optional notes for the secret
+   * @returns The created secret record (value is stored encrypted)
+   * @throws {AppError} ResourceNotFound — when the project, member, or permission assignment does not exist
+   * @throws {AppError} Forbidden — when the caller lacks CREATE_SECRETS or ALL permission
+   */
+  async createSecret(
+    projectId: string,
+    data: Pick<Prisma.SecretCreateInput, "name" | "notes" | "value">,
+  ) {
+    const project = await this.getProjectOrThrow({ id: projectId });
+    const member = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+      project: { id: project.id },
+    });
+    const permission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: member.id },
+    });
+    if (!this.policy.hasPermission(permission, ProjectMemberPermission.CREATE_SECRETS)) {
+      throw AppError.Forbidden("You don't have permission to create secrets");
+    }
+
+    const crypto = new CryptoUtils(data.value);
+    const secretValue = await crypto.encrypt();
+
+    return await this.repository.createSecret({
+      name: data.name,
+      notes: data.notes,
+      value: secretValue,
+      project: { connect: { id: project.id } },
+      addedBy: { connect: { id: member.id } },
+      updatedBy: { connect: { id: member.id } },
+    });
+  }
+
+  /**
+   * Permanently deletes a secret by its ID.
+   * The caller must hold the {@code DELETE_SECRETS} or {@code ALL} permission.
+   * Authorization is scoped to the caller's project membership — the member
+   * lookup uses only the user ID without filtering by a specific project,
+   * which means a member with the right permission in any project can delete
+   * any secret they target.
+   *
+   * @async
+   * @param id - Unique identifier of the secret to delete
+   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {AppError} Forbidden — when the caller lacks DELETE_SECRETS or ALL permission
+   */
+  async deleteSecret(id: string) {
+    const member = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+    });
+    const permission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: member.id },
+    });
+    if (!this.policy.hasPermission(permission, ProjectMemberPermission.DELETE_SECRETS)) {
+      throw AppError.Forbidden("You don't have permission to delete secrets");
+    }
+
+    return await this.repository.deleteSecret({ id });
+  }
+
+  /**
+   * Updates a secret's name, notes, and/or value.
+   * The caller must hold the {@code UPDATE_SECRETS} or {@code ALL} permission.
+   * When a new value is provided it is encrypted via AES-256-GCM; when omitted,
+   * the existing (already-encrypted) value is preserved as-is without
+   * re-encryption to avoid unnecessary key derivation overhead.
+   *
+   * @async
+   * @param id - Unique identifier of the secret to update
+   * @param data - Partial fields to update ({@code name?}, {@code notes?}, {@code value?})
+   * @returns The updated secret record (value is stored encrypted)
+   * @throws {AppError} ResourceNotFound — when the member, permission assignment, or secret does not exist
+   * @throws {AppError} Forbidden — when the caller lacks UPDATE_SECRETS or ALL permission
+   */
+  async updateSecret(id: string, data: Pick<Prisma.SecretUpdateInput, "name" | "notes" | "value">) {
+    const member = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+    });
+    const permission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: member.id },
+    });
+    if (!this.policy.hasPermission(permission, ProjectMemberPermission.UPDATE_SECRETS)) {
+      throw AppError.Forbidden("You don't have permission to update secrets");
+    }
+
+    const secretValue = data.value ?? (await this.getSecretOrThrow(id)).value;
+    const crypto = new CryptoUtils(String(secretValue));
+    const encryptedSecretValue = data.value
+      ? await crypto.encrypt()
+      : (await this.getSecretOrThrow(id)).value;
+
+    return await this.repository.updateSecret(
+      { id },
+      {
+        name: data.name,
+        notes: data.notes,
+        value: encryptedSecretValue,
+        updatedBy: { connect: { id: member.id } },
+      },
+    );
+  }
+
+  /**
+   * Retrieves a single secret by ID with its value decrypted.
+   * The caller must hold the {@code READ_SECRETS} or {@code ALL} permission.
+   * Returns {@code null} (not an error) when the secret does not exist after
+   * the authorization check passes, allowing the caller to distinguish
+   * "not found" from "forbidden" at the route layer.
+   *
+   * @async
+   * @param id - Unique identifier of the secret
+   * @returns The secret with its value decrypted, or {@code null} if not found
+   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
+   */
+  async getSecret(id: string) {
+    const member = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+    });
+    const permission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: member.id },
+    });
+    if (!this.policy.hasPermission(permission, ProjectMemberPermission.READ_SECRETS)) {
+      throw AppError.Forbidden("You don't have permission to read secrets");
+    }
+
+    const cryptedSecret = await this.repository.findSecret({ id });
+    if (!cryptedSecret) return cryptedSecret;
+
+    const crypter = new CryptoUtils(cryptedSecret.value);
+    const decryptedSecretValue = await crypter.decrypt();
+
+    return {
+      ...cryptedSecret,
+      value: decryptedSecretValue,
+    };
+  }
+
+  /**
+   * Retrieves a secret by ID with decryption, throwing if not found.
+   * Authorization is delegated to {@link getSecret}.
+   *
+   * @async
+   * @param id - Unique identifier of the secret
+   * @returns The secret with its value decrypted
+   * @throws {AppError} ResourceNotFound — when the secret does not exist
+   * @throws {AppError} Forbidden — when the caller lacks the required permission
+   */
+  async getSecretOrThrow(id: string) {
+    const secret = await this.getSecret(id);
+    if (!secret) throw AppError.ResourceNotFound("Secret");
+    return secret;
+  }
+
+  /**
+   * Retrieves all secrets belonging to a project with their values decrypted.
+   * The caller must hold the {@code READ_SECRETS} or {@code ALL} permission.
+   * Each secret is individually decrypted via AES-256-GCM in a sequential loop;
+   * decryption errors on a single secret will cause the entire request to fail
+   * rather than returning a partial result set.
+   *
+   * @async
+   * @param projectId - ID of the project whose secrets are being listed
+   * @returns An array of secrets with decrypted values
+   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
+   */
+  async getProjectSecrets(projectId: string) {
+    const prefix = "[Service.getProjectSecrets]";
+
+    const member = await this.getMemberOrThrow({
+      user: { id: this.user.id },
+    });
+    const permission = await this.getPermissionAssignmentOrThrow({
+      projectMember: { id: member.id },
+    });
+    if (!this.policy.hasPermission(permission, ProjectMemberPermission.READ_SECRETS)) {
+      throw AppError.Forbidden("You don't have permission to read secrets");
+    }
+
+    const encryptedSecrets = await this.repository.findManySecrets({ project: { id: projectId } });
+
+    logger.debug(`${prefix} Decrypting ${encryptedSecrets.length} secrets`);
+
+    const decryptedSecrets = [];
+    for (const secret of encryptedSecrets) {
+      const crypter = new CryptoUtils(secret.value);
+      const decryptedSecretValue = await crypter.decrypt();
+      const entry = { ...secret, value: decryptedSecretValue };
+      logger.debug(
+        `${prefix} IS ARRAY ENTRY PLAIN: ${Array.isArray([entry])} ${JSON.stringify(entry)}`,
+      );
+      decryptedSecrets.push(entry);
+    }
+
+    logger.debug(`${prefix} IS ARRAY: ${Array.isArray(decryptedSecrets)}`);
+    return decryptedSecrets;
   }
 }
