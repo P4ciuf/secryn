@@ -29,6 +29,7 @@ describe("<SecretRow />", () => {
             isVisible={false}
             onToggleVisibility={vi.fn()}
             onDelete={vi.fn()}
+            onEdit={vi.fn()}
           />
         </tbody>
       </table>,
@@ -47,6 +48,7 @@ describe("<SecretRow />", () => {
             isVisible={false}
             onToggleVisibility={vi.fn()}
             onDelete={vi.fn()}
+            onEdit={vi.fn()}
           />
         </tbody>
       </table>,
@@ -65,6 +67,7 @@ describe("<SecretRow />", () => {
             isVisible={true}
             onToggleVisibility={vi.fn()}
             onDelete={vi.fn()}
+            onEdit={vi.fn()}
           />
         </tbody>
       </table>,
@@ -86,6 +89,7 @@ describe("<SecretRow />", () => {
             isVisible={false}
             onToggleVisibility={vi.fn()}
             onDelete={onDelete}
+            onEdit={vi.fn()}
           />
         </tbody>
       </table>,
@@ -108,6 +112,7 @@ describe("<SecretRow />", () => {
             isVisible={false}
             onToggleVisibility={onToggleVisibility}
             onDelete={vi.fn()}
+            onEdit={vi.fn()}
           />
         </tbody>
       </table>,

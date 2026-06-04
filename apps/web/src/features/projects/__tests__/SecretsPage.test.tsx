@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import SecretsPage from "../SecretsPage";
 import { api } from "../../../lib/api";
-import type { Secret, ProjectSecretsData } from "@repo/shared";
+import type { ProjectSecretsData, Secret } from "@repo/shared";
 
 vi.mock("../../../lib/api");
 
@@ -18,10 +18,17 @@ function renderWithRouter(projectId = "1") {
   );
 }
 
+const now = new Date().toISOString();
+
 const mockSecret1: Secret = {
   id: "s1",
   name: "DISCORD_TOKEN",
   value: "discord-secret-value",
+  notes: "Discord bot token for production",
+  projectId: "1",
+  addedById: "user_1",
+  updatedById: "user_1",
+  createdAt: now,
   updatedAt: "2026-06-01",
 };
 
@@ -29,11 +36,16 @@ const mockSecret2: Secret = {
   id: "s2",
   name: "STRIPE_KEY",
   value: "stripe-secret-value",
+  notes: "Stripe API key",
+  projectId: "1",
+  addedById: "user_1",
+  updatedById: "user_1",
+  createdAt: now,
   updatedAt: "2026-05-30",
 };
 
-const mockSecretsData: ProjectSecretsData = {
-  name: "Production App",
+const mockProjectSecretsData: ProjectSecretsData = {
+  name: "Test Project",
   secrets: [mockSecret1, mockSecret2],
 };
 
@@ -58,22 +70,27 @@ describe("SecretsPage", () => {
   });
 
   it("renders secrets table with data when API returns secrets", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
     renderWithRouter();
     await waitFor(() => {
-      expect(screen.getByText("Production App Secrets")).toBeInTheDocument();
+      expect(screen.getByText("Test Project Secrets")).toBeInTheDocument();
     });
     expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
     expect(screen.getByText("STRIPE_KEY")).toBeInTheDocument();
   });
 
   it("opens add secret modal, fills form, submits, and calls api.post", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
     const createdSecret: Secret = {
       id: "s3",
       name: "NEW_KEY",
       value: "new-secret-value",
       updatedAt: "2026-06-03",
+      createdAt: new Date(),
+      notes: "",
+      projectId: "1",
+      addedById: "user_1",
+      updatedById: "user_1",
     };
     vi.mocked(api.post).mockResolvedValue(createdSecret);
 
@@ -104,6 +121,7 @@ describe("SecretsPage", () => {
       expect(vi.mocked(api.post)).toHaveBeenCalledWith("/projects/1/secrets", {
         name: "NEW_KEY",
         value: "new-secret-value",
+        notes: "",
       });
     });
 
@@ -117,7 +135,7 @@ describe("SecretsPage", () => {
   });
 
   it("deletes a secret when delete button is clicked", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
     vi.mocked(api.delete).mockResolvedValue(undefined);
 
     const user = userEvent.setup();
@@ -131,7 +149,7 @@ describe("SecretsPage", () => {
     await user.click(deleteButtons[0]);
 
     await waitFor(() => {
-      expect(vi.mocked(api.delete)).toHaveBeenCalledWith("/secrets/s1");
+      expect(vi.mocked(api.delete)).toHaveBeenCalledWith("/projects/secrets/s1");
     });
 
     await waitFor(() => {
@@ -140,7 +158,7 @@ describe("SecretsPage", () => {
   });
 
   it("toggles secret value visibility when show/hide button is clicked", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
 
     const user = userEvent.setup();
     renderWithRouter();
@@ -171,7 +189,7 @@ describe("SecretsPage", () => {
   });
 
   it("closes the add secret modal when Cancel is clicked", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
 
     const user = userEvent.setup();
     renderWithRouter();
@@ -194,7 +212,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows error when add secret fails", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
     vi.mocked(api.post).mockRejectedValue(new Error("Creation failed"));
 
     const user = userEvent.setup();
@@ -231,7 +249,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows error when delete secret fails", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
     vi.mocked(api.delete).mockRejectedValue(new Error("Delete failed"));
 
     const user = userEvent.setup();
@@ -250,10 +268,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows default project title when project name is empty", async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      name: "",
-      secrets: [],
-    });
+    vi.mocked(api.get).mockResolvedValue({ name: "", secrets: [] });
     renderWithRouter("999");
     await waitFor(() => {
       expect(screen.getByText("Project Secrets")).toBeInTheDocument();

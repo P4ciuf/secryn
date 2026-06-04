@@ -41,6 +41,7 @@ describe("<SecretsTable />", () => {
         visibleSet={new Set()}
         onToggleVisibility={vi.fn()}
         onDelete={vi.fn()}
+        onEdit={vi.fn()}
       />,
     );
 
@@ -57,6 +58,7 @@ describe("<SecretsTable />", () => {
         visibleSet={new Set()}
         onToggleVisibility={vi.fn()}
         onDelete={vi.fn()}
+        onEdit={vi.fn()}
       />,
     );
 
@@ -71,6 +73,7 @@ describe("<SecretsTable />", () => {
         visibleSet={new Set()}
         onToggleVisibility={vi.fn()}
         onDelete={vi.fn()}
+        onEdit={vi.fn()}
       />,
     );
 
@@ -89,6 +92,7 @@ describe("<SecretsTable />", () => {
         visibleSet={new Set()}
         onToggleVisibility={onToggleVisibility}
         onDelete={vi.fn()}
+        onEdit={vi.fn()}
       />,
     );
 
@@ -107,6 +111,7 @@ describe("<SecretsTable />", () => {
         visibleSet={new Set()}
         onToggleVisibility={vi.fn()}
         onDelete={onDelete}
+        onEdit={vi.fn()}
       />,
     );
 
