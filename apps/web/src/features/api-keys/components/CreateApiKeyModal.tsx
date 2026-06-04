@@ -1,13 +1,12 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Modal } from "../../../components/common/Modal";
-import type { ApiKeyPermission } from "../../../types";
+import type { ApiKeyPermission, CreateApiKeyInput } from "@repo/shared";
 
 interface CreateApiKeyModalProps {
   open: boolean;
   onClose: () => void;
-  /** Called with the chosen name and permission set when the form is submitted. */
-  onSubmit: (name: string, permissions: ApiKeyPermission[]) => void;
+  onSubmit: (input: CreateApiKeyInput) => void;
 }
 
 /**
@@ -28,7 +27,7 @@ export function CreateApiKeyModal({ open, onClose, onSubmit }: CreateApiKeyModal
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit(name, selectedPermissions);
+    onSubmit({ name, permissions: selectedPermissions });
     setName("");
     setSelectedPermissions(["read"]);
   };

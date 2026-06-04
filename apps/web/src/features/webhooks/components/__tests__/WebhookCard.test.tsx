@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WebhookCard } from "@/features/webhooks/components/WebhookCard";
-import type { Webhook } from "@/types";
+import type { Webhook } from "@repo/shared";
 
 const mockWebhook: Webhook = {
   id: "1",

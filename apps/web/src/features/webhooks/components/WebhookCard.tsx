@@ -1,6 +1,6 @@
 import { Webhook as WebhookIcon, CheckCircle, XCircle, Activity, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import type { Webhook } from "../../../types";
+import type { Webhook } from "@repo/shared";
 
 interface WebhookCardProps {
   webhook: Webhook;

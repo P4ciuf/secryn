@@ -1,26 +1,49 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Modal } from "../../../components/common/Modal";
-import { availableEvents } from "../../../data/webhooks";
-import type { WebhookEvent } from "../../../types";
+import type { WebhookEvent, CreateWebhookInput } from "@repo/shared";
+
+/**
+ * Hardcoded list of subscribable webhook event types.
+ *
+ * Acts as a fallback until the backend exposes a dynamic
+ * {@code GET /webhooks/events} endpoint. Keep in sync with the event
+ * types emitted by the server.
+ */
+const availableEvents: WebhookEvent[] = [
+  "secret.created",
+  "secret.updated",
+  "secret.deleted",
+  "project.created",
+  "project.deleted",
+];
 
 interface CreateWebhookModalProps {
+  /** Whether the modal is currently visible. */
   open: boolean;
+  /** Called when the user dismisses the modal. */
   onClose: () => void;
-  /** Called with the endpoint URL and selected event types on submission. */
-  onSubmit: (url: string, events: WebhookEvent[]) => void;
+  /** Called with the webhook input on submission. */
+  onSubmit: (input: CreateWebhookInput) => void;
 }
 
 /**
  * Modal for registering a new webhook endpoint.
  *
  * The submit button is disabled until at least one event type is selected.
- * Local state resets after a successful submission.
+ * Local state resets after a successful submission so the form is clean
+ * for the next interaction.
+ *
+ * @param {CreateWebhookModalProps} props - Component props
  */
 export function CreateWebhookModal({ open, onClose, onSubmit }: CreateWebhookModalProps) {
   const [url, setUrl] = useState("");
   const [selectedEvents, setSelectedEvents] = useState<WebhookEvent[]>([]);
 
+  /**
+   * Toggles an event type in the selection list.
+   * Adds the event if not yet selected, removes it otherwise.
+   */
   const toggleEvent = (event: WebhookEvent) => {
     setSelectedEvents((prev) =>
       prev.includes(event) ? prev.filter((e) => e !== event) : [...prev, event],
@@ -29,7 +52,7 @@ export function CreateWebhookModal({ open, onClose, onSubmit }: CreateWebhookMod
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit(url, selectedEvents);
+    onSubmit({ url, events: selectedEvents });
     setUrl("");
     setSelectedEvents([]);
   };

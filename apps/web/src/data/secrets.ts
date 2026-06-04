@@ -1,4 +1,4 @@
-import type { ProjectSecretsData } from "../types";
+import type { ProjectSecretsData } from "@repo/shared";
 
 /** Mock secrets grouped by project ID, for development before the backend is integrated. */
 export const mockSecretsData: Record<string, ProjectSecretsData> = {

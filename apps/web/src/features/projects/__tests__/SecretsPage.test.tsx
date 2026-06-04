@@ -1,87 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
-import SecretsPage from "@/features/projects/SecretsPage";
+import SecretsPage from "../SecretsPage";
+import { api } from "../../../lib/api";
+import type { Secret, ProjectSecretsData } from "@repo/shared";
 
-vi.mock("@/components/common/PageHeader", () => ({
-  PageHeader: ({
-    title,
-    subtitle,
-    actionLabel,
-    onAction,
-  }: {
-    title: string;
-    subtitle?: string;
-    actionLabel?: string;
-    onAction?: () => void;
-  }) => (
-    <div data-testid="mock-page-header">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {actionLabel && (
-        <button data-testid="header-action-btn" onClick={onAction}>
-          {actionLabel}
-        </button>
-      )}
-    </div>
-  ),
-}));
+vi.mock("../../../lib/api");
 
-vi.mock("@/features/projects/components/SecretsTable", () => ({
-  SecretsTable: ({ secrets }: { secrets: Array<{ id: string; name: string }> }) => (
-    <div data-testid="mock-secrets-table">
-      {secrets.map((s) => (
-        <div key={s.id} data-testid={`secret-${s.id}`}>
-          {s.name}
-        </div>
-      ))}
-    </div>
-  ),
-}));
-
-vi.mock("@/features/projects/components/CreateSecretModal", () => ({
-  CreateSecretModal: ({
-    open,
-    onClose,
-    onSubmit,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string, value: string) => void;
-  }) =>
-    open ? (
-      <div data-testid="mock-create-secret-modal">
-        <button data-testid="modal-close-btn" onClick={onClose}>
-          Cancel
-        </button>
-        <button data-testid="modal-submit-btn" onClick={() => onSubmit("NEW_KEY", "test-value")}>
-          Add
-        </button>
-      </div>
-    ) : null,
-}));
-
-vi.mock("@/data/secrets", () => ({
-  mockSecretsData: {
-    "1": {
-      name: "Production App",
-      secrets: [
-        { id: "s1", name: "DISCORD_TOKEN", value: "abc", updatedAt: "2026-06-01" },
-        { id: "s2", name: "STRIPE_KEY", value: "xyz", updatedAt: "2026-05-30" },
-      ],
-    },
-  },
-}));
-
-vi.mock("@/hooks/use-toggle-visibility", () => ({
-  useToggleVisibility: () => ({
-    isVisible: () => false,
-    toggle: () => {},
-    visibleSet: new Set<string>(),
-  }),
-}));
-
-function renderSecretsPage(projectId = "1") {
+function renderWithRouter(projectId = "1") {
   return render(
     <MemoryRouter initialEntries={[`/projects/${projectId}/secrets`]}>
       <Routes>
@@ -91,44 +18,245 @@ function renderSecretsPage(projectId = "1") {
   );
 }
 
+const mockSecret1: Secret = {
+  id: "s1",
+  name: "DISCORD_TOKEN",
+  value: "discord-secret-value",
+  updatedAt: "2026-06-01",
+};
+
+const mockSecret2: Secret = {
+  id: "s2",
+  name: "STRIPE_KEY",
+  value: "stripe-secret-value",
+  updatedAt: "2026-05-30",
+};
+
+const mockSecretsData: ProjectSecretsData = {
+  name: "Production App",
+  secrets: [mockSecret1, mockSecret2],
+};
+
 describe("SecretsPage", () => {
-  it("should render the page with project name in title", () => {
-    renderSecretsPage();
-    expect(screen.getByText("Production App Secrets")).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should render the secrets table with secrets", () => {
-    renderSecretsPage();
-    expect(screen.getByTestId("mock-secrets-table")).toBeInTheDocument();
-    expect(screen.getByTestId("secret-s1")).toBeInTheDocument();
-    expect(screen.getByTestId("secret-s2")).toBeInTheDocument();
+  it("shows loading skeleton while fetching secrets", () => {
+    vi.mocked(api.get).mockReturnValue(new Promise<ProjectSecretsData>(() => {}));
+    renderWithRouter();
+    const skeletons = document.querySelectorAll(".animate-pulse");
+    expect(skeletons.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("should not show create secret modal by default", () => {
-    renderSecretsPage();
-    expect(screen.queryByTestId("mock-create-secret-modal")).not.toBeInTheDocument();
+  it("shows error message when fetching secrets fails", async () => {
+    vi.mocked(api.get).mockRejectedValue(new Error("Network error"));
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByText("Network error")).toBeInTheDocument();
+    });
   });
 
-  it("should show create secret modal when action button is clicked", async () => {
-    renderSecretsPage();
-    const button = screen.getByTestId("header-action-btn");
-    fireEvent.click(button);
-    expect(screen.getByTestId("mock-create-secret-modal")).toBeInTheDocument();
+  it("renders secrets table with data when API returns secrets", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByText("Production App Secrets")).toBeInTheDocument();
+    });
+    expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
+    expect(screen.getByText("STRIPE_KEY")).toBeInTheDocument();
   });
 
-  it("should add a new secret on submit and close modal", async () => {
-    renderSecretsPage();
-    const openButton = screen.getByTestId("header-action-btn");
-    fireEvent.click(openButton);
+  it("opens add secret modal, fills form, submits, and calls api.post", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    const createdSecret: Secret = {
+      id: "s3",
+      name: "NEW_KEY",
+      value: "new-secret-value",
+      updatedAt: "2026-06-03",
+    };
+    vi.mocked(api.post).mockResolvedValue(createdSecret);
 
-    const submitButton = screen.getByTestId("modal-submit-btn");
-    fireEvent.click(submitButton);
+    const user = userEvent.setup();
+    renderWithRouter();
 
-    expect(screen.queryByTestId("mock-create-secret-modal")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Secret" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add Secret" }));
+
+    expect(screen.getByText("Add New Secret")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText("API_KEY"), {
+        target: { value: "NEW_KEY" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("your-secret-value-here"), {
+        target: { value: "new-secret-value" },
+      });
+    });
+
+    const submitButtons = screen.getAllByRole("button", { name: "Add Secret" });
+    await user.click(submitButtons[1]);
+
+    await waitFor(() => {
+      expect(vi.mocked(api.post)).toHaveBeenCalledWith("/projects/1/secrets", {
+        name: "NEW_KEY",
+        value: "new-secret-value",
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Add New Secret")).not.toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("NEW_KEY")).toBeInTheDocument();
+    });
   });
 
-  it("should handle missing project ID gracefully", () => {
-    renderSecretsPage("999");
-    expect(screen.getByText("Project Secrets")).toBeInTheDocument();
+  it("deletes a secret when delete button is clicked", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.delete).mockResolvedValue(undefined);
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
+    });
+
+    const deleteButtons = screen.getAllByTitle("Delete");
+    await user.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(vi.mocked(api.delete)).toHaveBeenCalledWith("/secrets/s1");
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("DISCORD_TOKEN")).not.toBeInTheDocument();
+    });
+  });
+
+  it("toggles secret value visibility when show/hide button is clicked", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
+    });
+
+    const showButtons = screen.getAllByTitle("Show");
+    expect(showButtons.length).toBeGreaterThan(0);
+
+    expect(screen.queryByText("discord-secret-value")).not.toBeInTheDocument();
+
+    await user.click(showButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("discord-secret-value")).toBeInTheDocument();
+    });
+
+    const hideButtons = screen.getAllByTitle("Hide");
+    expect(hideButtons).toHaveLength(1);
+
+    await user.click(hideButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByText("discord-secret-value")).not.toBeInTheDocument();
+    });
+  });
+
+  it("closes the add secret modal when Cancel is clicked", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Secret" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add Secret" }));
+
+    expect(screen.getByText("Add New Secret")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Add New Secret")).not.toBeInTheDocument();
+    });
+
+    expect(vi.mocked(api.post)).not.toHaveBeenCalled();
+  });
+
+  it("shows error when add secret fails", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.post).mockRejectedValue(new Error("Creation failed"));
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Secret" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add Secret" }));
+
+    expect(screen.getByText("Add New Secret")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText("API_KEY"), {
+        target: { value: "FAIL_KEY" },
+      });
+    });
+
+    const form = document.querySelector("form");
+    expect(form).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.submit(form!);
+    });
+
+    await waitFor(() => {
+      expect(vi.mocked(api.post)).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Creation failed")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error when delete secret fails", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
+    vi.mocked(api.delete).mockRejectedValue(new Error("Delete failed"));
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
+    });
+
+    const deleteButtons = screen.getAllByTitle("Delete");
+    await user.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Delete failed")).toBeInTheDocument();
+    });
+  });
+
+  it("shows default project title when project name is empty", async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      name: "",
+      secrets: [],
+    });
+    renderWithRouter("999");
+    await waitFor(() => {
+      expect(screen.getByText("Project Secrets")).toBeInTheDocument();
+    });
   });
 });

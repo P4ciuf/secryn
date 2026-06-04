@@ -63,7 +63,7 @@ describe("<CreateSecretModal />", () => {
     });
     await user.click(screen.getByRole("button", { name: "Add Secret" }));
 
-    expect(onSubmit).toHaveBeenCalledWith("MY_KEY", "my-secret");
+    expect(onSubmit).toHaveBeenCalledWith({ name: "MY_KEY", value: "my-secret" });
   });
 
   it("should clear fields after submit", async () => {

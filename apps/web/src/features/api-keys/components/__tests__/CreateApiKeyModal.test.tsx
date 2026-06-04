@@ -65,7 +65,7 @@ describe("<CreateApiKeyModal />", () => {
     await user.type(screen.getByPlaceholderText("My API Key"), "My New Key");
     await user.click(screen.getByRole("button", { name: "Create" }));
 
-    expect(onSubmit).toHaveBeenCalledWith("My New Key", ["read"]);
+    expect(onSubmit).toHaveBeenCalledWith({ name: "My New Key", permissions: ["read"] });
   });
 
   it("should toggle permissions on click", async () => {

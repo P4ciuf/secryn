@@ -1,12 +1,12 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Modal } from "../../../components/common/Modal";
+import type { CreateSecretInput } from "@repo/shared";
 
 interface CreateSecretModalProps {
   open: boolean;
   onClose: () => void;
-  /** Called with the secret name and value when the form is submitted. */
-  onSubmit: (name: string, value: string) => void;
+  onSubmit: (input: CreateSecretInput) => void;
 }
 
 /**
@@ -21,7 +21,7 @@ export function CreateSecretModal({ open, onClose, onSubmit }: CreateSecretModal
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit(name, value);
+    onSubmit({ name, value });
     setName("");
     setValue("");
   };

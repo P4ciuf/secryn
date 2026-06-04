@@ -4,12 +4,16 @@ import { useNavigate } from "react-router";
 import { Mail, Lock, User } from "lucide-react";
 import { AuthLayout } from "../../features/auth/components/AuthLayout";
 import { ROUTES } from "../../routes/paths";
+import { api } from "../../lib/api";
+import type { RegisterBody } from "@repo/shared";
 
 /**
  * Registration page with name, email, password, and confirmation fields.
  *
- * Uses a stub submission — replace the navigation call with real
- * account-creation logic when connecting to the backend.
+ * Performs client-side password-match validation before calling
+ * {@code POST /auth/register}. Like the login flow, the backend sets an
+ * httpOnly cookie on success, so the page navigates directly to the
+ * projects dashboard without storing a token client-side.
  */
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -17,10 +21,30 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    navigate(ROUTES.PROJECTS);
+    setError("");
+
+    // Validate password match before the network round-trip so the user
+    // gets immediate feedback without waiting for a backend response.
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const body: RegisterBody = { username: name, email, password };
+      await api.post<{ ok: boolean }>("/auth/register", body);
+      navigate(ROUTES.PROJECTS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,6 +56,11 @@ export default function RegisterPage() {
       footerLinkTo={ROUTES.LOGIN}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-sm">
+            {error}
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium mb-2">Full Name</label>
           <div className="relative">
@@ -110,9 +139,10 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+          disabled={loading}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Create Account
+          {loading ? "Creating Account..." : "Create Account"}
         </button>
       </form>
     </AuthLayout>

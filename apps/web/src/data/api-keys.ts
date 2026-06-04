@@ -1,4 +1,4 @@
-import type { ApiKey } from "../types";
+import type { ApiKey } from "@repo/shared";
 
 /** Mock API key records for development before the backend is integrated. */
 export const mockApiKeys: ApiKey[] = [

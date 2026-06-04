@@ -1,22 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "../../components/common/PageHeader";
 import { ApiKeyRow } from "../../features/api-keys/components/ApiKeyRow";
 import { CreateApiKeyModal } from "../../features/api-keys/components/CreateApiKeyModal";
-import { mockApiKeys } from "../../data/api-keys";
-import type { ApiKey, ApiKeyPermission } from "../../types";
+import { api } from "../../lib/api";
+import type { ApiKey, CreateApiKeyInput } from "@repo/shared";
 
 /**
  * API Keys management page.
  *
- * Displays a table of existing keys with toggle-visibility and delete
- * actions, plus a modal for creating new keys.
+ * Fetches key list on mount from {@code GET /api-keys} and supports
+ * creating new keys and deleting existing ones. Each operation sets an
+ * error banner on failure rather than blocking the UI.
  */
 export default function ApiKeysPage() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>(mockApiKeys);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   /** Tracks which key IDs have their full value revealed locally. */
   const [localVisible, setLocalVisible] = useState<Set<string>>(new Set());
+
+  const fetchKeys = useCallback(async () => {
+    try {
+      setError("");
+      setLoading(true);
+      const data = await api.get<ApiKey[]>("/api-keys");
+      setApiKeys(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load API keys");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchKeys();
+  }, [fetchKeys]);
 
   const toggleVisibility = (id: string) => {
     setLocalVisible((prev) => {
@@ -27,22 +47,27 @@ export default function ApiKeysPage() {
     });
   };
 
-  const deleteKey = (id: string) => {
-    setApiKeys((prev) => prev.filter((k) => k.id !== id));
+  const deleteKey = async (id: string) => {
+    try {
+      await api.delete<void>(`/api-keys/${id}`);
+      setApiKeys((prev) => prev.filter((k) => k.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete API key");
+    }
   };
 
-  /** Generates a mock API key and appends it to local state. */
-  const handleCreate = (name: string, permissions: ApiKeyPermission[]) => {
-    const newKey: ApiKey = {
-      id: `${Date.now()}`,
-      name,
-      key: `sv_${permissions.includes("write") ? "prod" : "dev"}_${Math.random().toString(36).substring(2, 50)}`,
-      createdAt: new Date().toISOString().split("T")[0],
-      lastUsed: "Never",
-      permissions,
-    };
-    setApiKeys((prev) => [...prev, newKey]);
-    setShowCreateModal(false);
+  /**
+   * Creates a new API key via {@code POST /api-keys} and prepends the
+   * returned key to the local list on success.
+   */
+  const handleCreate = async (input: CreateApiKeyInput) => {
+    try {
+      const created = await api.post<ApiKey, CreateApiKeyInput>("/api-keys", input);
+      setApiKeys((prev) => [...prev, created]);
+      setShowCreateModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create API key");
+    }
   };
 
   return (
@@ -57,6 +82,12 @@ export default function ApiKeysPage() {
         actionLabel="Create API Key"
         onAction={() => setShowCreateModal(true)}
       />
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-sm">
+          {error}
+        </div>
+      )}
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -76,18 +107,26 @@ export default function ApiKeysPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              <AnimatePresence>
-                {apiKeys.map((apiKey, index) => (
-                  <ApiKeyRow
-                    key={apiKey.id}
-                    apiKey={apiKey}
-                    index={index}
-                    isVisible={localVisible.has(apiKey.id)}
-                    onToggleVisibility={() => toggleVisibility(apiKey.id)}
-                    onDelete={() => deleteKey(apiKey.id)}
-                  />
-                ))}
-              </AnimatePresence>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                    Loading...
+                  </td>
+                </tr>
+              ) : (
+                <AnimatePresence>
+                  {apiKeys.map((apiKey, index) => (
+                    <ApiKeyRow
+                      key={apiKey.id}
+                      apiKey={apiKey}
+                      index={index}
+                      isVisible={localVisible.has(apiKey.id)}
+                      onToggleVisibility={() => toggleVisibility(apiKey.id)}
+                      onDelete={() => deleteKey(apiKey.id)}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
             </tbody>
           </table>
         </div>

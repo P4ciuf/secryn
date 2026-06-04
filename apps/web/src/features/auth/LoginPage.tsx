@@ -4,21 +4,39 @@ import { useNavigate } from "react-router";
 import { Mail, Lock } from "lucide-react";
 import { AuthLayout } from "../../features/auth/components/AuthLayout";
 import { ROUTES } from "../../routes/paths";
+import { api } from "../../lib/api";
+import type { LoginBody } from "@repo/shared";
 
 /**
  * Login page with email/password form.
  *
- * Currently uses a stub submission that navigates straight to the projects
- * dashboard — real authentication logic should be wired here.
+ * Submits credentials to {@code POST /auth/login}. The backend responds
+ * with an httpOnly {@code auth-token} cookie, so the frontend simply
+ * navigates to the projects dashboard on success — no client-side token
+ * storage is needed.
  */
 export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    navigate(ROUTES.PROJECTS);
+    setError("");
+    setLoading(true);
+    try {
+      const body: LoginBody = { email, password };
+      await api.post<{ ok: boolean }>("/auth/login", body);
+      // Backend sets an httpOnly cookie on this response; no token to store
+      // client-side. The navigate below opens a page guarded by cookie auth.
+      navigate(ROUTES.PROJECTS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,6 +48,11 @@ export default function LoginPage() {
       footerLinkTo={ROUTES.REGISTER}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-sm">
+            {error}
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium mb-2">Email</label>
           <div className="relative">
@@ -72,9 +95,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+          disabled={loading}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Sign In
+          {loading ? "Signing In..." : "Sign In"}
         </button>
       </form>
     </AuthLayout>

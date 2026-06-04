@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { ProjectCard } from "@/features/projects/components/ProjectCard";
-import type { Project } from "@/types";
+import type { Project } from "@repo/shared";
 
 function renderWithRouter(ui: React.ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -12,10 +12,13 @@ function renderWithRouter(ui: React.ReactElement) {
 const mockProject: Project = {
   id: "1",
   name: "Production App",
+  slug: "production-app",
   description: "Production environment secrets",
-  secretCount: 12,
-  updatedAt: "2026-06-01",
+  ownerId: "owner-1",
+  secrets: Array.from({ length: 12 }, (_, i) => ({ id: `s-${i}` })),
   color: "bg-blue-500",
+  createdAt: "2026-05-01",
+  updatedAt: "2026-06-01",
 };
 
 describe("<ProjectCard />", () => {

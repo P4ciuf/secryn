@@ -1,4 +1,4 @@
-import type { Webhook, WebhookEvent } from "../types";
+import type { Webhook, WebhookEvent } from "@repo/shared";
 
 /** Mock webhook records for development before the backend is integrated. */
 export const mockWebhooks: Webhook[] = [

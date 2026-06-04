@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SecretsTable } from "@/features/projects/components/SecretsTable";
-import type { Secret } from "@/types";
+import type { Secret } from "@repo/shared";
 
 vi.mock("@/hooks/use-clipboard", () => ({
   useClipboard: () => ({

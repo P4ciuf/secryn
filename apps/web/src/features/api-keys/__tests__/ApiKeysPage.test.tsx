@@ -1,142 +1,299 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import ApiKeysPage from "@/features/api-keys/ApiKeysPage";
+import { api } from "@/lib/api";
+import type { ApiKey } from "@/types";
 
-vi.mock("@/__mocks__/framer-motion", async () => {
-  const React = await import("react");
-  const cache = new Map<string, React.FC<any>>();
-  const motion = new Proxy(
-    {},
-    {
-      get(_target: unknown, prop: string) {
-        if (!cache.has(prop)) {
-          cache.set(
-            prop,
-            React.forwardRef((props: any, ref: any) =>
-              React.createElement(prop, { ...props, ref }),
-            ),
-          );
-        }
-        return cache.get(prop);
-      },
-    },
-  );
-  return {
-    motion,
-    AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
-  };
+vi.mock("@/lib/api");
+
+const mockApi = vi.mocked(api);
+
+beforeAll(() => {
+  Object.assign(navigator, {
+    clipboard: { writeText: vi.fn() },
+  });
 });
 
-vi.mock("@/components/common/PageHeader", () => ({
-  PageHeader: ({
-    title,
-    subtitle,
-    actionLabel,
-    onAction,
-  }: {
-    title: string;
-    subtitle?: string;
-    actionLabel?: string;
-    onAction?: () => void;
-  }) => (
-    <div data-testid="mock-page-header">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {actionLabel && (
-        <button data-testid="header-action-btn" onClick={onAction}>
-          {actionLabel}
-        </button>
-      )}
-    </div>
-  ),
-}));
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <ApiKeysPage />
+    </MemoryRouter>,
+  );
+}
 
-vi.mock("@/features/api-keys/components/ApiKeyRow", () => ({
-  ApiKeyRow: ({
-    apiKey,
-    onDelete,
-  }: {
-    apiKey: { id: string; name: string };
-    onDelete: () => void;
-  }) => (
-    <tr data-testid={`apikey-row-${apiKey.id}`}>
-      <td>{apiKey.name}</td>
-      <td>
-        <button data-testid={`delete-${apiKey.id}`} onClick={onDelete}>
-          Delete
-        </button>
-      </td>
-    </tr>
-  ),
-}));
+const mockKey: ApiKey = {
+  id: "key-1",
+  name: "Production API Key",
+  key: "sv_prod_abc123",
+  createdAt: "2026-05-15",
+  lastUsed: "2026-06-02",
+  permissions: ["read", "write"],
+};
 
-vi.mock("@/features/api-keys/components/CreateApiKeyModal", () => ({
-  CreateApiKeyModal: ({
-    open,
-    onClose,
-    onSubmit,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string, permissions: string[]) => void;
-  }) =>
-    open ? (
-      <div data-testid="mock-create-modal">
-        <button data-testid="modal-close-btn" onClick={onClose}>
-          Cancel
-        </button>
-        <button data-testid="modal-submit-btn" onClick={() => onSubmit("New Key", ["read"])}>
-          Create
-        </button>
-      </div>
-    ) : null,
-}));
-
-vi.mock("@/data/api-keys", () => ({
-  mockApiKeys: [
-    {
-      id: "1",
-      name: "Production API Key",
-      key: "sv_prod_abc",
-      createdAt: "2026-05-15",
-      lastUsed: "2026-06-02",
-      permissions: ["read", "write"] as const,
-    },
-  ],
-}));
+const mockKey2: ApiKey = {
+  id: "key-2",
+  name: "Development API Key",
+  key: "sv_dev_def456",
+  createdAt: "2026-05-20",
+  lastUsed: "2026-06-01",
+  permissions: ["read"],
+};
 
 describe("ApiKeysPage", () => {
-  it("should render the page header with title", () => {
-    render(<ApiKeysPage />);
-    expect(screen.getByText("API Keys")).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should render API key rows from mock data", () => {
-    render(<ApiKeysPage />);
-    expect(screen.getByTestId("apikey-row-1")).toBeInTheDocument();
+  describe("Loading state", () => {
+    it("shows loading text in table while fetching keys", () => {
+      mockApi.get.mockReturnValue(new Promise<never>(() => {}));
+      renderPage();
+      expect(screen.getByText("Loading...")).toBeInTheDocument();
+    });
   });
 
-  it("should not show create modal by default", () => {
-    render(<ApiKeysPage />);
-    expect(screen.queryByTestId("mock-create-modal")).not.toBeInTheDocument();
+  describe("Error state", () => {
+    it("shows error message when GET /api-keys fails", async () => {
+      mockApi.get.mockRejectedValue(new Error("Network Error"));
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("Network Error")).toBeInTheDocument();
+      });
+    });
+
+    it("shows fallback error message for non-Error rejections", async () => {
+      mockApi.get.mockRejectedValue("some string");
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("Failed to load API keys")).toBeInTheDocument();
+      });
+    });
+
+    it("shows error when delete fails", async () => {
+      mockApi.get.mockResolvedValue([mockKey]);
+      mockApi.delete.mockRejectedValue(new Error("Delete failed"));
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Production API Key")).toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByTitle("Delete"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Delete failed")).toBeInTheDocument();
+      });
+    });
+
+    it("shows error when create fails", async () => {
+      mockApi.get.mockResolvedValue([]);
+      mockApi.post.mockRejectedValue(new Error("Create failed"));
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /create api key/i }));
+
+      fireEvent.change(screen.getByPlaceholderText("My API Key"), {
+        target: { value: "My Key" },
+      });
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Create failed")).toBeInTheDocument();
+      });
+    });
   });
 
-  it("should show create modal when action button is clicked", async () => {
-    render(<ApiKeysPage />);
-    fireEvent.click(screen.getByTestId("header-action-btn"));
-    expect(screen.getByTestId("mock-create-modal")).toBeInTheDocument();
+  describe("Populated state", () => {
+    it("renders API key rows when keys are returned", async () => {
+      mockApi.get.mockResolvedValue([mockKey, mockKey2]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("Production API Key")).toBeInTheDocument();
+      });
+      expect(screen.getByText("Development API Key")).toBeInTheDocument();
+    });
+
+    it("renders page header with title and create button", async () => {
+      mockApi.get.mockResolvedValue([mockKey]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("API Keys")).toBeInTheDocument();
+      });
+      expect(screen.getByText("Manage your API keys for programmatic access")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /create api key/i })).toBeInTheDocument();
+    });
+
+    it("renders permission badges for each key", async () => {
+      mockApi.get.mockResolvedValue([mockKey]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("Production API Key")).toBeInTheDocument();
+      });
+      expect(screen.getByText("read")).toBeInTheDocument();
+      expect(screen.getByText("write")).toBeInTheDocument();
+    });
+
+    it("renders last used timestamp for keys", async () => {
+      mockApi.get.mockResolvedValue([mockKey]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("2026-06-02")).toBeInTheDocument();
+      });
+    });
   });
 
-  it("should add a new API key on submit", async () => {
-    render(<ApiKeysPage />);
-    fireEvent.click(screen.getByTestId("header-action-btn"));
-    fireEvent.click(screen.getByTestId("modal-submit-btn"));
-    expect(screen.queryByTestId("mock-create-modal")).not.toBeInTheDocument();
+  describe("Empty state", () => {
+    it("renders table with no rows when keys array is empty", async () => {
+      mockApi.get.mockResolvedValue([]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText("Production API Key")).not.toBeInTheDocument();
+      expect(screen.queryByTitle("Delete")).not.toBeInTheDocument();
+    });
   });
 
-  it("should remove an API key on delete", async () => {
-    render(<ApiKeysPage />);
-    fireEvent.click(screen.getByTestId("delete-1"));
-    expect(screen.queryByTestId("apikey-row-1")).not.toBeInTheDocument();
+  describe("Create key", () => {
+    it("opens create modal when action button is clicked", async () => {
+      mockApi.get.mockResolvedValue([]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /create api key/i }));
+
+      expect(screen.getByText("Create New API Key")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("My API Key")).toBeInTheDocument();
+      expect(screen.getByLabelText("read")).toBeInTheDocument();
+      expect(screen.getByLabelText("write")).toBeInTheDocument();
+    });
+
+    it("closes modal when cancel is clicked", async () => {
+      mockApi.get.mockResolvedValue([]);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /create api key/i }));
+      expect(screen.getByText("Create New API Key")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      await waitFor(() => {
+        expect(screen.queryByText("Create New API Key")).not.toBeInTheDocument();
+      });
+    });
+
+    it("calls api.post with name and permissions on submit", async () => {
+      mockApi.get.mockResolvedValue([]);
+      const newKey: ApiKey = {
+        id: "key-3",
+        name: "My New Key",
+        key: "sv_new_ghi789",
+        createdAt: "2026-06-03",
+        lastUsed: "never",
+        permissions: ["read", "write"],
+      };
+      mockApi.post.mockResolvedValue(newKey);
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /create api key/i }));
+
+      fireEvent.change(screen.getByPlaceholderText("My API Key"), {
+        target: { value: "My New Key" },
+      });
+      await user.click(screen.getByLabelText("write"));
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      await waitFor(() => {
+        expect(mockApi.post).toHaveBeenCalledWith("/api-keys", {
+          name: "My New Key",
+          permissions: ["read", "write"],
+        });
+      });
+    });
+
+    it("adds new key to the list after successful create", async () => {
+      mockApi.get.mockResolvedValue([]);
+      const newKey: ApiKey = {
+        id: "key-3",
+        name: "My New Key",
+        key: "sv_new_ghi789",
+        createdAt: "2026-06-03",
+        lastUsed: "never",
+        permissions: ["read"],
+      };
+      mockApi.post.mockResolvedValue(newKey);
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /create api key/i }));
+      fireEvent.change(screen.getByPlaceholderText("My API Key"), {
+        target: { value: "My New Key" },
+      });
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("My New Key")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("Create New API Key")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Delete key", () => {
+    it("calls api.delete and removes key from list", async () => {
+      mockApi.get.mockResolvedValue([mockKey, mockKey2]);
+      mockApi.delete.mockResolvedValue(undefined);
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Production API Key")).toBeInTheDocument();
+        expect(screen.getByText("Development API Key")).toBeInTheDocument();
+      });
+
+      const user = userEvent.setup();
+      const deleteButtons = screen.getAllByTitle("Delete");
+      await user.click(deleteButtons[0]);
+
+      await waitFor(() => {
+        expect(mockApi.delete).toHaveBeenCalledWith("/api-keys/key-1");
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText("Production API Key")).not.toBeInTheDocument();
+      });
+      expect(screen.getByText("Development API Key")).toBeInTheDocument();
+    });
   });
 });

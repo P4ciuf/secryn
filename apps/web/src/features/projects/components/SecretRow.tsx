@@ -1,7 +1,7 @@
 import { Key, Calendar, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { SecretValue } from "../../../components/common/SecretValue";
-import type { Secret } from "../../../types";
+import type { Secret } from "@repo/shared";
 
 interface SecretRowProps {
   secret: Secret;

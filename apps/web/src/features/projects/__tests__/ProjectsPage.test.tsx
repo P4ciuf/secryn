@@ -1,106 +1,186 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import ProjectsPage from "@/features/projects/ProjectsPage";
+import ProjectsPage from "../ProjectsPage";
+import { api } from "../../../lib/api";
+import type { Project } from "@repo/shared";
 
-vi.mock("@/components/common/PageHeader", () => ({
-  PageHeader: ({
-    title,
-    subtitle,
-    actionLabel,
-    onAction,
-  }: {
-    title: string;
-    subtitle?: string;
-    actionLabel?: string;
-    onAction?: () => void;
-  }) => (
-    <div data-testid="mock-page-header">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-      {actionLabel && (
-        <button data-testid="header-action-btn" onClick={onAction}>
-          {actionLabel}
-        </button>
-      )}
-    </div>
-  ),
-}));
+vi.mock("../../../lib/api");
 
-vi.mock("@/features/projects/components/ProjectCard", () => ({
-  ProjectCard: ({ project }: { project: { id: string; name: string }; index: number }) => (
-    <div data-testid={`project-card-${project.id}`}>{project.name}</div>
-  ),
-}));
-
-vi.mock("@/features/projects/components/CreateProjectModal", () => ({
-  CreateProjectModal: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
-    open ? (
-      <div data-testid="mock-create-modal">
-        <button data-testid="modal-close-btn" onClick={onClose}>
-          Close Modal
-        </button>
-      </div>
-    ) : null,
-}));
-
-vi.mock("@/data/projects", () => ({
-  mockProjects: [
-    {
-      id: "1",
-      name: "Production App",
-      description: "",
-      secretCount: 12,
-      updatedAt: "2026-06-01",
-      color: "bg-blue-500",
-    },
-    {
-      id: "2",
-      name: "Staging",
-      description: "",
-      secretCount: 5,
-      updatedAt: "2026-05-28",
-      color: "bg-green-500",
-    },
-  ],
-}));
-
-function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+function renderWithRouter() {
+  return render(
+    <MemoryRouter>
+      <ProjectsPage />
+    </MemoryRouter>,
+  );
 }
 
+const mockProjects: Project[] = [
+  {
+    id: "1",
+    name: "Production App",
+    slug: "production-app",
+    description: "Production environment variables",
+    ownerId: "owner-1",
+    secrets: Array.from({ length: 12 }, (_, i) => ({ id: `s-${i}` })),
+    color: "bg-blue-500",
+    createdAt: "2026-05-01",
+    updatedAt: "2026-06-01",
+  },
+  {
+    id: "2",
+    name: "Staging",
+    slug: "staging",
+    description: "Staging environment variables",
+    ownerId: "owner-1",
+    secrets: Array.from({ length: 5 }, (_, i) => ({ id: `s-${i}` })),
+    color: "bg-green-500",
+    createdAt: "2026-04-28",
+    updatedAt: "2026-05-28",
+  },
+];
+
 describe("ProjectsPage", () => {
-  it("should render the page header with title", () => {
-    renderWithRouter(<ProjectsPage />);
-    expect(screen.getByText("Projects")).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should render project cards from mock data", () => {
-    renderWithRouter(<ProjectsPage />);
-    expect(screen.getByTestId("project-card-1")).toBeInTheDocument();
-    expect(screen.getByTestId("project-card-2")).toBeInTheDocument();
+  it("shows loading skeleton placeholders while fetching projects", () => {
+    vi.mocked(api.get).mockReturnValue(new Promise<Project[]>(() => {}));
+    renderWithRouter();
+    const skeletons = document.querySelectorAll(".animate-pulse");
+    expect(skeletons).toHaveLength(3);
   });
 
-  it("should not show create modal by default", () => {
-    renderWithRouter(<ProjectsPage />);
-    expect(screen.queryByTestId("mock-create-modal")).not.toBeInTheDocument();
+  it("shows error message when fetching projects fails", async () => {
+    vi.mocked(api.get).mockRejectedValue(new Error("Network error"));
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByText("Network error")).toBeInTheDocument();
+    });
   });
 
-  it("should show create modal when action button is clicked", async () => {
-    renderWithRouter(<ProjectsPage />);
-    const button = screen.getByTestId("header-action-btn");
-    fireEvent.click(button);
-    expect(screen.getByTestId("mock-create-modal")).toBeInTheDocument();
+  it("renders project cards when API returns projects", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockProjects);
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByText("Production App")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Staging")).toBeInTheDocument();
+    expect(screen.getByText("Production environment variables")).toBeInTheDocument();
+    expect(screen.getByText("Staging environment variables")).toBeInTheDocument();
+    expect(screen.getByText("12 secrets")).toBeInTheDocument();
+    expect(screen.getByText("5 secrets")).toBeInTheDocument();
   });
 
-  it("should close create modal when onClose is called", async () => {
-    renderWithRouter(<ProjectsPage />);
-    const openButton = screen.getByTestId("header-action-btn");
-    fireEvent.click(openButton);
-    expect(screen.getByTestId("mock-create-modal")).toBeInTheDocument();
+  it("renders empty grid when API returns an empty array", async () => {
+    vi.mocked(api.get).mockResolvedValue([]);
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.queryByText("Production App")).not.toBeInTheDocument();
+      expect(screen.queryByText("Staging")).not.toBeInTheDocument();
+    });
+  });
 
-    const closeButton = screen.getByTestId("modal-close-btn");
-    fireEvent.click(closeButton);
-    expect(screen.queryByTestId("mock-create-modal")).not.toBeInTheDocument();
+  it("opens create project modal, fills form, submits, and calls api.post", async () => {
+    vi.mocked(api.get).mockResolvedValue([]);
+    const createdProject: Project = {
+      id: "3",
+      name: "New Project",
+      slug: "new-project",
+      description: "A brand new project",
+      ownerId: "owner-1",
+      secrets: [],
+      color: "bg-purple-500",
+      createdAt: "2026-06-03",
+      updatedAt: "2026-06-03",
+    };
+    vi.mocked(api.post).mockResolvedValue(createdProject);
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /create project/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /create project/i }));
+
+    expect(screen.getByText("Create New Project")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText("My Project"), {
+        target: { value: "New Project" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Project description..."), {
+        target: { value: "A brand new project" },
+      });
+    });
+
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(vi.mocked(api.post)).toHaveBeenCalledWith("/projects", {
+        name: "New Project",
+        description: "A brand new project",
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Create New Project")).not.toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("New Project")).toBeInTheDocument();
+    });
+  });
+
+  it("closes the create project modal when Cancel is clicked", async () => {
+    vi.mocked(api.get).mockResolvedValue(mockProjects);
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /create project/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /create project/i }));
+
+    expect(screen.getByText("Create New Project")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Create New Project")).not.toBeInTheDocument();
+    });
+
+    expect(vi.mocked(api.post)).not.toHaveBeenCalled();
+  });
+
+  it("shows error when project creation fails", async () => {
+    vi.mocked(api.get).mockResolvedValue([]);
+    vi.mocked(api.post).mockRejectedValue(new Error("Creation failed"));
+
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /create project/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /create project/i }));
+
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText("My Project"), {
+        target: { value: "Failing Project" },
+      });
+    });
+
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Creation failed")).toBeInTheDocument();
+    });
   });
 });

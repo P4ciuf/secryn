@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ApiKeyRow } from "@/features/api-keys/components/ApiKeyRow";
-import type { ApiKey } from "@/types";
+import type { ApiKey } from "@repo/shared";
 
 vi.mock("@/hooks/use-clipboard", () => ({
   useClipboard: () => ({

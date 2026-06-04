@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateWebhookModal } from "@/features/webhooks/components/CreateWebhookModal";
-import type { WebhookEvent } from "@/types";
+import type { WebhookEvent } from "@repo/shared";
 
 vi.mock("@/components/common/Modal", () => ({
   Modal: ({
@@ -21,16 +21,6 @@ vi.mock("@/components/common/Modal", () => ({
         {children}
       </div>
     ) : null,
-}));
-
-vi.mock("@/data/webhooks", () => ({
-  availableEvents: [
-    "secret.created",
-    "secret.updated",
-    "secret.deleted",
-    "project.created",
-    "project.deleted",
-  ] as WebhookEvent[],
 }));
 
 describe("<CreateWebhookModal />", () => {
@@ -66,7 +56,10 @@ describe("<CreateWebhookModal />", () => {
     await user.click(screen.getByText("secret.created"));
 
     await user.click(screen.getByRole("button", { name: "Create" }));
-    expect(onSubmit).toHaveBeenCalledWith("https://example.com/hook", ["secret.created"]);
+    expect(onSubmit).toHaveBeenCalledWith({
+      url: "https://example.com/hook",
+      events: ["secret.created"],
+    });
   });
 
   it("should disable Create button when no events are selected", () => {

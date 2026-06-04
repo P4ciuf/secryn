@@ -1,7 +1,7 @@
 import { Key, Calendar, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { SecretValue } from "../../../components/common/SecretValue";
-import type { ApiKey } from "../../../types";
+import type { ApiKey } from "@repo/shared";
 
 interface ApiKeyRowProps {
   apiKey: ApiKey;

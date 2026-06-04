@@ -1,7 +1,7 @@
 import { AnimatePresence } from "framer-motion";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { SecretRow } from "./SecretRow";
-import type { Secret } from "../../../types";
+import type { Secret } from "@repo/shared";
 
 interface SecretsTableProps {
   secrets: Secret[];
