@@ -8,6 +8,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- `@repo/shared` TypeScript package with shared types, DTOs, error codes, and utility types (`packages/shared/`)
+- Prisma migration adding `description` field to `Project` model (`20260604150713_add_description_to_projects`)
+- `getUserProjects()` method to `ProjectService` returning all projects owned by or shared with the user
+- `getProjectOrThrow()` method to `ProjectService` replacing inline existence checks with typed error
+- `GET /projects/@all` support in project route — invokes `getUserProjects` when `:id` is the literal `@all`
+- Test case for `GET /projects/@all` confirming array response and `getUserProjects` mock invocation
+- `ErrorBoundary` route error component handling RouteErrorResponse, Error, string, and unknown error types with Go Back and Retry buttons (`components/ErrorBoundary.tsx`)
+- `ErrorBoundary` test suite covering all 4 error-type branches and button interactions (`components/__tests__/ErrorBoundary.test.tsx`)
+- Router structure test suite verifying 12 route paths, all ErrorBoundary attachments, and NotFound catch-all (`__tests__/routes.test.ts`)
+- Mock project data shape validation test suite (`data/__tests__/projects.test.ts`)
+- `MockProjectService.Instance` static factory pattern to all project core, invite, and member test files — prevents 500 errors from undefined `Service.Instance()`
+- `registerErrorHandler` registration to all project core and invite test files for proper error response handling
+- `logger.error` mock to project get test to support error handler log calls
+- Swagger `response` schema on `GET /projects/:id` using `oneOf` for single-project and array (`@all`) response shapes
+- Typed request-parameter and body interfaces across all project, invite, and member route handlers
+- Comprehensive JSDoc documentation for all 15 `packages/shared/` files — entities, DTOs, enums, errors, pagination, and utility types
+- JSDoc documentation for `pickColor()` hash function (`ProjectCard`) explaining the DJB2 deterministic color algorithm
+- JSDoc documentation for 7 previously undocumented `ProjectService` methods (`getProjectOrThrow`, `getUserProjects`, `getMember`, `getMemberOrThrow`, `getInviteOrThrow`, `getPermissionAssignment`, `getPermissionAssignmentOrThrow`)
+- JSDoc documentation for `ErrorBoundary` component describing the four error-type handling priorities
+
+### Changed
+- Migrated frontend type definitions from `apps/web/src/types/` to shared `packages/shared/` package — all components and data modules now import from `@repo/shared`
+- `createProject` signature changed from `createProject(name)` to `createProject(name, desc)` — description parameter propagated to Prisma, service, route schema, and handler
+- `CreateProjectModal`, `CreateSecretModal`, `CreateWebhookModal`, and `CreateApiKeyModal` `onSubmit` callback changed from multi-argument to single-object `onSubmit(input)` matching DTO types
+- Auth route imports in `login.route.ts` and `register.route.ts` switched from local inline type definitions to `@repo/shared` (`LoginBody`, `RegisterBody`)
+- Updated 6 frontend test files with type import fixes (`@/types` → `@repo/shared`)
+- Updated 3 frontend test files with modal signature assertion fixes (two-argument → single-object)
+- Updated `RegisterPage` test assertion from `name` to `username` matching `RegisterBody` DTO shape
+- Updated `ProjectsPage` test `api.get` mock responses from `{ projects: [...] }` wrapper to direct array
+
+### Fixed
+- All project core, invite, and member test suites now use `MockProjectService.Instance` static factory — fixes 500 error from undefined `ProjectService.Instance()`
+- All project core and invite tests now register the global error handler — fixes 500 error from unhandled error propagation
+- `removePermissions` route test descriptions corrected from `POST` to `DELETE` matching the route's HTTP method
+
+### Removed
+- `apps/web/src/types/api-keys.ts` — type definitions migrated to `@repo/shared`
+- `apps/web/src/types/projects.ts` — type definitions migrated to `@repo/shared`
+- `apps/web/src/types/secrets.ts` — type definitions migrated to `@repo/shared`
+- `apps/web/src/types/webhooks.ts` — type definitions migrated to `@repo/shared`
+- Dead `vi.mock("@/data/webhooks")` block from `CreateWebhookModal` test (source no longer imports from this module)
+
+## 03/06/2026
+
+### Added
 - `README.md` with project overview, features, tech stack, configuration table, project structure, and available scripts
 - `CONTRIBUTING.md` with branching strategy (feature/fix/chore/refactor/release), Conventional Commits (feat, fix, chore, docs, refactor, test, perf, ci), pull request process, and code style guide
 - `ProjectService.Instance()` static async factory method replacing public constructor — loads full user record for authorization checks
@@ -26,6 +71,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
 - VS Code workspace settings for TypeScript SDK path (`.vscode/settings.json`, `apps/web/.vscode/settings.json`)
 - SecureVault project roadmap with phased milestone tracking (`todo.md`)
+- Centralized API client `lib/api.ts` with typed `get`/`post`/`put`/`patch`/`delete` helpers, structured `ApiError` class, auth token injection from `localStorage`, and `credentials: "include"` cookie-based auth
+- Vite dev server proxy forwarding `/api/*` requests to backend with `changeOrigin` and env-var-driven target (`VITE_API_TARGET`)
+- Frontend environment files: `.env.development` (`VITE_API_BASE_URL`, `VITE_API_TARGET`) and `.env.production` (`VITE_API_BASE_URL`)
+- Backend environment template `apps/api/.env.example` documenting all required environment variables
+- Nginx reverse proxy configuration `apps/web/nginx.conf` with SPA fallback, `/api/` proxy to backend, gzip compression, and forwarded headers
+- Docker Compose healthchecks for `db` (`pg_isready`), `api` (`wget /api/v1/health`), and service dependency chains with `condition: service_healthy`
+- `vite-env.d.ts` type declarations for custom Vite environment variables
+- `apps/web/src/pages/__tests__/Landing.test.tsx` covering all 7 landing page sections
+- `apps/web/src/lib/__tests__/api.test.ts` covering all HTTP methods, auth token injection, error handling, and query parameters
+- `apps/web/src/routes/__tests__/paths.test.ts` with route constant validation and snapshot
+- Inline comments documenting non-obvious patterns: httpOnly cookie auth flow, client-side password validation, dual-state visibility tracking, fixed-count skeleton placeholders, and fire-and-forget health check
 
 ### Changed
 - Refactored `ProjectService` from constructor-based `new ProjectService(userId)` to async factory `ProjectService.Instance(userId)` with private constructor and pre-loaded `FullUser`
@@ -43,11 +99,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Extended `ProjectService` with `removeMemberToProject` method supporting permission validation (ALL/REMOVE_MEMBERS), member-not-found checks, and self-removal prevention
 - Added `addPermissionToMember` stub method to `ProjectService` (pending implementation)
 - Removed `.vscode` and `todo.md` from `.gitignore` to version-control workspace settings and roadmap
+- Wired `LoginPage` and `RegisterPage` to `POST /api/v1/auth/login` and `POST /api/v1/auth/register` with loading, error, and success states; added client-side password-match validation to registration
+- Wired `ProjectsPage` to `GET /api/v1/projects` and `POST /api/v1/projects` with loading skeleton placeholders, error banner, and optimistic local-state updates
+- Wired `SecretsPage` to `GET /projects/:projectId/secrets`, `POST /projects/:projectId/secrets`, and `DELETE /secrets/:id` with dual-state visibility tracking (local `Set` + clipboard hook)
+- Wired `ApiKeysPage` to `GET /api-keys`, `POST /api-keys`, and `DELETE /api-keys/:id`
+- Wired `WebhooksPage` to `GET /webhooks`, `POST /webhooks`, and `DELETE /webhooks/:id`
+- Wired `ApiDocsPage` endpoint list to attempt `GET /docs/endpoints` with static fallback catalog matching real backend routes; added fire-and-forget health check on mount
+- Rewrote `CreateProjectModal` with controlled inputs, `onSubmit` callback accepting `CreateProjectInput`, and synchronous form reset on close/submit
+- Inlined `availableEvents` webhook event types into `CreateWebhookModal` (removed import from static data module)
+- Added `PUT` to `ApiEndpoint.method` union type for rename-project endpoint display
+- Moved API service from host-exposed port 3000 to internal-only Docker network; web service now on port 80 (was 5173)
+- Dockerfiles refactored: builder stages use `node:22-alpine`, web runtime uses `nginx:alpine` with custom `nginx.conf`, API runtime copies built `dist` and `node_modules` from builder
+- API Dockerfile: prisma generate during build, `EXPOSE 3000` and `ENV PORT=3000` declared
+- Fixed PostgreSQL volume path in docker-compose from `/var/lib/postgresql` to `/var/lib/postgresql/data`
+- Removed deprecated `version: "3.9"` from docker-compose.yml
+- Updated 9 test files for API-wired pages with API client mocks, loading/error/populated state coverage, form submit assertions, and optimistic update verification
+- Added JSDoc documentation to `ApiError` class, all `api` client helpers, `RequestOptions`, `resolveUrl`, `buildHeaders`, and `request` core function in `lib/api.ts`
+- Added JSDoc annotations to `LoginPage`, `RegisterPage`, `ProjectsPage`, `SecretsPage`, `ApiKeysPage`, `WebhooksPage`, `ApiDocsPage`, `CreateProjectModal`, and `CreateWebhookModal`
+- Expanded `ApiEndpoint` JSDoc with `@property` tags documenting non-obvious `color` field (Tailwind CSS class)
 
 ### Fixed
 - `ProjectService.createInvite()` now loads and renders HTML email template from file system instead of inline string
 - `assignAllPermissionToMemberUnsafe` uses `this.user` directly instead of guard-mediated user lookup
 - Replaced `// TODO: implement` stub in `ProjectService.addPermissionToMember` with full implementation
+- Remove-permissions route method corrected from `POST` to `DELETE` in `removePermissions.route.ts` and its test suite
 
 ### Removed
 - `ProjectGuard` class (`modules/project/guard.ts`) — superseded by `PolicyProject` static authorization helpers

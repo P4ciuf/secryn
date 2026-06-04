@@ -1,31 +1,24 @@
-FROM node:24-alpine AS base
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-
-FROM base AS builder
-
-WORKDIR /app
-
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./tsconfig.base.json
-
+COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm install --filter web...
 
-WORKDIR /app/apps/web
+WORKDIR /app/packages/shared
+RUN npx tsc
 
+WORKDIR /app/apps/web
 RUN pnpm build
 
+FROM nginx:alpine
 
-FROM nginx:alpine AS runtime
-
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
 EXPOSE 80
