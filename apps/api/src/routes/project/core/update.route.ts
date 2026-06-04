@@ -8,15 +8,18 @@ interface UpdateProjectNameParams {
 }
 
 interface UpdateProjectNameBody {
-  name: string;
+  name?: string;
+  description?: string;
 }
 
 /**
  * PUT /projects/:id
  *
- * Updates the display name (and derived slug) of a project.
- * Only the project owner can rename the project.
+ * Updates the name (and derived slug) and/or description of a project.
+ * Only the project owner can perform the update.
  * Rate-limited to 5 requests per hour per client.
+ *
+ * @see ProjectService.updateProject
  */
 export default ((fastify: FastifyInstance) => ({
   method: "PUT",
@@ -28,10 +31,10 @@ export default ((fastify: FastifyInstance) => ({
     },
   },
   schema: {
-    summary: "Update project name",
+    summary: "Update project",
     description:
       "Updates the name (and slug) of a project. Only the project owner can rename the project. Rate-limited to 5 requests per hour.",
-    operationId: "updateProjectName",
+    operationId: "updateProject",
     tags: ["Project"],
     params: {
       type: "object",
@@ -45,30 +48,34 @@ export default ((fastify: FastifyInstance) => ({
     },
     body: {
       type: "object",
-      required: ["name"],
       properties: {
         name: {
           type: "string",
           description: "New project name",
         },
+        description: {
+          type: "string",
+          description: "New project description",
+        },
       },
     },
     response: {
       200: {
-        description: "Project name updated successfully",
+        description: "Project updated successfully",
         type: "object",
         properties: {
-          id: { type: "string", description: "Project ID" },
+          id: { type: "string", description: "Internal project ID" },
           name: { type: "string" },
+          description: { type: "string" },
           slug: { type: "string" },
           ownerId: { type: "string" },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
         },
       },
-      400: { description: "Bad request — invalid body or project name/slug already exists" },
+      400: { description: "Bad request — missing or invalid body" },
       401: { description: "Unauthorized — missing or invalid JWT" },
-      403: { description: "Forbidden — only the project owner can rename the project" },
+      403: { description: "Forbidden — only the project owner can update the project" },
       404: { description: "Not found — project does not exist" },
       500: { description: "Internal server error" },
     },
@@ -79,11 +86,11 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
-    const updatedProject = await projectService.updateNameProject(
+    const updatedProject = await projectService.updateProject(
       {
         id: (req.params as UpdateProjectNameParams).id,
       },
-      (req.body as UpdateProjectNameBody).name,
+      req.body as UpdateProjectNameBody,
     );
 
     return reply.send(updatedProject);

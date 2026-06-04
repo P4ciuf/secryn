@@ -78,6 +78,7 @@ export class ProjectService {
    *
    * @async
    * @param name - The display name of the project
+   * @param desc - The project description (can be empty)
    * @returns The newly created project, including owner, members, invites, and secrets
    * @throws {AppError} BadRequest — when a project with the same name or slug already exists
    */
@@ -120,26 +121,39 @@ export class ProjectService {
   }
 
   /**
-   * Updates the name (and derived slug) of a project.
+   * Updates the name (and derived slug) and/or description of a project.
    * Only the project owner is allowed to rename.
+   * When the name changes, the slug is regenerated and checked for uniqueness.
+   * Omitted fields retain their current values.
    *
    * @async
    * @param where - Unique identifier for the project to update
-   * @param name - The new project name
-   * @returns The updated project with the new name and slug
+   * @param data - Partial project fields to update ({name?, description?})
+   * @param data.name - When provided and different from the current name, regenerates the slug
+   * @param data.description - When omitted, the existing description is preserved
+   * @returns The updated project with the new name, slug, and description
    * @throws {AppError} NotFound — when the project does not exist
    * @throws {AppError} Forbidden — when the current user is not the project owner
    * @throws {AppError} BadRequest — when the new name or derived slug conflicts with an existing project
    */
-  async updateNameProject(where: Prisma.ProjectWhereUniqueInput, name: string) {
+  async updateProject(
+    where: Prisma.ProjectWhereUniqueInput,
+    data: { name?: string; description?: string },
+  ) {
     const project = await this.getProjectOrThrow(where);
     ownsProject(this.user.id, project.owner.id);
 
-    const slug = generateSlugFromName(name);
+    const { name, description } = data;
+    let slug = project.slug;
 
-    await this.alreadyExistsProject({ OR: [{ slug }, { name: name }] });
+    if (name && name !== project.name) {
+      slug = generateSlugFromName(name);
+      await this.alreadyExistsProject({ OR: [{ slug }, { name: name }] });
+    }
 
-    return await this.repository.updateProject(where, { name: name, slug });
+    const desc = description ?? project.description;
+
+    return await this.repository.updateProject(where, { name: name, slug, description: desc });
   }
 
   /**
@@ -348,16 +362,17 @@ export class ProjectService {
   }
 
   /**
-   * Removes a member from a project. The caller must hold the `ALL` or `REMOVE_MEMBERS`
-   * permission in the target project. A user cannot remove themselves from a project.
+   * Removes a member from a project. The member being removed must hold the `ALL` or
+   * `REMOVE_MEMBERS` permission in the target project. A user cannot remove themselves.
    *
    * @async
    * @param memberId - ID of the project member to remove
    * @param projectId - ID of the project the member belongs to
-   * @throws {AppError} ResourceNotFound — when the project, the caller's user record,
-   *   or the target member does not exist
-   * @throws {AppError} Forbidden — when the caller lacks ALL or REMOVE_MEMBERS permission
-   * @throws {AppError} BadRequest — when the caller attempts to remove themselves
+   * @throws {AppError} ResourceNotFound — when the project, the target member,
+   *   or the member's permission assignment does not exist
+   * @throws {AppError} Forbidden — when the member being removed does not hold
+   *   ALL or REMOVE_MEMBERS permission
+   * @throws {AppError} BadRequest — when attempting to remove the authenticated user
    */
   async removeMemberToProject(memberId: string, projectId: string): Promise<void> {
     const project = await this.getProjectOrThrow({ id: projectId });
@@ -456,22 +471,21 @@ export class ProjectService {
   }
 
   /**
-   * Retrieves permission assignments for a member matching the given criteria.
-   * A member can hold multiple permissions, so a list is returned.
+   * Retrieves a single permission assignment matching the given criteria, or null.
    *
    * @param where - Prisma filter for permission assignments
-   * @returns An array of matching ProjectMemberPermissionAssignment records
+   * @returns The first matching ProjectMemberPermissionAssignment record or null
    */
   async getPermissionAssignment(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
     return await this.repository.findProjectMemberPermissionAssignment(where);
   }
 
   /**
-   * Retrieves permission assignments for a member, throwing if none match.
+   * Retrieves a permission assignment matching the given criteria, throwing if none match.
    *
    * @param where - Prisma filter for permission assignments
-   * @returns An array of matching ProjectMemberPermissionAssignment records
-   * @throws {AppError} ResourceNotFound — when no assignments match the criteria
+   * @returns The first matching ProjectMemberPermissionAssignment record
+   * @throws {AppError} ResourceNotFound — when no assignment matches the criteria
    */
   async getPermissionAssignmentOrThrow(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
     const permissionAssignment = await this.getPermissionAssignment(where);

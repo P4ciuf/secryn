@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { AppError } from "../../../../core/errors/appError.js";
 import { registerErrorHandler } from "../../../../core/errors/errorHandler.js";
-import route from "../updateName.route.js";
+import route from "../update.route.js";
 
 // vi.hoisted ensures mock declarations are evaluated before the module graph is loaded,
 // which is required by Vitest for vi.mock() to correctly intercept ES module imports.
@@ -28,6 +28,8 @@ vi.mock("../../../../modules/project/service.js", () => ({
 /**
  * Boots a minimal Fastify instance pre-configured for integration testing,
  * with mocked authentication and the route under test registered.
+ *
+ * @returns A Fastify instance ready for `app.inject()` calls
  */
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });

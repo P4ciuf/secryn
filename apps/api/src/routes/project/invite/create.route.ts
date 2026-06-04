@@ -53,7 +53,11 @@ export default ((fastify: FastifyInstance) => ({
         description: "Invitation created and email sent successfully",
         type: "object",
         properties: {
-          ok: { type: "boolean", example: true },
+          id: { type: "string", description: "Invite ID" },
+          slug: { type: "string", description: "Unique invitation slug" },
+          projectId: { type: "string", description: "ID of the project" },
+          expiresAt: { type: "string", format: "date-time", description: "Expiry date" },
+          createdAt: { type: "string", format: "date-time", description: "Creation date" },
         },
       },
       400: { description: "Bad request — missing body or user already a member" },
