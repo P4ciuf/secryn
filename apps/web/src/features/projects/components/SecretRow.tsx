@@ -1,14 +1,21 @@
-import { Key, Calendar, Trash2 } from "lucide-react";
+import { Key, Calendar, Trash2, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { SecretValue } from "../../../components/common/SecretValue";
 import type { Secret } from "@repo/shared";
 
 interface SecretRowProps {
+  /** The secret record to render in this row. */
   secret: Secret;
+  /** Zero-based row index used for staggered entrance animation. */
   index: number;
+  /** Whether the secret value is currently displayed in plain text. */
   isVisible: boolean;
+  /** Callback to flip the visibility state for this row's secret. */
   onToggleVisibility: () => void;
+  /** Callback to delete this row's secret. */
   onDelete: () => void;
+  /** Callback invoked with the full secret object when editing is requested. */
+  onEdit: (secret: Secret) => void;
 }
 
 /**
@@ -21,6 +28,7 @@ export function SecretRow({
   isVisible,
   onToggleVisibility,
   onDelete,
+  onEdit,
 }: SecretRowProps) {
   return (
     <motion.tr
@@ -53,6 +61,13 @@ export function SecretRow({
             title="Delete"
           >
             <Trash2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onEdit(secret)}
+            className="p-2 text-slate-400 hover:text-yellow-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Edit"
+          >
+            <Pencil className="w-4 h-4" />
           </button>
         </div>
       </td>

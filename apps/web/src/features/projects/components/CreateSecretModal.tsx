@@ -4,8 +4,11 @@ import { Modal } from "../../../components/common/Modal";
 import type { CreateSecretInput } from "@repo/shared";
 
 interface CreateSecretModalProps {
+  /** Controls modal visibility — the modal is rendered only when {@code true}. */
   open: boolean;
+  /** Callback invoked when the user clicks Cancel or the backdrop. */
   onClose: () => void;
+  /** Callback invoked with the form payload when the user submits. */
   onSubmit: (input: CreateSecretInput) => void;
 }
 
@@ -18,12 +21,14 @@ interface CreateSecretModalProps {
 export function CreateSecretModal({ open, onClose, onSubmit }: CreateSecretModalProps) {
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
+  const [notes, setNotes] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit({ name, value });
+    onSubmit({ name, value, notes });
     setName("");
     setValue("");
+    setNotes("");
   };
 
   return (
@@ -52,6 +57,16 @@ export function CreateSecretModal({ open, onClose, onSubmit }: CreateSecretModal
             placeholder="your-secret-value-here"
             rows={3}
             required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 font-mono"
+            placeholder="notes"
+            rows={3}
           />
         </div>
         <div className="flex gap-3 pt-2">

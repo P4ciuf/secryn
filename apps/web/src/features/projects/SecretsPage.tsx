@@ -7,7 +7,8 @@ import { SecretsTable } from "../../features/projects/components/SecretsTable";
 import { CreateSecretModal } from "../../features/projects/components/CreateSecretModal";
 import { useToggleVisibility } from "../../hooks/use-toggle-visibility";
 import { api } from "../../lib/api";
-import type { CreateSecretInput, ProjectSecretsData, Secret } from "@repo/shared";
+import type { CreateSecretInput, Secret, UpdateSecretInput } from "@repo/shared";
+import { UpdateSecretModal } from "./components/UpdateSecretModal";
 
 /**
  * Secrets listing for a specific project, resolved via the {@code :projectId}
@@ -26,6 +27,8 @@ export default function SecretsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [editingSecret, setEditingSecret] = useState<Secret | null>(null);
   const { toggle } = useToggleVisibility();
   const [visibleSet, setVisibleSet] = useState<Set<string>>(new Set());
 
@@ -36,9 +39,9 @@ export default function SecretsPage() {
     try {
       setError("");
       setLoading(true);
-      const data = await api.get<ProjectSecretsData>(`/projects/${projectId}/secrets`);
-      setProjectName(data?.name ?? "");
-      setSecrets(Array.isArray(data?.secrets) ? data.secrets : []);
+      const data = await api.get<Secret[]>(`/projects/${projectId}/secrets`);
+      setSecrets(data ?? []);
+      setProjectName("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load secrets");
     } finally {
@@ -67,10 +70,29 @@ export default function SecretsPage() {
 
   const deleteSecret = async (id: string) => {
     try {
-      await api.delete<void>(`/secrets/${id}`);
+      await api.delete<void>(`/projects/secrets/${id}`);
       setSecrets((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete secret");
+    }
+  };
+
+  const handleEditClick = (secret: Secret) => {
+    setEditingSecret(secret);
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateSecret = async (input: UpdateSecretInput & { id: string }) => {
+    try {
+      const updated = await api.put<Secret, UpdateSecretInput>(
+        `/projects/secrets/${input.id}`,
+        input,
+      );
+      setSecrets((prev) => prev.map((s) => (s.id === input.id ? updated : s)));
+      setShowUpdateModal(false);
+      setEditingSecret(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update secret");
     }
   };
 
@@ -121,6 +143,7 @@ export default function SecretsPage() {
           visibleSet={visibleSet}
           onToggleVisibility={handleToggleVisibility}
           onDelete={deleteSecret}
+          onEdit={handleEditClick}
         />
       )}
 
@@ -129,6 +152,17 @@ export default function SecretsPage() {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddSecret}
       />
+      {editingSecret && (
+        <UpdateSecretModal
+          open={showUpdateModal}
+          onClose={() => {
+            setShowUpdateModal(false);
+            setEditingSecret(null);
+          }}
+          onSubmit={handleUpdateSecret}
+          secret={editingSecret}
+        />
+      )}
     </motion.div>
   );
 }

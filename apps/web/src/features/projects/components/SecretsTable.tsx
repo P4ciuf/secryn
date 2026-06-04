@@ -4,11 +4,16 @@ import { SecretRow } from "./SecretRow";
 import type { Secret } from "@repo/shared";
 
 interface SecretsTableProps {
+  /** Array of secrets to display. An empty array triggers the empty state. */
   secrets: Secret[];
   /** Set of secret IDs whose values are currently visible in plain text. */
   visibleSet: Set<string>;
+  /** Callback to toggle the visibility of the secret identified by the given ID. */
   onToggleVisibility: (id: string) => void;
+  /** Callback to delete the secret identified by the given ID. */
   onDelete: (id: string) => void;
+  /** Callback invoked with the full secret object when editing is requested. */
+  onEdit: (secret: Secret) => void;
 }
 
 /**
@@ -20,6 +25,7 @@ export function SecretsTable({
   visibleSet,
   onToggleVisibility,
   onDelete,
+  onEdit,
 }: SecretsTableProps) {
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
@@ -46,6 +52,7 @@ export function SecretsTable({
                     isVisible={visibleSet.has(secret.id)}
                     onToggleVisibility={() => onToggleVisibility(secret.id)}
                     onDelete={() => onDelete(secret.id)}
+                    onEdit={() => onEdit(secret)}
                   />
                 ))
               )}
