@@ -2,13 +2,22 @@ import type { Secret } from "../entities/secret.js";
 
 /**
  * Request body for {@code POST /projects/:projectId/secrets}.
- *
- * @property name - Secret key name (convention: SCREAMING_SNAKE_CASE)
- * @property value - The plain-text secret value to store
+ * All fields are required by the endpoint schema.
  */
 export interface CreateSecretInput {
   name: string;
   value: string;
+  notes: string;
+}
+
+/**
+ * Request body for {@code PUT /projects/secrets/:id}.
+ * All fields are optional — only the fields provided are updated.
+ */
+export interface UpdateSecretInput {
+  name?: string;
+  value?: string;
+  notes?: string;
 }
 
 /**

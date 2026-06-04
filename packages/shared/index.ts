@@ -16,7 +16,11 @@ export type { Webhook, WebhookEvent } from "./src/entities/webhook.js";
 // DTOs — request/response shapes for API endpoints
 export type { LoginBody, RegisterBody } from "./src/dtos/auth.js";
 export type { CreateProjectInput } from "./src/dtos/project.js";
-export type { CreateSecretInput, ProjectSecretsData } from "./src/dtos/secret.js";
+export type {
+  CreateSecretInput,
+  UpdateSecretInput,
+  ProjectSecretsData,
+} from "./src/dtos/secret.js";
 export type { CreateApiKeyInput } from "./src/dtos/api-key.js";
 export type { CreateWebhookInput } from "./src/dtos/webhook.js";
 
