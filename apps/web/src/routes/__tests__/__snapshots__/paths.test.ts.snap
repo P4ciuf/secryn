@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ROUTES > matches snapshot 1`] = `
+{
+  "API_DOCS": "/dashboard/api-docs",
+  "API_KEYS": "/dashboard/api-keys",
+  "DASHBOARD": "/dashboard",
+  "HOME": "/",
+  "LOGIN": "/login",
+  "PROJECTS": "/dashboard/projects",
+  "REGISTER": "/register",
+  "SECRETS": [Function],
+  "SETTINGS": "/dashboard/settings",
+  "WEBHOOKS": "/dashboard/webhooks",
+}
+`;

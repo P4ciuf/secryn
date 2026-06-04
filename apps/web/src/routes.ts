@@ -10,48 +10,59 @@ import ApiDocsPage from "./features/api-docs/ApiDocsPage";
 import WebhooksPage from "./features/webhooks/WebhooksPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import NotFound from "./pages/NotFound";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 /** Application route definitions for public and authenticated sections. */
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: Landing,
+    ErrorBoundary,
   },
   {
     path: "/login",
     Component: LoginPage,
+    ErrorBoundary,
   },
   {
     path: "/register",
     Component: RegisterPage,
+    ErrorBoundary,
   },
   {
     path: "/dashboard",
     Component: DashboardLayout,
+    ErrorBoundary,
     children: [
       {
         path: "projects",
         Component: ProjectsPage,
+        ErrorBoundary,
       },
       {
         path: "projects/:projectId/secrets",
         Component: SecretsPage,
+        ErrorBoundary,
       },
       {
         path: "api-keys",
         Component: ApiKeysPage,
+        ErrorBoundary,
       },
       {
         path: "api-docs",
         Component: ApiDocsPage,
+        ErrorBoundary,
       },
       {
         path: "webhooks",
         Component: WebhooksPage,
+        ErrorBoundary,
       },
       {
         path: "settings",
         Component: SettingsPage,
+        ErrorBoundary,
       },
     ],
   },
