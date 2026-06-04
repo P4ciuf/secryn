@@ -3,6 +3,14 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { ProjectService } from "../../../modules/project/service.js";
 import { AppError } from "../../../core/errors/appError.js";
 
+interface TransferOwnershipParams {
+  id: string;
+}
+
+interface TransferOwnershipBody {
+  toUserId: string;
+}
+
 /**
  * POST /projects/:id/transfer
  *
@@ -65,8 +73,8 @@ export default ((fastify: FastifyInstance) => ({
 
     const projectService = await ProjectService.Instance(req.user.id);
     await projectService.transferOwnerProject(
-      { id: (req.params as { id: string }).id },
-      (req.body as { toUserId: string }).toUserId,
+      { id: (req.params as TransferOwnershipParams).id },
+      (req.body as TransferOwnershipBody).toUserId,
     );
 
     return reply.code(204).send();

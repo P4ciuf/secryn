@@ -1,6 +1,7 @@
 import { logger } from "../logger/index.js";
 import { AppError, type ErrorCodeValue } from "./appError.js";
 import type { FastifyInstance } from "fastify";
+import type { ErrorResponse } from "@repo/shared";
 
 /**
  * Builds a standardized error response object with optional detail information.
@@ -8,9 +9,13 @@ import type { FastifyInstance } from "fastify";
  * @param code - Machine-readable error code
  * @param details - Optional structured data providing additional error context
  */
-function standardErrorResponse(message: string, code: ErrorCodeValue, details?: unknown) {
+function standardErrorResponse(
+  message: string,
+  code: ErrorCodeValue,
+  details?: unknown,
+): ErrorResponse {
   return {
-    success: false,
+    success: false as const,
     message,
     code,
     ...(details ? { details } : {}),
@@ -43,6 +48,19 @@ export function registerErrorHandler(app: FastifyInstance) {
             "Validation error",
             "BAD_REQUEST",
             (error as Record<string, unknown>).validation,
+          ),
+        );
+    }
+
+    const fallback = error as Record<string, unknown>;
+
+    if (typeof fallback.statusCode === "number") {
+      return reply
+        .code(fallback.statusCode as number)
+        .send(
+          standardErrorResponse(
+            (fallback.message as string) ?? "Request error",
+            "TOO_MANY_REQUESTS",
           ),
         );
     }

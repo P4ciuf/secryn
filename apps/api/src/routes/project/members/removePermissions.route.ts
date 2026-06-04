@@ -4,15 +4,24 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { AppError } from "../../../core/errors/appError.js";
 import { ProjectService } from "../../../modules/project/service.js";
 
+interface RemovePermissionsParams {
+  projectId: string;
+  memberId: string;
+}
+
+interface RemovePermissionsBody {
+  permissions: ProjectMemberPermission[];
+}
+
 /**
- * POST /projects/:projectId/members/:memberId/permissions
+ * DELETE /projects/:projectId/members/:memberId/permissions
  *
  * Removes one or more permissions from an existing project member.
  * The caller must hold the ALL or MANAGE_MEMBERS permission in the target project.
  * Rate-limited to 10 requests per 5 minutes per client.
  */
 export default ((fastify: FastifyInstance) => ({
-  method: "POST",
+  method: "DELETE",
   url: "/projects/:projectId/members/:memberId/permissions",
   config: {
     rateLimit: {
@@ -66,10 +75,12 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
+    const params = req.params as RemovePermissionsParams;
+    const body = req.body as RemovePermissionsBody;
     await projectService.removePermissionsFromMember(
-      (req.params as { memberId: string }).memberId,
-      (req.params as { projectId: string }).projectId,
-      (req.body as { permissions: ProjectMemberPermission[] }).permissions,
+      params.memberId,
+      params.projectId,
+      body.permissions,
     );
 
     return reply.code(204).send();

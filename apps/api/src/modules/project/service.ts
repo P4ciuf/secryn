@@ -9,6 +9,7 @@ import { generateInvitationExpiryDate, generateSlugFromName, ownsProject } from 
 import type { FullUser } from "../user/repository.js";
 import path from "node:path";
 import { readFileSync } from "node:fs";
+import { logger } from "../../core/logger/index.js";
 
 /**
  * Business-logic layer for project operations.
@@ -54,7 +55,7 @@ export class ProjectService {
     await this.repository.createMemberPermissionAssignment({
       projectMember: { connect: { id: memberId, projectId } },
       permission: "ALL",
-      addedByUser: { connect: { id: this.user.id } },
+      addedByUser: { connect: { id: memberId } },
     });
   }
 
@@ -80,13 +81,14 @@ export class ProjectService {
    * @returns The newly created project, including owner, members, invites, and secrets
    * @throws {AppError} BadRequest — when a project with the same name or slug already exists
    */
-  async createProject(name: string) {
+  async createProject(name: string, desc: string) {
     const slug = generateSlugFromName(name);
 
     await this.alreadyExistsProject({ OR: [{ slug }, { name }] });
 
     const project = await this.repository.createProject({
       name,
+      description: desc,
       slug,
       owner: { connect: { id: this.user.id } },
     });
@@ -185,10 +187,38 @@ export class ProjectService {
     return await this.repository.findProject(where);
   }
 
+  /**
+   * Retrieves a single project by unique identifier, throwing an error if not found.
+   *
+   * @async
+   * @param where - Unique identifier for the project
+   * @returns The full project including owner, members, invites, and secrets
+   * @throws {AppError} ResourceNotFound — when the project does not exist
+   */
   async getProjectOrThrow(where: Prisma.ProjectWhereUniqueInput): Promise<FullProject> {
     const project = await this.repository.findProject(where);
     if (!project) throw AppError.ResourceNotFound("Project");
     return project;
+  }
+
+  /**
+   * Returns every project the current user owns or is a member of.
+   * Logs the user and the result set via the debug logger for observability.
+   *
+   * @async
+   * @returns All projects accessible to the authenticated user
+   */
+  async getUserProjects(): Promise<Array<FullProject>> {
+    const prefix = "[ProjectService.getUserProjects]";
+    logger.debug(`${prefix} User: ${this.user.email} (${this.user.id})`);
+
+    const projects = await this.repository.findProjects({
+      OR: [{ ownerId: this.user.id }, { members: { some: { userId: this.user.id } } }],
+    });
+
+    logger.debug(`${prefix} Projects: ${JSON.stringify(projects)}`);
+
+    return projects;
   }
 
   /**
@@ -251,16 +281,36 @@ export class ProjectService {
     await new EmailUtils().sendEmail(toUser.email, "Invitation to join project", emailHTMLContent);
   }
 
+  /**
+   * Finds a project member by the given criteria, returning null if none matches.
+   *
+   * @param where - Prisma filter for the project member
+   * @returns The matching ProjectMember record or null
+   */
   async getMember(where: Prisma.ProjectMemberWhereInput) {
     return await this.repository.findProjectMember(where);
   }
 
+  /**
+   * Finds a project member by the given criteria, throwing an error if none matches.
+   *
+   * @param where - Prisma filter for the project member
+   * @returns The matching ProjectMember record
+   * @throws {AppError} ResourceNotFound — when no member matches the criteria
+   */
   async getMemberOrThrow(where: Prisma.ProjectMemberWhereInput) {
     const member = await this.getMember(where);
     if (!member) throw AppError.ResourceNotFound("Member");
     return member;
   }
 
+  /**
+   * Finds a project invitation by unique identifier, throwing an error if not found.
+   *
+   * @param where - Prisma unique input identifying the invite
+   * @returns The matching ProjectInvite record
+   * @throws {AppError} ResourceNotFound — when no invite matches
+   */
   async getInviteOrThrow(where: Prisma.ProjectInviteWhereUniqueInput) {
     const invite = await this.repository.findProjectInvite(where);
     if (!invite) throw AppError.ResourceNotFound("Invite");
@@ -405,10 +455,24 @@ export class ProjectService {
     }
   }
 
+  /**
+   * Retrieves permission assignments for a member matching the given criteria.
+   * A member can hold multiple permissions, so a list is returned.
+   *
+   * @param where - Prisma filter for permission assignments
+   * @returns An array of matching ProjectMemberPermissionAssignment records
+   */
   async getPermissionAssignment(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
     return await this.repository.findProjectMemberPermissionAssignment(where);
   }
 
+  /**
+   * Retrieves permission assignments for a member, throwing if none match.
+   *
+   * @param where - Prisma filter for permission assignments
+   * @returns An array of matching ProjectMemberPermissionAssignment records
+   * @throws {AppError} ResourceNotFound — when no assignments match the criteria
+   */
   async getPermissionAssignmentOrThrow(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
     const permissionAssignment = await this.getPermissionAssignment(where);
     if (!permissionAssignment) throw AppError.ResourceNotFound("Permission assignment");

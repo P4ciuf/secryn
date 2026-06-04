@@ -1,8 +1,7 @@
-import type { User } from "@prisma/client";
 import "fastify";
+import type { LoggedUser } from "@repo/shared";
 
-/** Minimal user data embedded in the JWT payload for authenticated requests. */
-export type LoggedUser = Pick<User, "id" | "email" | "username">;
+export type { LoggedUser };
 
 /**
  * Augments Fastify's request type so that `req.user` is available

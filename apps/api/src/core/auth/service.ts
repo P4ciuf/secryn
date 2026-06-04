@@ -1,5 +1,6 @@
 import type { FastifyRequest } from "fastify";
-import { UserService, type CreateUserParams } from "../../modules/user/service.js";
+import type { RegisterBody, LoginBody } from "@repo/shared";
+import { UserService } from "../../modules/user/service.js";
 import { AppError } from "../errors/appError.js";
 import { fastifyApp } from "../../lib/fastify.js";
 import type { LoggedUser } from "../../types/fastify.js";
@@ -36,7 +37,7 @@ export class AuthService {
    * @returns JWT for the newly created user
    * @throws {AppError} Conflict when already logged in or email already registered
    */
-  async register(data: CreateUserParams): Promise<string> {
+  async register(data: RegisterBody): Promise<string> {
     if (this.req.user) throw AppError.Conflict("User is already logged in.");
     const existingUser = await this.userService.getUser({ email: data.email });
     if (existingUser) throw AppError.Conflict("User is already registered.");
@@ -56,7 +57,7 @@ export class AuthService {
    * @returns JWT for the authenticated user
    * @throws {AppError} Conflict if already logged in, ResourceNotFound if email is unknown, Unauthorized if password is wrong
    */
-  async login(data: Pick<CreateUserParams, "email" | "password">): Promise<string> {
+  async login(data: LoginBody): Promise<string> {
     if (this.req.user) throw AppError.Conflict("User is already logged in.");
     const existingUser = await this.userService.getUser({ email: data.email });
     if (!existingUser) throw AppError.ResourceNotFound("User");

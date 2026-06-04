@@ -1,25 +1,7 @@
-/**
- * Centralized mapping of human-readable error codes to their string identifiers.
- * Used to standardize error responses across the API.
- */
-const errorCode = {
-  BAD_REQUEST: "BAD_REQUEST",
-  UNAUTHORIZED: "UNAUTHORIZED",
-  FORBIDDEN: "FORBIDDEN",
-  NOT_FOUND: "NOT_FOUND",
-  CONFLICT: "CONFLICT",
-  INTERNAL_SERVER: "INTERNAL_SERVER",
-  NOT_ACCEPTABLE: "NOT_ACCEPTABLE",
-  TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
-  RESOURCE_NOT_FOUND: "RESOURCE_NOT_FOUND",
-} as const;
+import { errorCode } from "@repo/shared";
+import type { ErrorCodeValue } from "@repo/shared";
 
-type ErrorCodeMap = typeof errorCode;
-
-/**
- * Union type of all valid error code string values derived from the errorCode constant.
- */
-export type ErrorCodeValue = ErrorCodeMap[keyof ErrorCodeMap];
+export type { ErrorCodeValue };
 
 /**
  * Application-level error class extending the native Error with an HTTP status code

@@ -39,6 +39,10 @@ export class ProjectRepository {
     return await prisma.project.findFirst({ where, include: this.projectInclude });
   }
 
+  async findProjects(where: Prisma.ProjectWhereInput): Promise<FullProject[]> {
+    return await prisma.project.findMany({ where, include: this.projectInclude });
+  }
+
   async updateProject(
     where: Prisma.ProjectWhereUniqueInput,
     data: Prisma.ProjectUpdateInput,

@@ -1,4 +1,4 @@
-import type { CreateUserParams } from "../../modules/user/service.js";
+import type { RegisterBody } from "@repo/shared";
 import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../types/route.js";
 import { AuthService } from "../../core/auth/service.js";
@@ -56,7 +56,7 @@ export default ((_fastify: FastifyInstance) => ({
   },
   handler: async (req, reply) => {
     // Cast is safe: the AJV schema defined above guarantees email and password exist
-    const { username, email, password } = req.body as CreateUserParams;
+    const { username, email, password } = req.body as RegisterBody;
     const authService = new AuthService(req);
     const token = await authService.register({ username, email, password });
 

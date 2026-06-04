@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../../types/route.js";
+import type { CreateProjectInput } from "@repo/shared";
 import { ProjectService } from "../../../modules/project/service.js";
 import { AppError } from "../../../core/errors/appError.js";
 
@@ -33,6 +34,11 @@ export default ((fastify: FastifyInstance) => ({
           type: "string",
           description: "Project name",
         },
+        description: {
+          type: "string",
+          description: "Project description",
+          default: "",
+        },
       },
     },
     response: {
@@ -59,7 +65,10 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
-    const project = await projectService.createProject((req.body as { name: string }).name);
+    const project = await projectService.createProject(
+      (req.body as CreateProjectInput).name,
+      (req.body as CreateProjectInput).description ?? "No description provided",
+    );
 
     return reply.send(project);
   },

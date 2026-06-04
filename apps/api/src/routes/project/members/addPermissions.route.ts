@@ -4,6 +4,15 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { AppError } from "../../../core/errors/appError.js";
 import { ProjectService } from "../../../modules/project/service.js";
 
+interface AddPermissionsParams {
+  projectId: string;
+  memberId: string;
+}
+
+interface AddPermissionsBody {
+  permissions: ProjectMemberPermission[];
+}
+
 /**
  * POST /projects/:projectId/members/:memberId/permissions
  *
@@ -66,10 +75,12 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
+    const params = req.params as AddPermissionsParams;
+    const body = req.body as AddPermissionsBody;
     await projectService.addPermissionsToMember(
-      (req.params as { memberId: string }).memberId,
-      (req.params as { projectId: string }).projectId,
-      (req.body as { permissions: ProjectMemberPermission[] }).permissions,
+      params.memberId,
+      params.projectId,
+      body.permissions,
     );
 
     return reply.code(204).send();

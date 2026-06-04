@@ -1,12 +1,7 @@
 import { AuthService } from "../../core/auth/service.js";
 import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../types/route.js";
-
-/** Shape of the request body expected by the login endpoint. */
-type LoginBody = {
-  email: string;
-  password: string;
-};
+import type { LoginBody } from "@repo/shared";
 
 /**
  * POST /auth/login

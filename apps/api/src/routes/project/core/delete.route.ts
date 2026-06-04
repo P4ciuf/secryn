@@ -3,6 +3,10 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { ProjectService } from "../../../modules/project/service.js";
 import { AppError } from "../../../core/errors/appError.js";
 
+interface DeleteProjectParams {
+  id: string;
+}
+
 /**
  * DELETE /projects/:id
  *
@@ -53,7 +57,7 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
-    await projectService.deleteProject({ id: (req.params as { id: string }).id });
+    await projectService.deleteProject({ id: (req.params as DeleteProjectParams).id });
 
     return reply.code(204).send();
   },

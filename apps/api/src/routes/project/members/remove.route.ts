@@ -3,6 +3,11 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { AppError } from "../../../core/errors/appError.js";
 import { ProjectService } from "../../../modules/project/service.js";
 
+interface RemoveMemberParams {
+  projectId: string;
+  memberId: string;
+}
+
 /**
  * DELETE /projects/:projectId/members/:memberId
  *
@@ -51,10 +56,8 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
-    await projectService.removeMemberToProject(
-      (req.params as { memberId: string }).memberId,
-      (req.params as { projectId: string }).projectId,
-    );
+    const params = req.params as RemoveMemberParams;
+    await projectService.removeMemberToProject(params.memberId, params.projectId);
 
     return reply.code(204).send();
   },

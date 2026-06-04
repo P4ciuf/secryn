@@ -3,9 +3,7 @@ import bcrypt from "bcrypt";
 import { AppError } from "../../core/errors/appError.js";
 import { userRepository } from "./repository.js";
 import { randomBytes } from "node:crypto";
-
-/** Parameters required to create a new user. */
-export type CreateUserParams = { email: string; password: string; username?: string };
+import type { RegisterBody } from "@repo/shared";
 
 /**
  * Business-logic layer for user management.
@@ -42,7 +40,7 @@ export class UserService {
    * @param data - User creation parameters
    * @throws {AppError} Conflict if the email or username already exists
    */
-  async createUser(data: CreateUserParams) {
+  async createUser(data: RegisterBody) {
     const exists = await this.repository.find({
       OR: [{ email: data.email }, { username: data.username }],
     });

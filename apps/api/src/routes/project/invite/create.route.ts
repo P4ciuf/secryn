@@ -3,6 +3,14 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { AppError } from "../../../core/errors/appError.js";
 import { ProjectService } from "../../../modules/project/service.js";
 
+interface CreateInviteParams {
+  id: string;
+}
+
+interface CreateInviteBody {
+  email: string;
+}
+
 /**
  * POST /projects/:id/invites
  *
@@ -62,8 +70,8 @@ export default ((fastify: FastifyInstance) => ({
 
     const projectService = await ProjectService.Instance(req.user.id);
     const project = await projectService.createInvite(
-      (req.body as { email: string }).email,
-      (req.params as { id: string }).id,
+      (req.body as CreateInviteBody).email,
+      (req.params as CreateInviteParams).id,
     );
 
     return reply.code(200).send(project);

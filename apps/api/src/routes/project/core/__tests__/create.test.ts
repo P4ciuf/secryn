@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { AppError } from "../../../../core/errors/appError.js";
+import { registerErrorHandler } from "../../../../core/errors/errorHandler.js";
 import route from "../create.route.js";
 
 // vi.hoisted ensures mock declarations are evaluated before the module graph is loaded,
@@ -12,6 +13,8 @@ const { mockCreateProject, mockAuthenticate, MockProjectService } = vi.hoisted((
   function MockProjectService(this: { createProject: typeof mockCreateProject }, _userId: string) {
     this.createProject = mockCreateProject;
   }
+  // ProjectService.Instance is a static async factory method — the mock must mirror it.
+  MockProjectService.Instance = async (userId: string) => new (MockProjectService as any)(userId);
   return { mockCreateProject, mockAuthenticate, MockProjectService };
 });
 
@@ -26,6 +29,7 @@ vi.mock("../../../../modules/project/service.js", () => ({
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });
   app.register(cookie);
+  registerErrorHandler(app);
   app.decorate("authenticate", mockAuthenticate);
   app.route(route(app));
   return app;
@@ -59,7 +63,7 @@ describe("POST /projects", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual(mockProject);
-    expect(mockCreateProject).toHaveBeenCalledWith("My Vault");
+    expect(mockCreateProject).toHaveBeenCalledWith("My Vault", expect.any(String) as string);
   });
 
   it("should return 400 when name is missing", async () => {

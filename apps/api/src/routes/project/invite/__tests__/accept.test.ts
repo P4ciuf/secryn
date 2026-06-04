@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { AppError } from "../../../../core/errors/appError.js";
+import { registerErrorHandler } from "../../../../core/errors/errorHandler.js";
 import route from "../accept.route.js";
 
 // vi.hoisted ensures mock declarations are evaluated before the module graph is loaded,
@@ -12,6 +13,8 @@ const { mockAcceptInvite, mockAuthenticate, MockProjectService } = vi.hoisted(()
   function MockProjectService(this: { acceptInvite: typeof mockAcceptInvite }, _userId: string) {
     this.acceptInvite = mockAcceptInvite;
   }
+  // ProjectService.Instance is a static async factory method — the mock must mirror it.
+  MockProjectService.Instance = async (userId: string) => new (MockProjectService as any)(userId);
   return { mockAcceptInvite, mockAuthenticate, MockProjectService };
 });
 
@@ -26,6 +29,7 @@ vi.mock("../../../../modules/project/service.js", () => ({
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });
   app.register(cookie);
+  registerErrorHandler(app);
   app.decorate("authenticate", mockAuthenticate);
   app.route(route(app));
   return app;

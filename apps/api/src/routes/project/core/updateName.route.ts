@@ -3,6 +3,14 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { ProjectService } from "../../../modules/project/service.js";
 import { AppError } from "../../../core/errors/appError.js";
 
+interface UpdateProjectNameParams {
+  id: string;
+}
+
+interface UpdateProjectNameBody {
+  name: string;
+}
+
 /**
  * PUT /projects/:id
  *
@@ -73,9 +81,9 @@ export default ((fastify: FastifyInstance) => ({
     const projectService = await ProjectService.Instance(req.user.id);
     const updatedProject = await projectService.updateNameProject(
       {
-        id: (req.params as { id: string }).id,
+        id: (req.params as UpdateProjectNameParams).id,
       },
-      (req.body as { name: string }).name,
+      (req.body as UpdateProjectNameBody).name,
     );
 
     return reply.send(updatedProject);

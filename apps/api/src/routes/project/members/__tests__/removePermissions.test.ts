@@ -38,7 +38,7 @@ function buildApp() {
   return app;
 }
 
-describe("POST /projects/:projectId/members/:memberId/permissions", () => {
+describe("DELETE /projects/:projectId/members/:memberId/permissions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -51,7 +51,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/proj_001/members/member_001/permissions",
       payload: { permissions: ["CREATE_SECRETS"] },
     });
@@ -69,7 +69,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/proj_001/members/member_001/permissions",
       payload: {},
     });
@@ -85,7 +85,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/proj_001/members/member_001/permissions",
       payload: {},
     });
@@ -98,7 +98,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/proj_001/members/member_001/permissions",
       payload: { permissions: ["READ_SECRETS"] },
     });
@@ -115,7 +115,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/proj_001/members/member_001/permissions",
       payload: { permissions: ["READ_SECRETS"] },
     });
@@ -133,7 +133,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/nonexistent/members/member_001/permissions",
       payload: { permissions: ["READ_SECRETS"] },
     });
@@ -149,7 +149,7 @@ describe("POST /projects/:projectId/members/:memberId/permissions", () => {
     const app = buildApp();
 
     const res = await app.inject({
-      method: "POST",
+      method: "DELETE",
       url: "/projects/proj_001/members/member_001/permissions",
       payload: { permissions: ["READ_SECRETS"] },
     });

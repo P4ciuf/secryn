@@ -3,6 +3,10 @@ import type { AppRouteObject } from "../../../types/route.js";
 import { AppError } from "../../../core/errors/appError.js";
 import { ProjectService } from "../../../modules/project/service.js";
 
+interface AcceptInviteParams {
+  slug: string;
+}
+
 /**
  * GET /projects/invites/:slug
  *
@@ -50,7 +54,7 @@ export default ((fastify: FastifyInstance) => ({
     if (!req.user) throw AppError.Unauthorized("Not logged in");
 
     const projectService = await ProjectService.Instance(req.user.id);
-    await projectService.acceptInvite((req.params as { slug: string }).slug);
+    await projectService.acceptInvite((req.params as AcceptInviteParams).slug);
 
     return reply.code(204).send();
   },

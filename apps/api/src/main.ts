@@ -10,6 +10,7 @@ import { EnvUtils } from "./utils/env.js";
 import { loadRoutes } from "./utils/loader.js";
 import { logger } from "./core/logger/index.js";
 import { authenticate } from "./core/auth/plugin.js";
+import { registerErrorHandler } from "./core/errors/errorHandler.js";
 
 try {
   EnvUtils.checkEnv();
@@ -57,6 +58,8 @@ app.register(fastifySwaggerUi, {
 app.register(loadRoutes, {
   prefix: "/api/v1",
 });
+
+registerErrorHandler(app);
 
 // Fail fast: resolve plugin tree explicitly before listen() to catch registration errors early
 await app.ready();
