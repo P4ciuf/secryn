@@ -4,3 +4,7 @@ node_modules
 LICENSE
 todo.md
 gitignore
+__tests__
+.git
+logs
+**/__tests__

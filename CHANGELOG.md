@@ -8,54 +8,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
-- `@repo/shared` TypeScript package with shared types, DTOs, error codes, and utility types (`packages/shared/`)
-- Prisma migration adding `description` field to `Project` model (`20260604150713_add_description_to_projects`)
-- `getUserProjects()` method to `ProjectService` returning all projects owned by or shared with the user
-- `getProjectOrThrow()` method to `ProjectService` replacing inline existence checks with typed error
-- `GET /projects/@all` support in project route — invokes `getUserProjects` when `:id` is the literal `@all`
-- Test case for `GET /projects/@all` confirming array response and `getUserProjects` mock invocation
-- `ErrorBoundary` route error component handling RouteErrorResponse, Error, string, and unknown error types with Go Back and Retry buttons (`components/ErrorBoundary.tsx`)
-- `ErrorBoundary` test suite covering all 4 error-type branches and button interactions (`components/__tests__/ErrorBoundary.test.tsx`)
-- Router structure test suite verifying 12 route paths, all ErrorBoundary attachments, and NotFound catch-all (`__tests__/routes.test.ts`)
-- Mock project data shape validation test suite (`data/__tests__/projects.test.ts`)
-- `MockProjectService.Instance` static factory pattern to all project core, invite, and member test files — prevents 500 errors from undefined `Service.Instance()`
-- `registerErrorHandler` registration to all project core and invite test files for proper error response handling
-- `logger.error` mock to project get test to support error handler log calls
-- Swagger `response` schema on `GET /projects/:id` using `oneOf` for single-project and array (`@all`) response shapes
-- Typed request-parameter and body interfaces across all project, invite, and member route handlers
-- Comprehensive JSDoc documentation for all 15 `packages/shared/` files — entities, DTOs, enums, errors, pagination, and utility types
-- JSDoc documentation for `pickColor()` hash function (`ProjectCard`) explaining the DJB2 deterministic color algorithm
-- JSDoc documentation for 7 previously undocumented `ProjectService` methods (`getProjectOrThrow`, `getUserProjects`, `getMember`, `getMemberOrThrow`, `getInviteOrThrow`, `getPermissionAssignment`, `getPermissionAssignmentOrThrow`)
-- JSDoc documentation for `ErrorBoundary` component describing the four error-type handling priorities
-- `update.route.ts` route handler superseding `updateName.route.ts` — supports partial updates of `name` and `description` via `updateProject({ name?, description? })`
+- `CryptoUtils` utility class for AES-256-GCM encryption/decryption with hex-encoded `iv:tag:ciphertext` output (`apps/api/src/utils/crypto.ts`)
+- Secret REST API routes under `apps/api/src/routes/project/secrets/` with full OpenAPI schema documentation, JWT authentication, and rate limiting (10 req / 5 min):
+  - `POST /projects/:projectId/secrets` — create an encrypted secret
+  - `DELETE /projects/secrets/:id` — permanently delete a secret
+  - `GET /projects/secrets/:id` — retrieve and decrypt a single secret
+  - `GET /projects/:projectId/secrets` — list and decrypt all secrets in a project
+  - `PUT /projects/secrets/:id` — partial update of name, value, and/or notes
+- Test suites for all 5 secret API routes covering 200/201/204/400/401/403/404/500 scenarios (`apps/api/src/routes/project/secrets/__tests__/`)
+- `createSecret`, `deleteSecret`, `updateSecret`, `getSecret`, `getSecretOrThrow`, `getProjectSecrets` methods to `ProjectService` with AES-256-GCM encryption/decryption, permission validation (CREATE/DELETE/UPDATE/READ_SECRETS), and comprehensive JSDoc
+- `findManySecrets` method to `ProjectRepository` for bulk secret retrieval by Prisma `WhereInput`
+- `UpdateSecretModal` component with pre-populated fields from the selected secret, partial update support, and empty-string-to-undefined coercion (`apps/web/src/features/projects/components/UpdateSecretModal.tsx`)
+- Edit button (Pencil icon) to `SecretRow` and `onEdit` callback wiring through `SecretsTable` → `SecretsPage`
+- `notes` textarea field to `CreateSecretModal` form
+- `UpdateSecretInput` DTO type to `@repo/shared` — all fields optional for partial updates (`packages/shared/src/dtos/secret.ts`)
+- Test suites for `codeExamples`, `endpoints`, `mockApiKeys`, and `mockWebhooks` data modules (`apps/web/src/data/__tests__/`)
+- `build` script and TypeScript devDependency to `packages/shared/package.json`
+- `.dockerignore` patterns excluding `__tests__`, `.git`, `logs`, and `**/__tests__` from Docker context
 
 ### Changed
-- Migrated frontend type definitions from `apps/web/src/types/` to shared `packages/shared/` package — all components and data modules now import from `@repo/shared`
-- `createProject` signature changed from `createProject(name)` to `createProject(name, desc)` — description parameter propagated to Prisma, service, route schema, and handler
-- `CreateProjectModal`, `CreateSecretModal`, `CreateWebhookModal`, and `CreateApiKeyModal` `onSubmit` callback changed from multi-argument to single-object `onSubmit(input)` matching DTO types
-- Auth route imports in `login.route.ts` and `register.route.ts` switched from local inline type definitions to `@repo/shared` (`LoginBody`, `RegisterBody`)
-- Updated 6 frontend test files with type import fixes (`@/types` → `@repo/shared`)
-- Updated 3 frontend test files with modal signature assertion fixes (two-argument → single-object)
-- Updated `RegisterPage` test assertion from `name` to `username` matching `RegisterBody` DTO shape
-- Updated `ProjectsPage` test `api.get` mock responses from `{ projects: [...] }` wrapper to direct array
-- `updateNameProject(name)` refactored to `updateProject({ name?, description? })` — slug regeneration only triggers when the name changes; omitted fields retain current values
-- `removeMemberToProject` JSDoc corrected: permission check applies to the member being removed (not the caller)
-- `getPermissionAssignment` and `getPermissionAssignmentOrThrow` JSDoc corrected: return a single record (not an array)
-- `updateName.test.ts` import updated from `updateName.route.js` to `update.route.js`
+- `Secret` entity type expanded with `createdAt` (Date), `notes`, `projectId`, `addedById`, `updatedById` fields; `updatedAt` type changed from `string` to `Date`
+- `CreateSecretInput` DTO now requires `notes` field
+- `SecretsPage` fetch response type changed from `ProjectSecretsData` (object wrapper) to `Secret[]` (direct array)
+- `SecretsPage` delete URL changed from `/secrets/:id` to `/projects/secrets/:id`
+- `SecretsPage` now renders `UpdateSecretModal` with edit button wiring and local-state optimistic updates on success
+- `CreateSecretModal` `onSubmit` now includes `notes` in the payload
+- `SecretRow` and `SecretsTable` now accept and propagate `onEdit` callback
+- `mockSecretsData` export removed from mock data barrel (`apps/web/src/data/index.ts`)
+- JSDoc added to route factory exports in all 5 secret route files
 
-### Fixed
-- All project core, invite, and member test suites now use `MockProjectService.Instance` static factory — fixes 500 error from undefined `ProjectService.Instance()`
-- All project core and invite tests now register the global error handler — fixes 500 error from unhandled error propagation
-- `removePermissions` route test descriptions corrected from `POST` to `DELETE` matching the route's HTTP method
-- Invite create route response schema now returns the full invite object (id, slug, projectId, expiresAt, createdAt) instead of `{ ok: boolean }`
+### Security
+- Secret values are encrypted via AES-256-GCM before database storage and decrypted only after permission verification — raw secrets never reach the database in plain text
 
 ### Removed
-- `apps/web/src/types/api-keys.ts` — type definitions migrated to `@repo/shared`
-- `apps/web/src/types/projects.ts` — type definitions migrated to `@repo/shared`
-- `apps/web/src/types/secrets.ts` — type definitions migrated to `@repo/shared`
-- `apps/web/src/types/webhooks.ts` — type definitions migrated to `@repo/shared`
-- Dead `vi.mock("@/data/webhooks")` block from `CreateWebhookModal` test (source no longer imports from this module)
-- `updateName.route.ts` (apps/api/src/routes/project/core/updateName.route.ts) — replaced by `update.route.ts` with partial-update support
+- `apps/web/src/data/secrets.ts` — mock secrets data module removed after SecretsPage switched from mock data to live API
 
 ## 03/06/2026
 
