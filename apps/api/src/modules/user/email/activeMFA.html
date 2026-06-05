@@ -1,152 +1,166 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attiva MFA</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attiva MFA</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f5f5f3;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      color: #1a1a18;
-    }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f5f5f3;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        color: #1a1a18;
+      }
 
-    .mfa-card {
-      background: #ffffff;
-      border: 0.5px solid rgba(0,0,0,0.12);
-      border-radius: 12px;
-      padding: 2rem;
-      width: 100%;
-      max-width: 420px;
-    }
+      .mfa-card {
+        background: #ffffff;
+        border: 0.5px solid rgba(0, 0, 0, 0.12);
+        border-radius: 12px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 420px;
+      }
 
-    .mfa-icon-wrap {
-      width: 48px; height: 48px;
-      border-radius: 8px;
-      background: #f5f5f3;
-      border: 0.5px solid rgba(0,0,0,0.12);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 1.25rem;
-    }
+      .mfa-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: #f5f5f3;
+        border: 0.5px solid rgba(0, 0, 0, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+      }
 
-    .mfa-title {
-      font-size: 18px;
-      font-weight: 500;
-      color: #1a1a18;
-      margin-bottom: 6px;
-    }
+      .mfa-title {
+        font-size: 18px;
+        font-weight: 500;
+        color: #1a1a18;
+        margin-bottom: 6px;
+      }
 
-    .mfa-subtitle {
-      font-size: 14px;
-      color: #6b6b68;
-      margin-bottom: 1.5rem;
-      line-height: 1.6;
-    }
+      .mfa-subtitle {
+        font-size: 14px;
+        color: #6b6b68;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
 
-    .mfa-info-box {
-      background: #e6f1fb;
-      border: 0.5px solid #378add;
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 1.5rem;
-      font-size: 13px;
-      color: #185fa5;
-      display: flex;
-      gap: 8px;
-      align-items: flex-start;
-    }
+      .mfa-info-box {
+        background: #e6f1fb;
+        border: 0.5px solid #378add;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 1.5rem;
+        font-size: 13px;
+        color: #185fa5;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
 
-    .mfa-info-box code {
-      font-family: monospace;
-      background: rgba(0,0,0,0.06);
-      padding: 1px 4px;
-      border-radius: 3px;
-    }
+      .mfa-info-box code {
+        font-family: monospace;
+        background: rgba(0, 0, 0, 0.06);
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
 
-    .mfa-divider {
-      border: none;
-      border-top: 0.5px solid rgba(0,0,0,0.12);
-      margin: 1.25rem 0;
-    }
+      .mfa-divider {
+        border: none;
+        border-top: 0.5px solid rgba(0, 0, 0, 0.12);
+        margin: 1.25rem 0;
+      }
 
-    .mfa-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
+      .mfa-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
 
-    .btn-secondary {
-      background: transparent;
-      border: 0.5px solid rgba(0,0,0,0.25);
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 14px;
-      color: #6b6b68;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-    }
-    .btn-secondary:hover { background: #f5f5f3; }
+      .btn-secondary {
+        background: transparent;
+        border: 0.5px solid rgba(0, 0, 0, 0.25);
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        color: #6b6b68;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .btn-secondary:hover {
+        background: #f5f5f3;
+      }
 
-    .btn-primary {
-      background: #1a1a18;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 14px;
-      color: #ffffff;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none;
-    }
-    .btn-primary:hover { opacity: 0.85; }
-    .btn-primary:active { transform: scale(0.98); }
-  </style>
-</head>
-<body>
+      .btn-primary {
+        background: #1a1a18;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        color: #ffffff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+      }
+      .btn-primary:hover {
+        opacity: 0.85;
+      }
+      .btn-primary:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mfa-card">
+      <div class="mfa-icon-wrap">
+        <i class="ti ti-shield-lock" style="font-size: 22px; color: #6b6b68"></i>
+      </div>
 
-<div class="mfa-card">
+      <p class="mfa-title">Attiva autenticazione a due fattori</p>
+      <p class="mfa-subtitle">
+        Verranno generati 10 codici di backup monouso. Conservali in un posto sicuro — sono l'unico
+        modo per accedere al tuo account se perdi l'accesso.
+      </p>
 
-  <div class="mfa-icon-wrap">
-    <i class="ti ti-shield-lock" style="font-size:22px; color:#6b6b68;"></i>
-  </div>
+      <div class="mfa-info-box">
+        <i class="ti ti-info-circle" style="font-size: 16px; flex-shrink: 0; margin-top: 1px"></i>
+        <span>
+          I codici verranno scaricati automaticamente come file
+          <code>mfa-codes.txt</code> al termine dell'attivazione.
+        </span>
+      </div>
 
-  <p class="mfa-title">Attiva autenticazione a due fattori</p>
-  <p class="mfa-subtitle">
-    Verranno generati 10 codici di backup monouso. Conservali in un posto sicuro —
-    sono l'unico modo per accedere al tuo account se perdi l'accesso.
-  </p>
+      <hr class="mfa-divider" />
 
-  <div class="mfa-info-box">
-    <i class="ti ti-info-circle" style="font-size:16px; flex-shrink:0; margin-top:1px;"></i>
-    <span>
-      I codici verranno scaricati automaticamente come file
-      <code>mfa-codes.txt</code> al termine dell'attivazione.
-    </span>
-  </div>
-
-  <hr class="mfa-divider">
-
-  <div class="mfa-actions">
-    <a href="{{CANCEL_URL}}" class="btn-secondary">Annulla</a>
-    <a href="{{ACTIVATE_URL}}" class="btn-primary">
-      <i class="ti ti-shield-check" style="font-size:16px;"></i>
-      Attiva MFA
-    </a>
-  </div>
-
-</div>
-
-</body>
+      <div class="mfa-actions">
+        <a href="{{CANCEL_URL}}" class="btn-secondary">Annulla</a>
+        <a href="{{ACTIVATE_URL}}" class="btn-primary">
+          <i class="ti ti-shield-check" style="font-size: 16px"></i>
+          Attiva MFA
+        </a>
+      </div>
+    </div>
+  </body>
 </html>

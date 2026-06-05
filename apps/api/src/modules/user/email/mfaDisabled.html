@@ -1,34 +1,86 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MFA Disabled</title>
-  <style>
-    body { font-family: system-ui, sans-serif; background: #f5f5f3; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; color: #1a1a18; }
-    .card { background: #ffffff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 2rem; width: 100%; max-width: 420px; }
-    .icon-wrap { width: 48px; height: 48px; border-radius: 8px; background: #f5f5f3; border: 0.5px solid rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
-    .title { font-size: 18px; font-weight: 500; margin-bottom: 6px; }
-    .text { font-size: 14px; color: #6b6b68; margin-bottom: 1.5rem; line-height: 1.6; }
-    .warn-box { background: #fef3c7; border: 0.5px solid #d97706; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #92400e; }
-    .btn { background: #1a1a18; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; color: #fff; text-decoration: none; display: inline-block; margin-top: 1.25rem; }
-  </style>
-</head>
-<body>
-<div class="card">
-  <div class="icon-wrap">
-    <span style="font-size:22px;">&#x26A0;</span>
-  </div>
-  <p class="title">Two-factor authentication disabled</p>
-  <p class="text">
-    Two-factor authentication has been disabled on your {{APP_NAME}} account.
-    Your account is now protected by your password only.
-  </p>
-  <div class="warn-box">
-    We recommend keeping two-factor authentication enabled for maximum account security.
-    You can re-enable it at any time from your account settings.
-  </div>
-  <a href="{{APP_URL}}/dashboard/settings" class="btn">Go to Settings</a>
-</div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MFA Disabled</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f5f5f3;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        color: #1a1a18;
+      }
+      .card {
+        background: #ffffff;
+        border: 0.5px solid rgba(0, 0, 0, 0.12);
+        border-radius: 12px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 420px;
+      }
+      .icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: #f5f5f3;
+        border: 0.5px solid rgba(0, 0, 0, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+      }
+      .title {
+        font-size: 18px;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      .text {
+        font-size: 14px;
+        color: #6b6b68;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+      .warn-box {
+        background: #fef3c7;
+        border: 0.5px solid #d97706;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 13px;
+        color: #92400e;
+      }
+      .btn {
+        background: #1a1a18;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        color: #fff;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 1.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="icon-wrap">
+        <span style="font-size: 22px">&#x26A0;</span>
+      </div>
+      <p class="title">Two-factor authentication disabled</p>
+      <p class="text">
+        Two-factor authentication has been disabled on your {{APP_NAME}} account. Your account is
+        now protected by your password only.
+      </p>
+      <div class="warn-box">
+        We recommend keeping two-factor authentication enabled for maximum account security. You can
+        re-enable it at any time from your account settings.
+      </div>
+      <a href="{{APP_URL}}/dashboard/settings" class="btn">Go to Settings</a>
+    </div>
+  </body>
 </html>
