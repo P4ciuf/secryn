@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { PageHeader } from "../../components/common/PageHeader";
 import { ProfileSection } from "../../features/settings/components/ProfileSection";
 import { SecuritySection } from "../../features/settings/components/SecuritySection";
-import { NotificationsSection } from "../../features/settings/components/NotificationsSection";
 import { DangerZoneSection } from "../../features/settings/components/DangerZoneSection";
 
 /**
@@ -21,7 +20,6 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <ProfileSection />
         <SecuritySection />
-        <NotificationsSection />
         <DangerZoneSection />
       </div>
     </motion.div>
