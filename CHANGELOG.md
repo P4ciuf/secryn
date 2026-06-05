@@ -7,6 +7,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### 2026-06-05
+
+### Added
+- User REST API routes under `apps/api/src/routes/user/` with full OpenAPI schema documentation, JWT authentication, and rate limiting:
+  - `GET /users/:userId` — retrieve a user by ID with `@me` alias for the authenticated user (rate-limited to 50 req/h)
+  - `PUT /users` — update the authenticated user's name, email, or password (rate-limited to 10 req/5 min)
+  - `DELETE /users` — permanently delete the authenticated user's account (rate-limited to 5 req/30 min)
+- Test suites for all 3 user API routes covering 200/201/204/400/401/403/404/409/500 scenarios (`apps/api/src/routes/user/__tests__/`)
+- Test suite for `PUT /projects/:id` covering 200/401/403/404/500 scenarios (`apps/api/src/routes/project/core/__tests__/update.test.ts`)
+- `UpdateSecretModal` test suite covering open/close, pre-populated fields, form submission with changed values, empty-field-to-undefined coercion, and cancel behavior (`apps/web/src/features/projects/components/__tests__/UpdateSecretModal.test.tsx`)
+- `NotificationsSection` UI component with local-state checkbox toggles for email, security alerts, and product updates (`apps/web/src/features/settings/components/NotificationsSection.tsx`)
+- `UpdateUserInput` DTO type to `@repo/shared` for typed user profile update payloads (`packages/shared/src/dtos/user.ts`)
+- Response schema documentation for `GET /projects/:projectId/secrets` route (was missing from original Swagger schema)
+
+### Changed
+- Wired `ProfileSection` to `GET /users/@me` for fetching and `PUT /users` for saving name/email, with loading skeleton, error banner, and success message; replaced hardcoded `"John Doe"` / `"john@example.com"` defaults with live API data
+- Wired `SecuritySection` to `PUT /users` for password changes with client-side validation (empty fields, password mismatch, minimum 8 characters), loading/error/success states, and field clearing on success
+- Wired `DangerZoneSection` to `DELETE /users` for account deletion with `window.confirm` browser prompt, loading/error states, and post-deletion navigation to landing page
+- Added OpenAPI schema documentation (summary, description, operationId, tags, params, body, response) to `GET /users/:userId`, `PUT /users`, and `DELETE /users` user routes
+- Added `resolve.alias` for `@repo/shared` workspace package in API vitest config to fix module resolution during test execution
+- Updated `DangerZoneSection`, `ProfileSection`, and `SecuritySection` test suites with API mock coverage, loading/success/error state assertions, controlled input handling, and form submission verification
+- Added `NotificationsSection` import and render to `SettingsPage` composition
+- Added comprehensive JSDoc documentation to 17 source files: `UserService` (Instance, isAuthorized, updateUser, getUserSafe), `UserRepository` (SafeUser type, find safe param), `AuthService` (Instance, cookieName), `ProjectService` constructor, all user route factory exports, vitest config alias, all settings section components, `UpdateUserInput` DTO, and all new test file `buildApp()` helpers
+
+### Fixed
+- Created missing `NotificationsSection.tsx` component resolving test import failures across `NotificationsSection.test.tsx` and `SettingsPage.test.tsx`
+- Fixed `@repo/shared` workspace package resolution error in API vitest that prevented all API test suites from running
+- Fixed incorrect `@param` JSDoc documentation in `ProjectService` constructor (wrong parameter name) and `UserService.updateUser` (incorrect parameter type)
+
+### 2026-06-04
+
 ### Added
 - `CryptoUtils` utility class for AES-256-GCM encryption/decryption with hex-encoded `iv:tag:ciphertext` output (`apps/api/src/utils/crypto.ts`)
 - Secret REST API routes under `apps/api/src/routes/project/secrets/` with full OpenAPI schema documentation, JWT authentication, and rate limiting (10 req / 5 min):

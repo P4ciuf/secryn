@@ -19,14 +19,16 @@ import { CryptoUtils } from "../../utils/crypto.js";
  */
 export class ProjectService {
   private readonly repository = projectRepository;
-  private readonly userService = new UserService();
   private readonly policy = PolicyProject;
   private readonly user: FullUser;
 
   /**
-   * @param userId - The authenticated user on behalf of whom all operations are performed
+   * @param user - The full authenticated user record on behalf of whom all operations are performed
    */
-  private constructor(user: FullUser) {
+  private constructor(
+    user: FullUser,
+    private readonly userService: UserService,
+  ) {
     this.user = user;
   }
 
@@ -41,10 +43,9 @@ export class ProjectService {
    * @throws {AppError} ResourceNotFound — when the user does not exist
    */
   static async Instance(userId: string): Promise<ProjectService> {
-    const userService = new UserService();
+    const userService = await UserService.Instance(userId);
     const user = await userService.getUserOrThrow({ id: userId });
-    const instance = new ProjectService(user);
-    return instance;
+    return new ProjectService(user, userService);
   }
 
   /**
@@ -250,7 +251,7 @@ export class ProjectService {
    * @throws {AppError} BadRequest — when the invited user is already a project member
    */
   async createInvite(toEmail: string, projectId: string) {
-    const toUser = await new UserService().getUser({ email: toEmail });
+    const toUser = await this.userService.getUser({ email: toEmail });
 
     if (!toUser) {
       throw AppError.ResourceNotFound("User not found");

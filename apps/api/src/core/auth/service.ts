@@ -12,12 +12,26 @@ import { EnvUtils } from "../../utils/env.js";
  * Each instance is scoped to a single Fastify request, allowing access to cookies and the authenticated user.
  */
 export class AuthService {
-  private readonly userService = new UserService();
-
   /**
    * @param req - The current Fastify request, used to inspect cookies and the authenticated user payload
+   * @param userService - Pre-resolved UserService for the authenticated user (or a stub for anonymous requests)
    */
-  constructor(private readonly req: FastifyRequest) {}
+  private constructor(
+    private readonly req: FastifyRequest,
+    private readonly userService: UserService,
+  ) {}
+
+  /**
+   * Creates an AuthService scoped to the given request by resolving the
+   * corresponding UserService instance from the request's user payload.
+   *
+   * @param req - The incoming Fastify request
+   * @returns An AuthService bound to the request
+   */
+  static async Instance(req: FastifyRequest): Promise<AuthService> {
+    const userService = await UserService.Instance(req.user?.id);
+    return new AuthService(req, userService);
+  }
 
   /**
    * Signs a JWT containing the user payload with a 30-minute expiration.
@@ -138,5 +152,6 @@ export class AuthService {
     maxAge: 30 * 60, // 30 minutes
   };
 
+  /** Name of the httpOnly cookie used for JWT transport. */
   static cookieName: string = "auth-token";
 }

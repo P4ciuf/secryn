@@ -9,7 +9,7 @@ export const authenticate: preHandlerHookHandler = async (
   req: FastifyRequest,
   _rep: FastifyReply,
 ) => {
-  const authService = new AuthService(req);
+  const authService = await AuthService.Instance(req);
 
   const user = await authService.decodeToken();
   req.user = user;

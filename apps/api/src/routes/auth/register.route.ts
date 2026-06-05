@@ -57,7 +57,7 @@ export default ((_fastify: FastifyInstance) => ({
   handler: async (req, reply) => {
     // Cast is safe: the AJV schema defined above guarantees email and password exist
     const { username, email, password } = req.body as RegisterBody;
-    const authService = new AuthService(req);
+    const authService = await AuthService.Instance(req);
     const token = await authService.register({ username, email, password });
 
     reply.setCookie("auth-token", token, AuthService.cookieConfig);

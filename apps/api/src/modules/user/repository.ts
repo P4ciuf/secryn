@@ -15,6 +15,20 @@ export type FullUser = Prisma.UserGetPayload<{
 }>;
 
 /**
+ * Public-facing user projection excluding sensitive fields (password, MFA codes, bans).
+ */
+export type SafeUser = Prisma.UserGetPayload<{
+  select: {
+    id: true;
+    email: true;
+    username: true;
+    role: true;
+    createdAt: true;
+    updatedAt: true;
+  };
+}>;
+
+/**
  * Data access layer for the User model.
  * Encapsulates Prisma queries with a fixed include set for relationships.
  */
@@ -31,10 +45,25 @@ class UserRepository {
    * Finds the first user matching the given filter.
    *
    * @param where - Prisma where clause for filtering
+   * @param safe - When true, returns only public fields (SafeUser); otherwise returns the full entity
    * @returns The full user with relations, or null if not found
    */
-  async find(where: Prisma.UserWhereInput): Promise<FullUser | null> {
-    return prisma.user.findFirst({ where, include: this.userInclude });
+  async find(where: Prisma.UserWhereInput, safe?: boolean): Promise<FullUser | SafeUser | null> {
+    if (safe) {
+      return prisma.user.findFirst({
+        where,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } else {
+      return prisma.user.findFirst({ where, include: this.userInclude });
+    }
   }
 
   /**

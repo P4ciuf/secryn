@@ -53,7 +53,7 @@ export default ((_fastify: FastifyInstance) => ({
     },
   },
   handler: async (req, reply) => {
-    const authService = new AuthService(req);
+    const authService = await AuthService.Instance(req);
     // Cast is safe: the AJV schema defined above guarantees email and password exist
     const token = await authService.login(req.body as LoginBody);
 

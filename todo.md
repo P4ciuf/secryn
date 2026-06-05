@@ -30,11 +30,11 @@
 
 ## Secret Management
 
-- [ ] Create encrypted secret
-- [ ] Retrieve secrets by project
-- [ ] List project secrets
-- [ ] Delete secret
-- [ ] Dashboard API endpoints
+- [x] Create encrypted secret
+- [x] Retrieve secrets by project
+- [x] List project secrets
+- [x] Delete secret
+- [x] Dashboard API endpoints
 
 ---
 
@@ -42,10 +42,10 @@
 
 ## Encryption
 
-- [ ] AES-256 encryption
-- [ ] Encrypted-only storage
-- [ ] Server-side key management
-- [ ] Secret masking and secure logging
+- [x] AES-256 encryption
+- [x] Encrypted-only storage
+- [x] Server-side key management
+- [x] Secret masking and secure logging
 
 ## API Security
 
