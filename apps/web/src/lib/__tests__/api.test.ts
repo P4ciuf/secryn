@@ -243,6 +243,47 @@ describe("api", () => {
     });
   });
 
+  describe("Content-Type header", () => {
+    it("does not set Content-Type for requests without a body", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+      await api.get("/test");
+
+      const callArgs = vi.mocked(globalThis.fetch).mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      const headers = callArgs[1].headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBeUndefined();
+    });
+
+    it("does not set Content-Type for POST requests without a body", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+      await api.post("/test");
+
+      const callArgs = vi.mocked(globalThis.fetch).mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      const headers = callArgs[1].headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBeUndefined();
+    });
+
+    it("sets Content-Type to application/json for requests with a body", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+      await api.post("/test", { name: "test" });
+
+      const callArgs = vi.mocked(globalThis.fetch).mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      const headers = callArgs[1].headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBe("application/json");
+    });
+  });
+
   describe("custom headers", () => {
     it("merges custom headers with defaults", async () => {
       vi.mocked(globalThis.fetch).mockResolvedValue(new Response(null, { status: 204 }));
@@ -255,29 +296,32 @@ describe("api", () => {
         "/api/v1/test",
         expect.objectContaining({
           headers: expect.objectContaining({
-            "Content-Type": "application/json",
             "X-Custom": "custom-value",
           }),
         }),
       );
     });
+  });
+});
 
-    it("allows custom headers to override Content-Type", async () => {
-      vi.mocked(globalThis.fetch).mockResolvedValue(new Response(null, { status: 204 }));
+describe("token refresh", () => {
+  it("should retry the original request after successful token refresh", async () => {
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ code: "UNAUTHORIZED" }), { status: 401 }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: "success" }), { status: 200 }));
 
-      await api.get("/test", {
-        headers: { "Content-Type": "text/plain" },
-      });
+    const result = await api.get("/protected-resource");
 
-      expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledWith(
-        "/api/v1/test",
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "text/plain",
-          }),
-        }),
-      );
-    });
+    const calls = vi.mocked(globalThis.fetch).mock.calls;
+    const refreshCall = calls.find((c) => (c[0] as string).includes("/auth/refresh"));
+    expect(refreshCall).toBeDefined();
+    if (refreshCall) {
+      expect((refreshCall[1] as RequestInit).method).toBe("POST");
+    }
+    expect(result).toEqual({ data: "success" });
   });
 });
 

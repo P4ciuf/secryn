@@ -1,10 +1,19 @@
 import type { Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from "otplib";
+import QRCode from "qrcode";
 import { AppError } from "../../core/errors/appError.js";
 import { userRepository, type FullUser, type SafeUser } from "./repository.js";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHmac } from "node:crypto";
 import type { LoggedUser, RegisterBody, UpdateUserInput } from "@repo/shared";
 import { logger } from "../../core/logger/index.js";
+import { readFileSync } from "node:fs";
+import { EnvUtils } from "../../utils/env.js";
+import { EmailUtils } from "../../utils/email.js";
+
+const cryptoPlugin = new NobleCryptoPlugin();
+const base32Plugin = new ScureBase32Plugin();
+const totp = new TOTP({ crypto: cryptoPlugin, base32: base32Plugin });
 
 /**
  * Business-logic layer for user management.
@@ -36,13 +45,37 @@ export class UserService {
   }
 
   /**
-   * Async factory that resolves a user from the database and returns a scoped UserService.
-   *
-   * @param userId - The authenticated user's ID
-   * @returns A UserService instance bound to the resolved user
-   * @throws {AppError} ResourceNotFound when the user does not exist
+   * Derives a deterministic HMAC-SHA256 hash of a recovery code using the
+   * application encryption key as the HMAC secret. The original code is never
+   * stored in the database; only this hash is persisted and used for lookups.
    */
-  static async Instance(userId: string) {
+  private static hashCode(code: string): string {
+    const key = EnvUtils.envVariables().encryptionKey;
+    return createHmac("sha256", key).update(code).digest("hex");
+  }
+
+  /**
+   * Returns a masked placeholder string for a stored code hash.
+   * Original codes are not recoverable after storage — this method hides
+   * the hash value so the API never leaks even partial code data.
+   */
+  private static maskHash(_hash: string): string {
+    return "****";
+  }
+
+  /**
+   * Async factory that resolves a user from the database and returns a scoped UserService.
+   * When userId is undefined (anonymous request), returns a stub service that can still
+   * perform user lookups by email or ID but cannot authorise mutations.
+   *
+   * @param userId - The authenticated user's ID, or undefined for anonymous requests
+   * @returns A UserService instance bound to the resolved user
+   * @throws {AppError} ResourceNotFound when userId is provided but the user does not exist
+   */
+  static async Instance(userId?: string) {
+    if (!userId) {
+      return new UserService({ id: "", email: "", username: "" });
+    }
     const user = await userRepository.find({ id: userId });
     if (!user) throw AppError.ResourceNotFound("User");
     return new UserService(user);
@@ -195,5 +228,223 @@ export class UserService {
    */
   async countUsers(where?: Prisma.UserWhereInput) {
     return await this.repository.count(where);
+  }
+
+  /**
+   * Generates a new TOTP secret and QR code for MFA setup.
+   * Does not persist anything yet — the user must confirm with a valid TOTP
+   * code via {@code enableMFA} before MFA becomes active.
+   *
+   * @returns The base32 secret, QR code data URL, and otpauth URL
+   */
+  async setupMFA(): Promise<{ secret: string; qrCode: string; otpauthUrl: string }> {
+    const user = await this.getUserOrThrow({ id: this.user.id });
+
+    if (user.isMFAEnabled) {
+      throw AppError.Conflict("MFA is already enabled");
+    }
+
+    const secret = totp.generateSecret();
+    const otpauthUrl = totp.toURI({ issuer: "SecureVault", label: user.email, secret });
+    const qrCode = await QRCode.toDataURL(otpauthUrl);
+
+    // Store the secret temporarily (not yet active)
+    await this.repository.update({ id: this.user.id }, { mfaSecret: secret });
+
+    return { secret, qrCode, otpauthUrl };
+  }
+
+  /**
+   * Verifies a TOTP token against the stored secret and activates MFA.
+   * Generates 10 backup recovery codes, stores them as HMAC‑SHA256 hashes,
+   * and returns the plaintext codes (shown once to the user).
+   *
+   * @param token - The 6-digit TOTP code from the authenticator app
+   * @returns The list of plaintext recovery codes for one-time display
+   */
+  async enableMFA(token: string): Promise<string[]> {
+    const user = await this.getUserOrThrow({ id: this.user.id });
+
+    if (user.isMFAEnabled) {
+      throw AppError.Conflict("MFA is already enabled");
+    }
+
+    if (!user.mfaSecret) {
+      throw AppError.BadRequest("MFA setup not initialized. Call setup first.");
+    }
+
+    const result = await totp.verify(token, { secret: user.mfaSecret });
+    if (!result.valid) {
+      throw AppError.Unauthorized("Invalid TOTP code. Please try again.");
+    }
+
+    // Delete old recovery codes if any
+    await this.repository.deleteMFACodes(user.id);
+
+    // Generate 10 new recovery codes
+    const mfaCodes = Array.from({ length: 10 }, () => randomBytes(6).toString("hex"));
+
+    for (const code of mfaCodes) {
+      await this.repository.createMFACode({
+        code: UserService.hashCode(code),
+        user: { connect: { id: user.id } },
+      });
+    }
+
+    await this.repository.update({ id: this.user.id }, { isMFAEnabled: true });
+
+    await this.sendMFAConfirmationEmail(user.email, true);
+
+    logger.info(`[UserService] MFA enabled for user ${user.id} (${user.email})`);
+
+    return mfaCodes;
+  }
+
+  /**
+   * Disables MFA on the account, clearing the secret and all recovery codes.
+   * Sends a confirmation email.
+   */
+  async disableMFA(): Promise<void> {
+    const user = await this.getUserOrThrow({ id: this.user.id });
+
+    if (!user.isMFAEnabled) {
+      throw AppError.Conflict("MFA is not enabled");
+    }
+
+    await this.repository.deleteMFACodes(user.id);
+    await this.repository.update({ id: this.user.id }, { isMFAEnabled: false, mfaSecret: null });
+
+    await this.sendMFAConfirmationEmail(user.email, false);
+
+    logger.info(`[UserService] MFA disabled for user ${user.id} (${user.email})`);
+  }
+
+  /**
+   * Verifies a TOTP token against the user's stored secret.
+   * Used during login when MFA is already active.
+   *
+   * @param token - The 6-digit TOTP code
+   * @param secret - The user's stored base32 TOTP secret
+   * @returns True if the token is valid
+   */
+  async verifyTOTP(token: string, secret: string): Promise<boolean> {
+    const result = await totp.verify(token, { secret });
+    return result.valid;
+  }
+
+  /**
+   * Hashes the user-supplied code with HMAC‑SHA256, looks it up, and
+   * marks it as consumed. Each code is single-use and cannot be reused.
+   *
+   * @param code - The plaintext recovery code entered by the user
+   * @returns The updated MFARecoveryCode, or null if not found or already consumed
+   */
+  async consumeRecoveryCode(code: string) {
+    const hash = UserService.hashCode(code);
+    const existing = await this.repository.findMFACode(hash);
+    if (!existing || !existing.isValid) {
+      return null;
+    }
+    return this.repository.consumeMFACode(hash);
+  }
+
+  /**
+   * Returns masked placeholders for all valid recovery codes of the
+   * current user. Original codes are never stored in plaintext and
+   * cannot be recovered after the initial setup or regeneration.
+   */
+  async getRecoveryCodes(): Promise<string[]> {
+    const codes = await this.repository.getValidRecoveryCodes(this.user.id);
+    return codes.map((c) => UserService.maskHash(c.code));
+  }
+
+  /**
+   * Regenerates recovery codes: deletes all existing codes, generates 10 new
+   * ones, stores their HMAC‑SHA256 hashes, and returns the plaintext codes
+   * for one-time display. Old codes become invalid immediately.
+   */
+  async regenerateRecoveryCodes(): Promise<string[]> {
+    const user = await this.getUserOrThrow({ id: this.user.id });
+
+    if (!user.isMFAEnabled) {
+      throw AppError.Conflict("MFA is not enabled");
+    }
+
+    await this.repository.deleteMFACodes(user.id);
+
+    const mfaCodes = Array.from({ length: 10 }, () => randomBytes(6).toString("hex"));
+
+    for (const code of mfaCodes) {
+      await this.repository.createMFACode({
+        code: UserService.hashCode(code),
+        user: { connect: { id: user.id } },
+      });
+    }
+
+    return mfaCodes;
+  }
+
+  /**
+   * Sends a backup code email via the existing Resend mailer.
+   */
+  async sendBackupCodeEmail(code: string): Promise<void> {
+    const user = await this.getUserOrThrow({ id: this.user.id });
+    const emailUtils = new EmailUtils();
+
+    const template = readFileSync(`${import.meta.dirname}/email/mfaBackupCode.html`, "utf-8");
+
+    const html = template
+      .replaceAll("{{CODE}}", code)
+      .replaceAll("{{APP_NAME}}", "SecureVault")
+      .replaceAll("{{YEAR}}", String(new Date().getFullYear()));
+
+    await emailUtils.sendEmail(user.email, "Your SecureVault Backup Code", html);
+  }
+
+  /**
+   * Sends a confirmation email when MFA is enabled or disabled.
+   */
+  private async sendMFAConfirmationEmail(to: string, enabled: boolean): Promise<void> {
+    const emailUtils = new EmailUtils();
+    const templatePath = enabled
+      ? `${import.meta.dirname}/email/mfaEnabled.html`
+      : `${import.meta.dirname}/email/mfaDisabled.html`;
+
+    const template = readFileSync(templatePath, "utf-8");
+
+    const html = template
+      .replaceAll("{{APP_NAME}}", "SecureVault")
+      .replaceAll("{{APP_URL}}", EnvUtils.envVariables().appUrl)
+      .replaceAll("{{YEAR}}", String(new Date().getFullYear()));
+
+    const subject = enabled
+      ? "Two-factor authentication enabled"
+      : "Two-factor authentication disabled";
+
+    await emailUtils.sendEmail(to, subject, html);
+  }
+
+  // Kept for internal compatibility; replaced by the TOTP flow above.
+  async activeMFA() {
+    const user = await this.getUserOrThrow({ id: this.user.id });
+
+    if (user.isMFAEnabled) {
+      throw AppError.Conflict("MFA is already enabled");
+    }
+
+    const mfaCodes = Array.from({ length: 10 }, () => randomBytes(6).toString("hex"));
+
+    for (const code of mfaCodes) {
+      await this.repository.createMFACode({
+        code: UserService.hashCode(code),
+        user: { connect: { id: user.id } },
+      });
+    }
+
+    const fileContent = mfaCodes.join("\n");
+
+    await this.repository.update({ id: this.user.id }, { isMFAEnabled: true });
+
+    return Buffer.from(fileContent, "utf-8");
   }
 }

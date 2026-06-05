@@ -8,10 +8,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- MFA REST API routes under `apps/api/src/routes/auth/mfa/` with full OpenAPI schema documentation and JWT authentication:
+  - `GET /auth/mfa/setup` — generate a TOTP secret and QR code data URL for MFA enrollment
+  - `POST /auth/mfa/enable` — verify a TOTP code and activate MFA, returning 10 single-use plaintext recovery codes
+  - `POST /auth/mfa/disable` — disable MFA, clear the stored secret, and delete all recovery codes
+  - `POST /auth/mfa/confirm` — verify a TOTP code during MFA-gated login, returning the final auth JWT
+  - `POST /auth/mfa/recovery` — authenticate with a backup recovery code during MFA-gated login
+  - `POST /auth/mfa/send-backup-code` — email a one-time backup code to the user for emergency access
+  - `GET /auth/mfa/status` — check whether MFA is currently enabled on the account
+  - `GET /auth/mfa/recovery-codes` — list all valid recovery codes as masked placeholders
+  - `POST /auth/mfa/regenerate-codes` — invalidate all existing codes and generate 10 fresh ones
+- Test suites for all 9 MFA API routes covering 200, 400, 401, 403, and 409 scenarios (`apps/api/src/routes/auth/mfa/__tests__/`)
+- `POST /auth/refresh` route with test suite — issues a fresh 30-minute JWT to extend the session without re-authentication (`apps/api/src/routes/auth/refresh.route.ts`)
+- `MfaSection` UI component orchestrating the full MFA lifecycle: status check, QR code setup via `otpauth://`, TOTP verification with OTP input, recovery code display/regeneration, disable, and email-based backup code delivery (`apps/web/src/features/settings/components/MfaSection.tsx`)
+- Test suite for `MfaSection` covering idle, setup (QR code + OTP), enabled (recovery codes), and disable states (`apps/web/src/features/settings/components/__tests__/MfaSection.test.tsx`)
+- MFA DTO types to `@repo/shared`: `LoginMFAResponse`, `MFAConfirmBody`, `MFARecoveryBody`, `MFASetupResponse`, `MFAEnableBody`, `MFAStatusResponse`, `MFARecoveryCodesResponse` (`packages/shared/src/dtos/auth.ts`)
+- MFA notification email templates: MFA enabled (`mfaEnabled.html`), MFA disabled (`mfaDisabled.html`), backup code delivery (`mfaBackupCode.html`), and active MFA notice (`activeMFA.html`) under `apps/api/src/modules/user/email/`
+- Redis client utility with lazy connection, 5-retry exponential backoff, and singleton pattern (`apps/api/src/utils/redis.ts`)
+- `ioredis.d.ts` type declarations for the ioredis package (`apps/api/src/types/ioredis.d.ts`)
+- Database migration removing `expiresAt` from `MFARecoveryCode` model (`20260605112717`)
+- Database migration adding nullable `mfaSecret` field to `User` model (`20260605131700`)
+- Redis service to `docker-compose.yml` with `redis:7-alpine` image, `redis-cli ping` healthcheck, persistent volume, and API dependency
+- `ioredis`, `otplib`, `qrcode`, and `@types/qrcode` npm dependencies to API `package.json`
+- `ResizeObserver` polyfill to web test setup for shadcn/ui component compatibility (`apps/web/src/test-setup.ts`)
 
 ### Changed
+- MFA login flow: `AuthService.login()` now returns `LoginMFAResponse` (with `mfaRequired` and short-lived `mfaToken`) when MFA is enabled, instead of setting the auth cookie immediately; callers must complete the OTP challenge via `POST /auth/mfa/confirm` or `POST /auth/mfa/recovery` (`apps/api/src/core/auth/service.ts`)
+- Added `generateMFAToken()`, `verifyMFAToken()`, `confirmMFA()`, and `recoverMFA()` methods to `AuthService` for the full MFA challenge lifecycle (`apps/api/src/core/auth/service.ts`)
+- Fixed `AuthService.decodeToken()` to correctly unwrap the nested `{ user: LoggedUser }` payload structure instead of casting the raw token as `LoggedUser`
+- `UserService.Instance()` now accepts optional `userId` — returns a stub service for anonymous requests instead of requiring a logged-in user
+- Added full MFA lifecycle methods to `UserService`: `setupMFA()` (TOTP secret + QR code), `enableMFA()` (verify TOTP, persist secret, generate 10 HMAC‑SHA256–hashed recovery codes), `disableMFA()`, `verifyTOTP()`, `consumeRecoveryCode()`, `getRecoveryCodes()`, `regenerateRecoveryCodes()`, `sendBackupCodeEmail()`, and `activeMFA()` (`apps/api/src/modules/user/service.ts`)
+- Added `hashCode()` (HMAC‑SHA256) and `maskHash()` (constant placeholder) static helpers to `UserService` for recovery code security
+- Added MFA recovery code repository methods: `createMFACode()`, `findMFACode()`, `consumeMFACode()`, `deleteMFACodes()`, `getValidRecoveryCodes()` (`apps/api/src/modules/user/repository.ts`)
+- Added `isMFAEnabled` field to `SafeUser` Prisma select type; removed `expiresAt` field from `MFARecoveryCode` Prisma model and added `mfaSecret` to `User` model
+- Updated `POST /auth/login` route handler to conditionally set the auth cookie (non-MFA path) or forward the MFA challenge response (`apps/api/src/routes/auth/login.route.ts`)
+- Added `REDIS_URL` to `EnvUtils` validated environment variables (`apps/api/src/utils/env.ts`)
+- Wired `MobileSidebar` and `Sidebar` logout buttons to `POST /auth/logout` API with loading state, post-logout navigation to login, and graceful local cleanup on API failure (`apps/web/src/features/dashboard/components/`)
+- Added automatic token refresh on 401 responses in API client with deduplicated concurrent refresh attempts — a single `POST /auth/refresh` call is shared across parallel 401 failures, preventing race conditions (`apps/web/src/lib/api.ts`)
+- `Content-Type: application/json` header is now only set when the request has a body (prevents Fastify from rejecting empty-body POST/PUT requests with a spurious content-type validation error) (`apps/web/src/lib/api.ts`)
+- Added `MfaSection` import and render to `SettingsPage` composition (`apps/web/src/features/settings/SettingsPage.tsx`)
+- Updated `LoginPage` with full MFA challenge UI: OTP input via `InputOTP` component, recovery code input with toggle, backup code email button, and error/success state management (`apps/web/src/features/auth/LoginPage.tsx`)
+- API Dockerfile build step changed from raw `npx tsc` to `pnpm run build` (`apps/api/Dockerfile`)
+- API `build` script extended to copy email template directory from `src/modules/user/email/` into `dist/` (`apps/api/package.json`)
+- Added logout test cases to `MobileSidebar.test.tsx` and `Sidebar.test.tsx` with API mock coverage, loading-state assertions, and graceful-failure scenarios
+- Added Content-Type header tests and token refresh retry tests to `api.test.ts` (`apps/web/src/lib/__tests__/api.test.ts`)
 
 ### Fixed
+- `ProjectService.updateSecret()` now returns the decrypted secret via `getSecret()` instead of the raw database record with the still-encrypted value (`apps/api/src/modules/project/service.ts`)
+- Fixed secret test mock type casts from `as Secret` to `as unknown as Secret` across 4 test files to satisfy stricter TypeScript type checking (`apps/api/src/routes/project/secrets/__tests__/`)
 
 ## 2026-06-05
 

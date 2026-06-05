@@ -15,7 +15,7 @@ RUN npx tsc
 
 WORKDIR /app/apps/api
 RUN npx prisma generate
-RUN npx tsc
+RUN pnpm run build
 
 FROM node:22-alpine
 

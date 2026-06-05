@@ -10,6 +10,46 @@ import type { ErrorResponse } from "@repo/shared";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Attempts to prolong the current auth session by calling the refresh endpoint.
+ *
+ * Deduplicates concurrent refresh attempts: if a refresh is already in
+ * flight, subsequent callers receive the same promise instead of
+ * triggering parallel refresh requests. This prevents race conditions
+ * when multiple API calls fail with 401 at the same time.
+ *
+ * Uses the httpOnly auth‑token cookie set by the backend — no token
+ * is passed explicitly. If the backend rejects the refresh (e.g. the
+ * cookie has truly expired), the function returns false and the 401
+ * handler will redirect to login.
+ *
+ * @returns true if the token was refreshed successfully, false otherwise
+ */
+async function attemptTokenRefresh(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+  isRefreshing = true;
+  refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  })
+    .then((res) => {
+      isRefreshing = false;
+      refreshPromise = null;
+      return res.ok;
+    })
+    .catch(() => {
+      isRefreshing = false;
+      refreshPromise = null;
+      return false;
+    });
+  return refreshPromise;
+}
+
 /**
  * Structured error thrown by the API client on non-2xx responses.
  *
@@ -70,10 +110,12 @@ function resolveUrl(path: string, params?: Record<string, string>): string {
  * The {@code typeof window} guard prevents crashes during SSR where
  * {@code localStorage} is not available.
  */
-function buildHeaders(init?: RequestInit): HeadersInit {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+function buildHeaders(init?: RequestInit, hasBody?: boolean): HeadersInit {
+  const headers: Record<string, string> = {};
+
+  if (hasBody) {
+    headers["Content-Type"] = "application/json";
+  }
 
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
   if (token) {
@@ -115,12 +157,15 @@ function buildHeaders(init?: RequestInit): HeadersInit {
 async function request<T>(method: string, path: string, options?: RequestOptions): Promise<T> {
   const { body, params, ...init } = options ?? {};
 
+  // Only set Content-Type when there is a body to avoid Fastify
+  // rejecting POST requests that carry the header but no payload
+  const hasBody = body !== undefined;
   const response = await fetch(resolveUrl(path, params), {
     ...init,
     method,
-    headers: buildHeaders(init),
+    headers: buildHeaders(init, hasBody),
     credentials: "include",
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   if (!response.ok) {
@@ -131,11 +176,16 @@ async function request<T>(method: string, path: string, options?: RequestOptions
       data = null;
     }
 
-    if (response.status === 401) {
+    if (response.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
+      const refreshed = await attemptTokenRefresh();
+      if (refreshed) {
+        return request<T>(method, path, options);
+      }
       if (typeof window !== "undefined") {
         localStorage.removeItem("auth_token");
         window.location.href = "/login";
       }
+      throw new ApiError(401, "Session expired", data);
     }
 
     throw new ApiError(response.status, response.statusText, data);

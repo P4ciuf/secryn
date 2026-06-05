@@ -1,11 +1,14 @@
 import { AuthService } from "../../core/auth/service.js";
 import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../types/route.js";
-import type { LoginBody } from "@repo/shared";
+import type { LoginBody, LoginMFAResponse } from "@repo/shared";
 
 /**
  * POST /auth/login
- * Authenticates a user with email and password. Sets the JWT as an httpOnly cookie.
+ * Authenticates a user with email and password.
+ * - If MFA is not enabled: sets the JWT as an httpOnly cookie.
+ * - If MFA is enabled: returns a short-lived MFA token that must be
+ *   verified via {@code POST /auth/mfa/confirm} or {@code POST /auth/mfa/recovery}.
  * Rate-limited to 5 attempts per hour per client.
  */
 export default ((_fastify: FastifyInstance) => ({
@@ -20,7 +23,7 @@ export default ((_fastify: FastifyInstance) => ({
   schema: {
     summary: "Authenticate a user",
     description:
-      "Authenticates a user with email and password. Sets the JWT as an httpOnly cookie on success. Rate-limited to 5 attempts per hour.",
+      "Authenticates a user with email and password. Sets the JWT as an httpOnly cookie on success, or returns an MFA challenge when MFA is enabled. Rate-limited to 5 attempts per hour.",
     operationId: "authLogin",
     tags: ["Auth"],
     body: {
@@ -39,10 +42,13 @@ export default ((_fastify: FastifyInstance) => ({
     },
     response: {
       200: {
-        description: "Login successful, JWT set as cookie",
+        description:
+          "Login successful — JWT set as cookie, or MFA challenge returned when MFA is enabled",
         type: "object",
         properties: {
-          ok: { type: "boolean", example: true },
+          ok: { type: "boolean" },
+          mfaRequired: { type: "boolean" },
+          mfaToken: { type: "string" },
         },
       },
       400: { description: "Bad request — missing or invalid fields" },
@@ -54,11 +60,13 @@ export default ((_fastify: FastifyInstance) => ({
   },
   handler: async (req, reply) => {
     const authService = await AuthService.Instance(req);
-    // Cast is safe: the AJV schema defined above guarantees email and password exist
-    const token = await authService.login(req.body as LoginBody);
+    const result = await authService.login(req.body as LoginBody);
 
-    reply.setCookie("auth-token", token, AuthService.cookieConfig);
+    if (typeof result === "string") {
+      reply.setCookie("auth-token", result, AuthService.cookieConfig);
+      return reply.send({ ok: true });
+    }
 
-    return reply.send({ ok: true });
+    return reply.send(result as LoginMFAResponse);
   },
 })) satisfies AppRouteObject;

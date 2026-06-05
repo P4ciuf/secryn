@@ -48,7 +48,7 @@ const mockSecret = {
   updatedById: "user_001",
   createdAt: now,
   updatedAt: now,
-} as Secret;
+} as unknown as Secret;
 
 describe("PUT /projects/secrets/:id", () => {
   beforeEach(() => {

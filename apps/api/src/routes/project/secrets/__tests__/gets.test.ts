@@ -54,7 +54,7 @@ const mockSecrets = {
       updatedById: "user_001",
       createdAt: now,
       updatedAt: now,
-    } as Secret,
+    } as unknown as Secret,
   ],
 } as ProjectSecretsData;
 

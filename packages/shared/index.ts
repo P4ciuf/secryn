@@ -14,7 +14,17 @@ export type { ApiKey, ApiKeyPermission } from "./src/entities/api-key.js";
 export type { Webhook, WebhookEvent } from "./src/entities/webhook.js";
 
 // DTOs — request/response shapes for API endpoints
-export type { LoginBody, RegisterBody } from "./src/dtos/auth.js";
+export type {
+  LoginBody,
+  RegisterBody,
+  LoginMFAResponse,
+  MFAConfirmBody,
+  MFARecoveryBody,
+  MFASetupResponse,
+  MFAEnableBody,
+  MFAStatusResponse,
+  MFARecoveryCodesResponse,
+} from "./src/dtos/auth.js";
 export type { CreateProjectInput } from "./src/dtos/project.js";
 export type {
   CreateSecretInput,

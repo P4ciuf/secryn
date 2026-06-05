@@ -21,6 +21,8 @@ model User {
   isVerified   Boolean @default(false) @map("is_verified")
   /// Whether the user has configured multi-factor authentication.
   isMFAEnabled Boolean @default(false) @map("is_mfa_enabled")
+  /// Base32-encoded TOTP secret generated when the user sets up MFA.
+  mfaSecret    String? @map("mfa_secret")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -55,8 +57,6 @@ model MFARecoveryCode {
   isValid Boolean @default(true) @map("is_valid")
 
   createdAt DateTime @default(now()) @map("created_at")
-  /// The date and time after which this recovery code is no longer valid.
-  expiresAt DateTime @map("expires_at")
 
   @@map("mfa_recovery_codes")
 }

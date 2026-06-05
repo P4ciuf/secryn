@@ -595,7 +595,7 @@ export class ProjectService {
       ? await crypto.encrypt()
       : (await this.getSecretOrThrow(id)).value;
 
-    return await this.repository.updateSecret(
+    const secret = await this.repository.updateSecret(
       { id },
       {
         name: data.name,
@@ -604,6 +604,8 @@ export class ProjectService {
         updatedBy: { connect: { id: member.id } },
       },
     );
+
+    return await this.getSecret(secret.id);
   }
 
   /**

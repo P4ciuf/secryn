@@ -20,6 +20,22 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - securevault_redis:/data
+    networks:
+      - securevault-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: ./
@@ -31,6 +47,8 @@ services:
       - securevault-net
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health || exit 1"]
@@ -58,3 +76,4 @@ networks:
 
 volumes:
   securevault_db:
+  securevault_redis:

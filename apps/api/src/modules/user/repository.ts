@@ -1,4 +1,4 @@
-import type { Prisma, User } from "@prisma/client";
+import type { MFARecoveryCode, Prisma, User } from "@prisma/client";
 import { prisma } from "../../core/db/prisma.js";
 
 /**
@@ -23,6 +23,7 @@ export type SafeUser = Prisma.UserGetPayload<{
     email: true;
     username: true;
     role: true;
+    isMFAEnabled: true;
     createdAt: true;
     updatedAt: true;
   };
@@ -57,6 +58,7 @@ class UserRepository {
           email: true,
           username: true,
           role: true,
+          isMFAEnabled: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -117,6 +119,69 @@ class UserRepository {
    */
   async count(where?: Prisma.UserWhereInput): Promise<number> {
     return prisma.user.count({ where });
+  }
+
+  /**
+   * Persists a new MFA recovery code record. The code value is stored as an
+   * HMAC-SHA256 hash derived from the original plaintext — the original code
+   * is never written to the database.
+   *
+   * @param data - Prisma create input with the hashed code and user relation
+   * @returns The created recovery code record
+   */
+  async createMFACode(data: Prisma.MFARecoveryCodeCreateInput): Promise<MFARecoveryCode> {
+    return prisma.mFARecoveryCode.create({ data });
+  }
+
+  /**
+   * Looks up a recovery code by its hashed value. Since codes are stored as
+   * HMAC‑SHA256 hashes, callers must pre‑hash the user input before lookup.
+   *
+   * @param code - The HMAC-SHA256 hex digest of the user-supplied code
+   * @returns The matching recovery code or null if not found
+   */
+  async findMFACode(code: string): Promise<MFARecoveryCode | null> {
+    return prisma.mFARecoveryCode.findUnique({ where: { code } });
+  }
+
+  /**
+   * Marks a recovery code as consumed by setting its {@code isValid} flag to
+   * false. Once consumed the code can never be used again.
+   *
+   * @param code - The HMAC‑SHA256 hash of the code to invalidate
+   * @returns The updated recovery code record
+   */
+  async consumeMFACode(code: string): Promise<MFARecoveryCode> {
+    return prisma.mFARecoveryCode.update({
+      where: { code },
+      data: { isValid: false },
+    });
+  }
+
+  /**
+   * Deletes all recovery codes (both valid and consumed) for a user.
+   * Called when MFA is disabled or before regenerating a fresh set.
+   *
+   * @param userId - The owning user's unique identifier
+   * @returns A batch delete result with the count of removed rows
+   */
+  async deleteMFACodes(userId: string): Promise<Prisma.BatchPayload> {
+    return prisma.mFARecoveryCode.deleteMany({ where: { userId } });
+  }
+
+  /**
+   * Retrieves all valid (unused) recovery codes for a user, ordered by
+   * creation time ascending. Returns hashed code values — the original
+   * plaintext is never recoverable from storage.
+   *
+   * @param userId - The owning user's unique identifier
+   * @returns Array of valid recovery code records
+   */
+  async getValidRecoveryCodes(userId: string): Promise<MFARecoveryCode[]> {
+    return prisma.mFARecoveryCode.findMany({
+      where: { userId, isValid: true },
+      orderBy: { createdAt: "asc" },
+    });
   }
 }
 

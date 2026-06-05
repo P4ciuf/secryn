@@ -75,6 +75,7 @@ export class EnvUtils {
       encryptionKey: process.env["ENCRYPTION_KEY"],
       jwtSecret: process.env["JWT_SECRET"],
       appUrl: process.env["APP_URL"],
+      redisUrl: process.env["REDIS_URL"],
     };
   }
 
@@ -100,6 +101,7 @@ export class EnvUtils {
       encryptionKey: this.getKey("ENCRYPTION_KEY"),
       jwtSecret: this.getKey("JWT_SECRET"),
       appUrl: this.getKey("APP_URL"),
+      redisUrl: this.getKey("REDIS_URL"),
     } as const;
   }
 }
