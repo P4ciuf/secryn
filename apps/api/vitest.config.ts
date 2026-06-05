@@ -1,6 +1,14 @@
 import { defineConfig } from "vitest/config";
+import { resolve } from "path";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Resolves the @repo/shared workspace package to its TypeScript source
+      // so vitest can import directly without a build step.
+      "@repo/shared": resolve(__dirname, "../../packages/shared/index.ts"),
+    },
+  },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],

@@ -23,6 +23,7 @@ export type {
 } from "./src/dtos/secret.js";
 export type { CreateApiKeyInput } from "./src/dtos/api-key.js";
 export type { CreateWebhookInput } from "./src/dtos/webhook.js";
+export type { UpdateUserInput } from "./src/dtos/user.js";
 
 // Enums & errors
 export { errorCode, type ErrorCodeValue } from "./src/enums/error-code.js";
