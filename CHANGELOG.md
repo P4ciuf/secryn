@@ -60,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added Content-Type header tests and token refresh retry tests to `api.test.ts` (`apps/web/src/lib/__tests__/api.test.ts`)
 
 ### Fixed
+- `ownsProject` guard in `helper.ts` had inverted condition — was throwing `Forbidden` when the user IS the owner instead of when the user is NOT the owner, causing legitimate owner operations to fail with 403 (`apps/api/src/modules/project/helper.ts`)
 - `ProjectService.createInvite()` now returns the created invite object (was missing return statement) (`apps/api/src/modules/project/service.ts`)
 - Test mocks aligned with refactored routes: added missing `AuthService.Instance` mocks, renamed `updateNameProject` → `updateProject`, fixed secret mock data from object to `Secret[]` array, fixed invite/update/delete test assertions to match new route signatures, fixed `api.post` mock to return `{ ok: true }`, fixed `SettingsPage` to mock `MfaSection` instead of `NotificationsSection` (15 files across API and web)
 - MFA test `Instance` mocks switched to async functions to prevent hoisted `vi.fn()` timeout failures

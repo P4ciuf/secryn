@@ -21,7 +21,7 @@ export function generateSlugFromName(name: string): string {
  * @throws {AppError} with HTTP 403 if userId does not match the project owner
  */
 export const ownsProject = (userId: string, projectOwnerId: string) => {
-  if (PolicyProject.isProjectOwner(userId, projectOwnerId)) throw AppError.Forbidden();
+  if (!PolicyProject.isProjectOwner(userId, projectOwnerId)) throw AppError.Forbidden();
 };
 
 /**
