@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { AppError } from "../../../../core/errors/appError.js";
+import { registerErrorHandler } from "../../../../core/errors/errorHandler.js";
 import route from "../send-backup-code.route.js";
 
 const { mockJwtVerify, mockSendBackupCodeEmail, MockUserService } = vi.hoisted(() => {
@@ -10,9 +11,8 @@ const { mockJwtVerify, mockSendBackupCodeEmail, MockUserService } = vi.hoisted((
   function MockUserService(this: Record<string, unknown>) {
     this.sendBackupCodeEmail = mockSendBackupCodeEmail;
   }
-  MockUserService.Instance = vi
-    .fn()
-    .mockResolvedValue(new (MockUserService as unknown as new () => object)());
+  MockUserService.Instance = async (_userId: string) =>
+    new (MockUserService as unknown as new () => object)();
   return { mockJwtVerify, mockSendBackupCodeEmail, MockUserService };
 });
 
@@ -28,6 +28,7 @@ vi.mock("../../../../utils/redis.js", () => ({
 function buildApp() {
   const app = Fastify({ ajv: { customOptions: { strict: false } } });
   app.register(cookie);
+  registerErrorHandler(app);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   app.decorate("jwt", { verify: mockJwtVerify } as any);
   app.route(route(app));

@@ -43,7 +43,13 @@ describe("POST /projects/:id/invites", () => {
   it("should return 200 with ok:true when the invitation is created successfully", async () => {
     /* createInvite returns void in the service, but the route sends the result
      * directly and the response schema prescribes { ok: true } */
-    const mockInvite = { ok: true };
+    const mockInvite = {
+      id: "inv_001",
+      slug: "invite-slug",
+      projectId: "proj_001",
+      expiresAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
     mockCreateInvite.mockResolvedValue(mockInvite);
     mockAuthenticate.mockImplementation(async (req: Record<string, unknown>) => {
       req.user = { id: "user_001", email: "owner@test.com", username: "owner" };

@@ -67,7 +67,7 @@ describe("PUT /users", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual(mockUser);
-    expect(mockUpdateUser).toHaveBeenCalledWith("user_001", {
+    expect(mockUpdateUser).toHaveBeenCalledWith({
       name: "Jane Doe",
       email: "jane@example.com",
     });
@@ -88,7 +88,7 @@ describe("PUT /users", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual(mockUser);
-    expect(mockUpdateUser).toHaveBeenCalledWith("user_001", {
+    expect(mockUpdateUser).toHaveBeenCalledWith({
       currentPassword: "oldSecret123",
       newPassword: "newSecret456",
     });

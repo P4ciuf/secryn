@@ -114,7 +114,7 @@ describe("LoginPage", () => {
 
   it("should call api.post and navigate on successful submit", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.post).mockResolvedValueOnce(undefined);
+    vi.mocked(api.post).mockResolvedValueOnce({ ok: true });
     renderWithRouter(<LoginPage />);
 
     fillLoginForm("test@example.com", "password123");

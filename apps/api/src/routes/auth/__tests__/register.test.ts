@@ -16,6 +16,7 @@ const { mockRegister, MockAuthService } = vi.hoisted(() => {
   function MockAuthService() {
     return { register: mockRegister };
   }
+  MockAuthService.Instance = vi.fn().mockResolvedValue({ register: mockRegister });
   MockAuthService.cookieConfig = {
     path: "/",
     httpOnly: true,

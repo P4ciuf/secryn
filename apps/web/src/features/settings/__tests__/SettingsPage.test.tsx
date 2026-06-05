@@ -19,8 +19,8 @@ vi.mock("@/features/settings/components/SecuritySection", () => ({
   SecuritySection: () => <div data-testid="mock-security-section">Security</div>,
 }));
 
-vi.mock("@/features/settings/components/NotificationsSection", () => ({
-  NotificationsSection: () => <div data-testid="mock-notifications-section">Notifications</div>,
+vi.mock("@/features/settings/components/MfaSection", () => ({
+  MfaSection: () => <div data-testid="mock-mfa-section">MFA</div>,
 }));
 
 vi.mock("@/features/settings/components/DangerZoneSection", () => ({
@@ -38,7 +38,7 @@ describe("SettingsPage", () => {
     render(<SettingsPage />);
     expect(screen.getByTestId("mock-profile-section")).toBeInTheDocument();
     expect(screen.getByTestId("mock-security-section")).toBeInTheDocument();
-    expect(screen.getByTestId("mock-notifications-section")).toBeInTheDocument();
+    expect(screen.getByTestId("mock-mfa-section")).toBeInTheDocument();
     expect(screen.getByTestId("mock-dangerzone-section")).toBeInTheDocument();
   });
 });

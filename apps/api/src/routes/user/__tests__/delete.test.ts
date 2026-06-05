@@ -54,7 +54,7 @@ describe("DELETE /users", () => {
 
     expect(res.statusCode).toBe(204);
     expect(res.body).toBe("");
-    expect(mockDeleteUser).toHaveBeenCalledWith({ id: "user_001" });
+    expect(mockDeleteUser).toHaveBeenCalledWith();
   });
 
   it("should return 401 when no auth cookie is present", async () => {

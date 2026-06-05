@@ -18,6 +18,7 @@ const { mockLogin, MockAuthService } = vi.hoisted(() => {
   function MockAuthService() {
     return { login: mockLogin };
   }
+  MockAuthService.Instance = vi.fn().mockResolvedValue({ login: mockLogin });
   MockAuthService.cookieConfig = {
     path: "/",
     httpOnly: true,

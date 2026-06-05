@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import SecretsPage from "../SecretsPage";
 import { api } from "../../../lib/api";
-import type { ProjectSecretsData, Secret } from "@repo/shared";
+import type { Secret } from "@repo/shared";
 
 vi.mock("../../../lib/api");
 
@@ -44,10 +44,7 @@ const mockSecret2: Secret = {
   updatedAt: "2026-05-30",
 };
 
-const mockProjectSecretsData: ProjectSecretsData = {
-  name: "Test Project",
-  secrets: [mockSecret1, mockSecret2],
-};
+const mockSecretsData: Secret[] = [mockSecret1, mockSecret2];
 
 describe("SecretsPage", () => {
   beforeEach(() => {
@@ -55,7 +52,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows loading skeleton while fetching secrets", () => {
-    vi.mocked(api.get).mockReturnValue(new Promise<ProjectSecretsData>(() => {}));
+    vi.mocked(api.get).mockReturnValue(new Promise<Secret[]>(() => {}));
     renderWithRouter();
     const skeletons = document.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThanOrEqual(1);
@@ -70,17 +67,17 @@ describe("SecretsPage", () => {
   });
 
   it("renders secrets table with data when API returns secrets", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
     renderWithRouter();
     await waitFor(() => {
-      expect(screen.getByText("Test Project Secrets")).toBeInTheDocument();
+      expect(screen.getByText("Project Secrets")).toBeInTheDocument();
     });
     expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
     expect(screen.getByText("STRIPE_KEY")).toBeInTheDocument();
   });
 
   it("opens add secret modal, fills form, submits, and calls api.post", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
     const createdSecret: Secret = {
       id: "s3",
       name: "NEW_KEY",
@@ -135,7 +132,7 @@ describe("SecretsPage", () => {
   });
 
   it("deletes a secret when delete button is clicked", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
     vi.mocked(api.delete).mockResolvedValue(undefined);
 
     const user = userEvent.setup();
@@ -158,7 +155,7 @@ describe("SecretsPage", () => {
   });
 
   it("toggles secret value visibility when show/hide button is clicked", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
 
     const user = userEvent.setup();
     renderWithRouter();
@@ -189,7 +186,7 @@ describe("SecretsPage", () => {
   });
 
   it("closes the add secret modal when Cancel is clicked", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
 
     const user = userEvent.setup();
     renderWithRouter();
@@ -212,7 +209,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows error when add secret fails", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
     vi.mocked(api.post).mockRejectedValue(new Error("Creation failed"));
 
     const user = userEvent.setup();
@@ -249,7 +246,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows error when delete secret fails", async () => {
-    vi.mocked(api.get).mockResolvedValue(mockProjectSecretsData);
+    vi.mocked(api.get).mockResolvedValue(mockSecretsData);
     vi.mocked(api.delete).mockRejectedValue(new Error("Delete failed"));
 
     const user = userEvent.setup();
@@ -268,7 +265,7 @@ describe("SecretsPage", () => {
   });
 
   it("shows default project title when project name is empty", async () => {
-    vi.mocked(api.get).mockResolvedValue({ name: "", secrets: [] });
+    vi.mocked(api.get).mockResolvedValue([]);
     renderWithRouter("999");
     await waitFor(() => {
       expect(screen.getByText("Project Secrets")).toBeInTheDocument();

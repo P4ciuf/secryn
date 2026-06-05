@@ -4,7 +4,7 @@ import cookie from "@fastify/cookie";
 import { AppError } from "../../../../core/errors/appError.js";
 import { registerErrorHandler } from "../../../../core/errors/errorHandler.js";
 import route from "../gets.route.js";
-import type { ProjectSecretsData, Secret } from "@repo/shared";
+import type { Secret } from "@repo/shared";
 
 // vi.hoisted ensures mock declarations are evaluated before the module graph is loaded,
 // which is required by Vitest for vi.mock() to correctly intercept ES module imports.
@@ -41,22 +41,19 @@ function buildApp() {
 
 const now = new Date().toISOString();
 
-const mockSecrets = {
-  name: "My Vault",
-  secrets: [
-    {
-      id: "sec_001",
-      name: "DATABASE_URL",
-      value: "postgresql://user:pass@localhost:5432/mydb",
-      notes: "Production database connection string",
-      projectId: "proj_001",
-      addedById: "user_001",
-      updatedById: "user_001",
-      createdAt: now,
-      updatedAt: now,
-    } as unknown as Secret,
-  ],
-} as ProjectSecretsData;
+const mockSecrets = [
+  {
+    id: "sec_001",
+    name: "DATABASE_URL",
+    value: "postgresql://user:pass@localhost:5432/mydb",
+    notes: "Production database connection string",
+    projectId: "proj_001",
+    addedById: "user_001",
+    updatedById: "user_001",
+    createdAt: now,
+    updatedAt: now,
+  } as unknown as Secret,
+];
 
 describe("GET /projects/:projectId/secrets", () => {
   beforeEach(() => {
@@ -81,7 +78,7 @@ describe("GET /projects/:projectId/secrets", () => {
   });
 
   it("should return 200 with an empty secret list when project has no secrets", async () => {
-    const emptySecrets = { name: "Empty Vault", secrets: [] } as ProjectSecretsData;
+    const emptySecrets: Secret[] = [];
     mockGetProjectSecrets.mockResolvedValue(emptySecrets);
     mockAuthenticate.mockImplementation(async (req: Record<string, unknown>) => {
       req.user = { id: "user_001", email: "owner@test.com", username: "owner" };

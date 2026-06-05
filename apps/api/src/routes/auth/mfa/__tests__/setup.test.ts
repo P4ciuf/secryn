@@ -10,9 +10,8 @@ const { mockAuthenticate, mockSetupMFA, MockUserService } = vi.hoisted(() => {
   function MockUserService(this: Record<string, unknown>) {
     this.setupMFA = mockSetupMFA;
   }
-  MockUserService.Instance = vi
-    .fn()
-    .mockResolvedValue(new (MockUserService as unknown as new () => object)());
+  MockUserService.Instance = async (_userId: string) =>
+    new (MockUserService as unknown as new () => object)();
   return { mockAuthenticate, mockSetupMFA, MockUserService };
 });
 
