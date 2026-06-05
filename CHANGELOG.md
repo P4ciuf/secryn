@@ -33,6 +33,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ResizeObserver` polyfill to web test setup for shadcn/ui component compatibility (`apps/web/src/test-setup.ts`)
 
 ### Changed
+- CI workflow: build `@repo/shared` package step added before monorepo typecheck to ensure shared types are compiled (`.github/workflows/ci.yaml`)
+- MFA email templates normalized: indentation and inline CSS formatted consistently across all 4 templates (`apps/api/src/modules/user/email/`)
+- EMAIL environment variable default set to `SecureVault <name@domain>` in `.env.example`
+- API `build` script extended to copy `src/modules/project/email/` templates into `dist/` (`apps/api/package.json`)
+- `ProjectService.createInvite()` email template path changed from `path.join(__dirname, ...)` to `import.meta.dirname`; removed unused `node:path` import (`apps/api/src/modules/project/service.ts`)
+- `EmailUtils.sendEmail()` enhanced with structured logging: logs email ID on success and error details on failure; returns email ID instead of raw Resend API response (`apps/api/src/utils/email.ts`)
 - MFA login flow: `AuthService.login()` now returns `LoginMFAResponse` (with `mfaRequired` and short-lived `mfaToken`) when MFA is enabled, instead of setting the auth cookie immediately; callers must complete the OTP challenge via `POST /auth/mfa/confirm` or `POST /auth/mfa/recovery` (`apps/api/src/core/auth/service.ts`)
 - Added `generateMFAToken()`, `verifyMFAToken()`, `confirmMFA()`, and `recoverMFA()` methods to `AuthService` for the full MFA challenge lifecycle (`apps/api/src/core/auth/service.ts`)
 - Fixed `AuthService.decodeToken()` to correctly unwrap the nested `{ user: LoggedUser }` payload structure instead of casting the raw token as `LoggedUser`
@@ -54,6 +60,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added Content-Type header tests and token refresh retry tests to `api.test.ts` (`apps/web/src/lib/__tests__/api.test.ts`)
 
 ### Fixed
+- `ProjectService.createInvite()` now returns the created invite object (was missing return statement) (`apps/api/src/modules/project/service.ts`)
+- Test mocks aligned with refactored routes: added missing `AuthService.Instance` mocks, renamed `updateNameProject` → `updateProject`, fixed secret mock data from object to `Secret[]` array, fixed invite/update/delete test assertions to match new route signatures, fixed `api.post` mock to return `{ ok: true }`, fixed `SettingsPage` to mock `MfaSection` instead of `NotificationsSection` (15 files across API and web)
+- MFA test `Instance` mocks switched to async functions to prevent hoisted `vi.fn()` timeout failures
+- Vitest `testTimeout` increased from 5s to 15s; CI test step changed from parallel to sequential to eliminate resource contention (`.github/workflows/ci.yaml`, `vitest.config.ts`)
 - `ProjectService.updateSecret()` now returns the decrypted secret via `getSecret()` instead of the raw database record with the still-encrypted value (`apps/api/src/modules/project/service.ts`)
 - Fixed secret test mock type casts from `as Secret` to `as unknown as Secret` across 4 test files to satisfy stricter TypeScript type checking (`apps/api/src/routes/project/secrets/__tests__/`)
 
