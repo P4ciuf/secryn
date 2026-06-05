@@ -7,7 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
-### 2026-06-05
+### Added
+
+### Changed
+
+### Fixed
+
+## 2026-06-05
 
 ### Added
 - User REST API routes under `apps/api/src/routes/user/` with full OpenAPI schema documentation, JWT authentication, and rate limiting:
@@ -36,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Fixed `@repo/shared` workspace package resolution error in API vitest that prevented all API test suites from running
 - Fixed incorrect `@param` JSDoc documentation in `ProjectService` constructor (wrong parameter name) and `UserService.updateUser` (incorrect parameter type)
 
-### 2026-06-04
+## 2026-06-04
 
 ### Added
 - `CryptoUtils` utility class for AES-256-GCM encryption/decryption with hex-encoded `iv:tag:ciphertext` output (`apps/api/src/utils/crypto.ts`)
