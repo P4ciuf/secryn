@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ResizeObserver` polyfill to web test setup for shadcn/ui component compatibility (`apps/web/src/test-setup.ts`)
 
 ### Changed
+- Updated `todo.md` roadmap: "Search and filtering" corrected from [x] to [ ] (not yet implemented), "GitHub release" marked as [x] (completed)
 - CI workflow: build `@repo/shared` package step added before monorepo typecheck to ensure shared types are compiled (`.github/workflows/ci.yaml`)
 - MFA email templates normalized: indentation and inline CSS formatted consistently across all 4 templates (`apps/api/src/modules/user/email/`)
 - EMAIL environment variable default set to `SecureVault <name@domain>` in `.env.example`

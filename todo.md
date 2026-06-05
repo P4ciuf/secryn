@@ -81,7 +81,7 @@
 - [x] Secret listing
 - [x] Add secret
 - [x] Delete secret
-- [x] Search and filtering
+- [ ] Search and filtering
 
 ---
 
@@ -150,7 +150,7 @@
 - [x] README
 - [x] Contribution guide
 - [x] License _(Apache 2.0)_
-- [ ] GitHub release
+- [x] GitHub release
 
 ## Community
 
