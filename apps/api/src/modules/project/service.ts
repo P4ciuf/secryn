@@ -7,7 +7,6 @@ import { EnvUtils } from "../../utils/env.js";
 import { PolicyProject } from "./policy.js";
 import { generateInvitationExpiryDate, generateSlugFromName, ownsProject } from "./helper.js";
 import type { FullUser } from "../user/repository.js";
-import path from "node:path";
 import { readFileSync } from "node:fs";
 import { logger } from "../../core/logger/index.js";
 import { CryptoUtils } from "../../utils/crypto.js";
@@ -287,7 +286,7 @@ export class ProjectService {
       expiresAt,
     });
 
-    const template = readFileSync(path.join(__dirname, "emails/project-invitation.html"), "utf-8");
+    const template = readFileSync(`${import.meta.dirname}/email/projectInvitation.html`, "utf-8");
 
     const emailHTMLContent = template
       .replace("{{EMAIL}}", toUser.email)
@@ -295,6 +294,8 @@ export class ProjectService {
       .replace("{{YEAR}}", String(new Date().getFullYear()));
 
     await new EmailUtils().sendEmail(toUser.email, "Invitation to join project", emailHTMLContent);
+
+    return invite;
   }
 
   /**

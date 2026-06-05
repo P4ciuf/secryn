@@ -5,7 +5,7 @@
   "main": "dist/src/main.js",
   "scripts": {
     "start": "node dist/src/main.js",
-    "build": "tsc && cp -r src/modules/user/email dist/src/modules/user/",
+    "build": "tsc && cp -r src/modules/user/email dist/src/modules/user/ && cp -r src/modules/project/email dist/src/modules/project/",
     "dev": "prisma generate --config prisma.config.ts && tsx watch --watch-path=src src/main.ts",
     "test": "vitest run",
     "test:watch": "vitest",

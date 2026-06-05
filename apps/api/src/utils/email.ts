@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { EnvUtils } from "./env.js";
+import { logger } from "../core/logger/index.js";
 
 /**
  * Utility wrapper around the Resend email API.
@@ -15,16 +16,23 @@ export class EmailUtils {
    * @param to - Recipient email address
    * @param subject - Email subject line
    * @param html - HTML body content
-   * @returns The Resend API response containing the email ID and any errors
+   * @returns The email ID from Resend
+   * @throws If the Resend API returns an error
    */
   async sendEmail(to: string, subject: string, html: string) {
-    const result = await this.resend.emails.send({
+    const { data, error } = await this.resend.emails.send({
       from: EnvUtils.envVariables().email,
       to,
       subject,
       html,
     });
 
-    return result;
+    if (error) {
+      logger.error(`[EmailUtils] Failed to send email to ${to}: ${error.name} — ${error.message}`);
+      throw new Error(`Failed to send email: ${error.message}`);
+    }
+
+    logger.info(`[EmailUtils] Email sent to ${to} (id: ${data?.id})`);
+    return data!.id;
   }
 }
