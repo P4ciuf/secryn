@@ -59,6 +59,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API `build` script extended to copy email template directory from `src/modules/user/email/` into `dist/` (`apps/api/package.json`)
 - Added logout test cases to `MobileSidebar.test.tsx` and `Sidebar.test.tsx` with API mock coverage, loading-state assertions, and graceful-failure scenarios
 - Added Content-Type header tests and token refresh retry tests to `api.test.ts` (`apps/web/src/lib/__tests__/api.test.ts`)
+- Extended ioredis type declarations with `pipeline()` and `multi()` method signatures and comprehensive JSDoc documenting the module purpose and method cross-references (`apps/api/src/types/ioredis.d.ts`)
+- Extended `AuthService` with brute-force rate limiting via Redis pipeline counter, `DUMMY_HASH` for timing-safe unknown-email checks, and `incrementFailedLogin` helper for atomic counter operations (`apps/api/src/core/auth/service.ts`)
 
 ### Fixed
 - `ownsProject` guard in `helper.ts` had inverted condition — was throwing `Forbidden` when the user IS the owner instead of when the user is NOT the owner, causing legitimate owner operations to fail with 403 (`apps/api/src/modules/project/helper.ts`)
