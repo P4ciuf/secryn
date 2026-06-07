@@ -116,7 +116,7 @@ describe("api", () => {
   });
 
   describe("authentication", () => {
-    it("injects Authorization header when auth_token is present in localStorage", async () => {
+    it("does not inject Authorization header (cookie-only auth)", async () => {
       vi.mocked(globalThis.fetch).mockResolvedValue(new Response(null, { status: 204 }));
       localStorageGetItemSpy.mockReturnValue("my-token");
 
@@ -125,9 +125,7 @@ describe("api", () => {
       expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledWith(
         "/api/v1/test",
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: "Bearer my-token",
-          }),
+          headers: {},
         }),
       );
     });

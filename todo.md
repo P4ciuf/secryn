@@ -51,13 +51,13 @@
 
 - [x] Request validation _(schema validation on auth + project routes)_
 - [x] Rate limiting _(`@fastify/rate-limit`, 50 req/min)_
-- [ ] Brute-force protection
+- [x] Brute-force protection
 - [x] Secure JWT strategy _(httpOnly cookies + bcrypt)_
 - [x] CORS hardening _(`@fastify/cors`, credentials)_
 
 ## Security Review
 
-- [ ] OWASP Top 10 audit
+- [x] OWASP Top 10 audit
 - [ ] Dependency vulnerability scanning
 - [ ] Security testing checklist
 

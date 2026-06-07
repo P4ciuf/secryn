@@ -11,6 +11,10 @@ import { readFileSync } from "node:fs";
 import { EnvUtils } from "../../utils/env.js";
 import { EmailUtils } from "../../utils/email.js";
 
+// NobleCryptoPlugin provides a cryptographic-quality random source for TOTP,
+// and ScureBase32Plugin ensures base32 encoding/decoding is constant-time.
+// Both are required because otplib defaults to the Node.js crypto module only
+// for SHA-1 HMAC; the plugins fill the remaining TOTP algorithm gaps.
 const cryptoPlugin = new NobleCryptoPlugin();
 const base32Plugin = new ScureBase32Plugin();
 const totp = new TOTP({ crypto: cryptoPlugin, base32: base32Plugin });
@@ -18,6 +22,7 @@ const totp = new TOTP({ crypto: cryptoPlugin, base32: base32Plugin });
 /**
  * Business-logic layer for user management.
  * Wraps the repository with validation, password hashing, and conflict checks.
+ * Emits audit events for password changes, MFA enable, and MFA disable.
  */
 export class UserService {
   private readonly repository = userRepository;
@@ -181,7 +186,10 @@ export class UserService {
    * When updating the password, the current password must match and the new
    * password is hashed via bcrypt with cost factor 12.
    *
+   * Emits a {@code PASSWORD_CHANGED} audit event when the password is updated.
+   *
    * @param data - Fields to update (name, email, currentPassword, newPassword)
+   * @returns The updated user record.
    * @throws {AppError} ResourceNotFound if the user does not exist
    * @throws {AppError} Unauthorized if not authorized or current password is wrong
    * @throws {AppError} Conflict if the email or username is already taken
@@ -215,9 +223,14 @@ export class UserService {
       if (!isMatch) throw AppError.Unauthorized("Invalid current password");
 
       password = await UserService.hashPassword(newPassword);
+      logger.audit("PASSWORD_CHANGED", this.user.email);
     }
 
-    return await this.repository.update({ id: this.user.id }, { username: name, email, password });
+    const updated = await this.repository.update(
+      { id: this.user.id },
+      { username: name, email, password },
+    );
+    return updated;
   }
 
   /**
@@ -259,6 +272,8 @@ export class UserService {
    * Generates 10 backup recovery codes, stores them as HMAC‑SHA256 hashes,
    * and returns the plaintext codes (shown once to the user).
    *
+   * Emits an {@code MFA_ENABLED} audit event.
+   *
    * @param token - The 6-digit TOTP code from the authenticator app
    * @returns The list of plaintext recovery codes for one-time display
    */
@@ -295,6 +310,7 @@ export class UserService {
 
     await this.sendMFAConfirmationEmail(user.email, true);
 
+    logger.audit("MFA_ENABLED", user.email);
     logger.info(`[UserService] MFA enabled for user ${user.id} (${user.email})`);
 
     return mfaCodes;
@@ -302,7 +318,7 @@ export class UserService {
 
   /**
    * Disables MFA on the account, clearing the secret and all recovery codes.
-   * Sends a confirmation email.
+   * Sends a confirmation email. Emits an {@code MFA_DISABLED} audit event.
    */
   async disableMFA(): Promise<void> {
     const user = await this.getUserOrThrow({ id: this.user.id });
@@ -316,6 +332,7 @@ export class UserService {
 
     await this.sendMFAConfirmationEmail(user.email, false);
 
+    logger.audit("MFA_DISABLED", user.email);
     logger.info(`[UserService] MFA disabled for user ${user.id} (${user.email})`);
   }
 
@@ -424,7 +441,10 @@ export class UserService {
     await emailUtils.sendEmail(to, subject, html);
   }
 
-  // Kept for internal compatibility; replaced by the TOTP flow above.
+  /**
+   * @deprecated Kept for internal compatibility; replaced by the TOTP-based
+   *             {@link setupMFA} + {@link enableMFA} flow.
+   */
   async activeMFA() {
     const user = await this.getUserOrThrow({ id: this.user.id });
 

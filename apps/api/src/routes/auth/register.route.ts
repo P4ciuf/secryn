@@ -37,7 +37,8 @@ export default ((_fastify: FastifyInstance) => ({
         },
         password: {
           type: "string",
-          description: "Password (min. 8 characters recommended)",
+          description: "Password (minimum 8 characters)",
+          minLength: 8,
         },
       },
     },

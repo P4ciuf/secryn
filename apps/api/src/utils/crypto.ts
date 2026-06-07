@@ -1,14 +1,24 @@
 import crypto from "node:crypto";
 import { EnvUtils } from "./env.js";
 
+// Fixed salt enables deterministic key derivation: the same ENCRYPTION_KEY
+// always produces the same 32-byte AES key, which is required for decrypting
+// previously stored ciphertexts. The salt is versioned so a future key-rotation
+// scheme can introduce a new salt without breaking existing data.
+const SALT = Buffer.from("SecureVault::AES256GCM::v1", "utf-8");
+
 /**
  * Symmetric encryption utility using AES-256-GCM.
  *
- * The encryption key is derived at construction time by hashing the
- * {@code ENCRYPTION_KEY} environment variable with SHA-256, producing a
- * deterministic 32-byte buffer. Each {@link encrypt} call generates a fresh
- * 96-bit random IV and a GCM authentication tag; the output is the
- * colon-separated hex encoding {@code iv:tag:ciphertext}.
+ * The encryption key is derived at construction time from the
+ * {@code ENCRYPTION_KEY} environment variable using scrypt with a fixed
+ * salt and N=2^17 (131,072) iterations, producing a deterministic 32-byte
+ * buffer. Each {@link encrypt} call generates a fresh 96-bit random IV and
+ * a GCM authentication tag; the output is the colon-separated hex encoding
+ * {@code iv:tag:ciphertext}.
+ *
+ * @since 0.1.0 — Key derivation upgraded from SHA-256 to scrypt for
+ *                resistance against brute-force attacks on weak passphrases.
  *
  * @example
  * const utils = new CryptoUtils("my-secret-value");
@@ -16,10 +26,9 @@ import { EnvUtils } from "./env.js";
  * const decrypted = await utils.decrypt(); // "my-secret-value"
  */
 export class CryptoUtils {
-  private cryptoKey = crypto
-    .createHash("sha256")
-    .update(EnvUtils.envVariables().encryptionKey)
-    .digest();
+  private cryptoKey = crypto.scryptSync(EnvUtils.envVariables().encryptionKey, SALT, 32, {
+    N: 131072,
+  });
   private algorithm: crypto.CipherGCMTypes = "aes-256-gcm";
 
   constructor(private readonly value: string) {}

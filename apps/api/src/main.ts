@@ -12,6 +12,23 @@ import { logger } from "./core/logger/index.js";
 import { authenticate } from "./core/auth/plugin.js";
 import { registerErrorHandler } from "./core/errors/errorHandler.js";
 
+/**
+ * SecureVault API server bootstrap.
+ *
+ * Registration order matters:
+ *   1. Validate environment variables and fail fast on missing critical config.
+ *   2. Register transport-level middleware (cookie, helmet, CORS, rate-limit).
+ *   3. Register JWT plugin so it is available when route schemas reference it.
+ *   4. Register Swagger before routes — its {@code onRoute} hook must be active
+ *      when routes are added, otherwise OpenAPI metadata is not collected.
+ *   5. Register all route modules under the {@code /api/v1} prefix via the
+ *      auto-loader.
+ *   6. Attach the global error handler.
+ *   7. Call {@code app.ready()} explicitly to resolve the plugin tree and catch
+ *      registration errors before {@code listen()} binds the port.
+ *   8. Bind to {@code 0.0.0.0:PORT} and start accepting connections.
+ */
+
 try {
   EnvUtils.checkEnv();
 } catch (error) {
@@ -29,7 +46,14 @@ app.decorate("authenticate", authenticate);
 app.register(cookie);
 app.register(helmet, { global: true });
 app.register(fastifyRateLimit, { max: 50, timeWindow: "1 minute" });
-app.register(cors, { origin: true, credentials: true });
+
+// CORS origins are restricted to APP_URL by default; set CORS_ORIGINS (comma-
+// separated) to allow additional origins for multi-domain deployments.
+app.register(cors, {
+  origin: ENV.corsOrigins?.split(",").map((o) => o.trim()) ?? [ENV.appUrl],
+  credentials: true,
+});
+
 app.register(fastifyJwt, { secret: ENV.jwtSecret });
 
 // Swagger must be registered before routes so its onRoute hook is active

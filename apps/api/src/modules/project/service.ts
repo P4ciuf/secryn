@@ -189,17 +189,27 @@ export class ProjectService {
   }
 
   /**
-   * Retrieves a single project by unique identifier.
-   * Authorization is implicit: if the user can access the project at all,
-   * it is returned in full; otherwise the guard throws NotFound.
+   * Retrieves a single project by unique identifier, returning {@code null}
+   * when the project does not exist or the current user is not a member/owner.
+   * Use {@link getProjectOrThrow} when a not-found condition should raise an error.
    *
    * @async
    * @param where - Unique identifier for the project
-   * @returns The full project including owner, members, invites, and secrets
-   * @throws {AppError} NotFound — when the project does not exist
+   * @returns The full project including owner, members, invites, and secrets,
+   *          or {@code null} if not found or access is denied.
    */
   async getProject(where: Prisma.ProjectWhereUniqueInput) {
-    return await this.repository.findProject(where);
+    const project = await this.repository.findProject(where);
+    if (!project) return null;
+
+    const member = await this.repository.findProjectMember({
+      user: { id: this.user.id },
+      project: { id: project.id },
+    });
+    if (!member && project.ownerId !== this.user.id) {
+      return null;
+    }
+    return project;
   }
 
   /**
@@ -231,7 +241,7 @@ export class ProjectService {
       OR: [{ ownerId: this.user.id }, { members: { some: { userId: this.user.id } } }],
     });
 
-    logger.debug(`${prefix} Projects: ${JSON.stringify(projects)}`);
+    logger.debug(`${prefix} Found ${projects.length} projects`);
 
     return projects;
   }
@@ -288,8 +298,16 @@ export class ProjectService {
 
     const template = readFileSync(`${import.meta.dirname}/email/projectInvitation.html`, "utf-8");
 
+    // HTML-escape the invitee email to prevent content injection into the
+    // email body (the email address is interpolated into the HTML template).
+    const escapeHtml = (str: string) =>
+      str.replace(
+        /[&<>"']/g,
+        (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]!,
+      );
+
     const emailHTMLContent = template
-      .replace("{{EMAIL}}", toUser.email)
+      .replace("{{EMAIL}}", escapeHtml(toUser.email))
       .replace("{{INVITE_URL}}", `${EnvUtils.envVariables().appUrl}/join/${invite.slug}`)
       .replace("{{YEAR}}", String(new Date().getFullYear()));
 
@@ -502,6 +520,8 @@ export class ProjectService {
    * The plain-text value is encrypted via AES-256-GCM before storage;
    * the raw value never reaches the database.
    *
+   * Emits a {@code SECRET_CREATED} audit event.
+   *
    * @async
    * @param projectId - ID of the project to create the secret in
    * @param data - Name, value, and optional notes for the secret
@@ -528,32 +548,43 @@ export class ProjectService {
     const crypto = new CryptoUtils(data.value);
     const secretValue = await crypto.encrypt();
 
-    return await this.repository.createSecret({
-      name: data.name,
-      notes: data.notes,
-      value: secretValue,
-      project: { connect: { id: project.id } },
-      addedBy: { connect: { id: member.id } },
-      updatedBy: { connect: { id: member.id } },
-    });
+    return await this.repository
+      .createSecret({
+        name: data.name,
+        notes: data.notes,
+        value: secretValue,
+        project: { connect: { id: project.id } },
+        addedBy: { connect: { id: member.id } },
+        updatedBy: { connect: { id: member.id } },
+      })
+      .then((secret) => {
+        logger.audit("SECRET_CREATED", this.user.email, `secret:${secret.id}`, {
+          projectId,
+          name: data.name,
+        });
+        return secret;
+      });
   }
 
   /**
    * Permanently deletes a secret by its ID.
-   * The caller must hold the {@code DELETE_SECRETS} or {@code ALL} permission.
-   * Authorization is scoped to the caller's project membership — the member
-   * lookup uses only the user ID without filtering by a specific project,
-   * which means a member with the right permission in any project can delete
-   * any secret they target.
+   * The caller must hold the {@code DELETE_SECRETS} or {@code ALL} permission
+   * in the project the secret belongs to. Authorization is verified by
+   * resolving the secret first, then checking the caller's membership in
+   * that specific project.
+   *
+   * Emits a {@code SECRET_DELETED} audit event.
    *
    * @async
    * @param id - Unique identifier of the secret to delete
-   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {AppError} ResourceNotFound — when the secret, member, or permission assignment does not exist
    * @throws {AppError} Forbidden — when the caller lacks DELETE_SECRETS or ALL permission
    */
   async deleteSecret(id: string) {
+    const secret = await this.getSecretOrThrow(id);
     const member = await this.getMemberOrThrow({
       user: { id: this.user.id },
+      project: { id: secret.projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
       projectMember: { id: member.id },
@@ -561,6 +592,11 @@ export class ProjectService {
     if (!this.policy.hasPermission(permission, ProjectMemberPermission.DELETE_SECRETS)) {
       throw AppError.Forbidden("You don't have permission to delete secrets");
     }
+
+    logger.audit("SECRET_DELETED", this.user.email, `secret:${id}`, {
+      projectId: secret.projectId,
+      name: secret.name,
+    });
 
     return await this.repository.deleteSecret({ id });
   }
@@ -572,6 +608,8 @@ export class ProjectService {
    * the existing (already-encrypted) value is preserved as-is without
    * re-encryption to avoid unnecessary key derivation overhead.
    *
+   * Emits a {@code SECRET_UPDATED} audit event.
+   *
    * @async
    * @param id - Unique identifier of the secret to update
    * @param data - Partial fields to update ({@code name?}, {@code notes?}, {@code value?})
@@ -580,8 +618,10 @@ export class ProjectService {
    * @throws {AppError} Forbidden — when the caller lacks UPDATE_SECRETS or ALL permission
    */
   async updateSecret(id: string, data: Pick<Prisma.SecretUpdateInput, "name" | "notes" | "value">) {
+    const existingSecret = await this.getSecretOrThrow(id);
     const member = await this.getMemberOrThrow({
       user: { id: this.user.id },
+      project: { id: existingSecret.projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
       projectMember: { id: member.id },
@@ -590,11 +630,9 @@ export class ProjectService {
       throw AppError.Forbidden("You don't have permission to update secrets");
     }
 
-    const secretValue = data.value ?? (await this.getSecretOrThrow(id)).value;
+    const secretValue = data.value ?? existingSecret.value;
     const crypto = new CryptoUtils(String(secretValue));
-    const encryptedSecretValue = data.value
-      ? await crypto.encrypt()
-      : (await this.getSecretOrThrow(id)).value;
+    const encryptedSecretValue = data.value ? await crypto.encrypt() : existingSecret.value;
 
     const secret = await this.repository.updateSecret(
       { id },
@@ -605,6 +643,11 @@ export class ProjectService {
         updatedBy: { connect: { id: member.id } },
       },
     );
+
+    logger.audit("SECRET_UPDATED", this.user.email, `secret:${id}`, {
+      projectId: existingSecret.projectId,
+      name: existingSecret.name,
+    });
 
     return await this.getSecret(secret.id);
   }
@@ -623,8 +666,12 @@ export class ProjectService {
    * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
    */
   async getSecret(id: string) {
+    const cryptedSecret = await this.repository.findSecret({ id });
+    if (!cryptedSecret) return cryptedSecret;
+
     const member = await this.getMemberOrThrow({
       user: { id: this.user.id },
+      project: { id: cryptedSecret.projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
       projectMember: { id: member.id },
@@ -633,11 +680,13 @@ export class ProjectService {
       throw AppError.Forbidden("You don't have permission to read secrets");
     }
 
-    const cryptedSecret = await this.repository.findSecret({ id });
-    if (!cryptedSecret) return cryptedSecret;
-
     const crypter = new CryptoUtils(cryptedSecret.value);
     const decryptedSecretValue = await crypter.decrypt();
+
+    logger.audit("SECRET_READ", this.user.email, `secret:${id}`, {
+      projectId: cryptedSecret.projectId,
+      name: cryptedSecret.name,
+    });
 
     return {
       ...cryptedSecret,
@@ -679,6 +728,7 @@ export class ProjectService {
 
     const member = await this.getMemberOrThrow({
       user: { id: this.user.id },
+      project: { id: projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
       projectMember: { id: member.id },
@@ -695,14 +745,13 @@ export class ProjectService {
     for (const secret of encryptedSecrets) {
       const crypter = new CryptoUtils(secret.value);
       const decryptedSecretValue = await crypter.decrypt();
-      const entry = { ...secret, value: decryptedSecretValue };
-      logger.debug(
-        `${prefix} IS ARRAY ENTRY PLAIN: ${Array.isArray([entry])} ${JSON.stringify(entry)}`,
-      );
-      decryptedSecrets.push(entry);
+      decryptedSecrets.push({ ...secret, value: decryptedSecretValue });
     }
 
-    logger.debug(`${prefix} IS ARRAY: ${Array.isArray(decryptedSecrets)}`);
+    logger.audit("SECRETS_LISTED", this.user.email, `project:${projectId}`, {
+      count: encryptedSecrets.length,
+    });
+
     return decryptedSecrets;
   }
 }

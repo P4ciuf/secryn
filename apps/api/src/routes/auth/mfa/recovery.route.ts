@@ -10,15 +10,17 @@ import type { LoggedUser } from "@repo/shared";
  * POST /auth/mfa/recovery
  * Completes the MFA login flow using a backup recovery code or an email-sent code.
  * Checks Redis first for email-delivered codes (10 min TTL), then falls back to
- * persisted recovery codes in the database.
+ * persisted recovery codes in the database. The MFA token is cryptographically
+ * verified before either path is attempted.
  * On success, sets the auth JWT as an httpOnly cookie and invalidates the code.
+ * Rate-limited to 3 attempts per 5 minutes.
  */
 export default ((fastify: FastifyInstance) => ({
   method: "POST",
   url: "/auth/mfa/recovery",
   config: {
     rateLimit: {
-      max: 10,
+      max: 3,
       timeWindow: 5 * 60 * 1000,
     },
   },
@@ -59,7 +61,7 @@ export default ((fastify: FastifyInstance) => ({
 
     // Try email backup code in Redis first
     try {
-      const payload = fastify.jwt.decode<{ email: string; userId: string; mfaPending: true }>(
+      const payload = fastify.jwt.verify<{ email: string; userId: string; mfaPending: true }>(
         mfaToken,
       );
       if (payload && payload.email && payload.userId && payload.mfaPending) {
@@ -78,7 +80,7 @@ export default ((fastify: FastifyInstance) => ({
         }
       }
     } catch {
-      // MFA token decode failed; fall through to DB-based recovery
+      // MFA token verification failed; fall through to DB-based recovery
     }
 
     // Fall back to persisted DB recovery codes

@@ -76,6 +76,8 @@ export class EnvUtils {
       jwtSecret: process.env["JWT_SECRET"],
       appUrl: process.env["APP_URL"],
       redisUrl: process.env["REDIS_URL"],
+      // corsOrigins is optional — when omitted, CORS falls back to APP_URL
+      corsOrigins: process.env["CORS_ORIGINS"],
     };
   }
 
@@ -102,6 +104,9 @@ export class EnvUtils {
       jwtSecret: this.getKey("JWT_SECRET"),
       appUrl: this.getKey("APP_URL"),
       redisUrl: this.getKey("REDIS_URL"),
+      // corsOrigins is intentionally optional — not validated via getKey().
+      // When undefined, the CORS plugin in main.ts falls back to APP_URL.
+      corsOrigins: process.env["CORS_ORIGINS"],
     } as const;
   }
 }

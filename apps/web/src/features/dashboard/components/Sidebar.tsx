@@ -16,9 +16,9 @@ export function Sidebar() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   /**
-   * Calls the logout endpoint to clear the httpOnly cookie, removes any
-   * client‑side auth token, and navigates to the login page. Local cleanup
-   * always proceeds even when the API call fails.
+   * Calls the logout endpoint to clear the httpOnly cookie and navigates
+   * to the login page. Local cleanup always proceeds even when the API call
+   * fails, ensuring the UI always transitions to the login screen.
    */
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -27,7 +27,6 @@ export function Sidebar() {
     } catch {
       // proceed with local cleanup even if the API call fails
     }
-    localStorage.removeItem("auth_token");
     navigate(ROUTES.LOGIN);
   };
 

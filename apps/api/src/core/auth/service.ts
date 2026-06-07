@@ -10,6 +10,7 @@ import { getRedis } from "../../utils/redis.js";
 import Redis from "ioredis";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { logger } from "../../core/logger/index.js";
 
 /**
  * Payload shape for the short-lived JWT issued during login when MFA is enabled.
@@ -23,9 +24,12 @@ interface MFATokenPayload {
 }
 
 /**
- * AuthService handles user registration, login, token refresh, and JWT verification.
- * Each instance is scoped to a single Fastify request, allowing access to cookies
- * and the authenticated user.
+ * Central authentication service handling registration, login, MFA challenges,
+ * token refresh, and JWT cryptographic verification.
+ *
+ * Each instance is scoped to a single Fastify request and emits audit-log
+ * events for security-relevant actions (login success, login failure,
+ * brute-force lockouts).
  */
 export class AuthService {
   /**
@@ -165,6 +169,10 @@ export class AuthService {
    *     full auth JWT; the client must complete the OTP challenge via
    *     {@link confirmMFA}.
    *
+   * Audit events emitted: {@code LOGIN_BRUTE_FORCE_BLOCKED},
+   * {@code LOGIN_FAILED_UNKNOWN_EMAIL}, {@code LOGIN_FAILED},
+   * {@code LOGIN_SUCCESS}.
+   *
    * @param data - Object containing the user's email and password.
    * @returns Full auth JWT, or an MFA-challenge response.
    * @throws {AppError} Conflict       – already logged in.
@@ -180,6 +188,7 @@ export class AuthService {
     // ① Fast-fail on known attackers before touching the database.
     const failedLoginCount = Number((await redisClient.get(lockKey)) ?? 0);
     if (failedLoginCount >= 3) {
+      logger.audit("LOGIN_BRUTE_FORCE_BLOCKED", data.email);
       throw AppError.Unauthorized("Too many failed login attempts. Please try again later.");
     }
 
@@ -191,6 +200,7 @@ export class AuthService {
     if (!existingUser) {
       await UserService.comparePassword(data.password, await AuthService.DUMMY_HASH);
       await this.incrementFailedLogin(redisClient, lockKey);
+      logger.audit("LOGIN_FAILED_UNKNOWN_EMAIL", data.email);
       throw AppError.ResourceNotFound("User");
     }
 
@@ -199,6 +209,7 @@ export class AuthService {
     // ③ Wrong password — increment before throwing.
     if (!validPassword) {
       await this.incrementFailedLogin(redisClient, lockKey);
+      logger.audit("LOGIN_FAILED", data.email);
       throw AppError.Unauthorized("Invalid email or password.");
     }
 
@@ -206,6 +217,8 @@ export class AuthService {
     await redisClient.del(lockKey);
 
     const { id, email, username } = existingUser;
+
+    logger.audit("LOGIN_SUCCESS", email);
 
     if (existingUser.isMFAEnabled) {
       return {
@@ -283,13 +296,38 @@ export class AuthService {
   }
 
   /**
-   * Decodes the JWT from the auth cookie **without** verifying its signature.
-   * Useful for pre-authentication checks where the full verify/handle flow is
-   * unwanted (e.g. reading the `userId` before deciding whether to verify).
+   * Verifies the JWT signature and expiration, then returns the decoded user.
+   * Combines verification and decoding in a single operation so there is no
+   * window where an unverified token could be trusted.
    *
-   * The auth JWT payload nests the user object under a `"user"` key
-   * (`{ user: { id, email, username }, iat, exp }`). This method unwraps
+   * The auth JWT payload nests the user object under a {@code "user"} key
+   * ({@code { user: { id, email, username }, iat, exp }}). This method unwraps
    * that nesting so callers receive a flat {@link LoggedUser}.
+   *
+   * @since 0.1.0 — Replaces the separate {@link decodeToken} + {@link verifyJWT}
+   *                pattern that left a window for unverified tokens.
+   * @returns The verified and decoded user payload as a flat {@link LoggedUser}.
+   * @throws {AppError} Conflict     – user is already authenticated on the request.
+   * @throws {AppError} Unauthorized – token is missing, invalid, or expired.
+   */
+  async verifyAndDecodeToken(): Promise<LoggedUser> {
+    if (this.req.user) throw AppError.Conflict("User is already logged in.");
+
+    const token = this.req.cookies[AuthService.cookieName];
+    if (!token) throw AppError.Unauthorized("Missing JWT.");
+
+    try {
+      const verified = fastifyApp.jwt.verify<{ user: LoggedUser }>(token);
+      return verified.user;
+    } catch {
+      throw AppError.Unauthorized("Invalid JWT.");
+    }
+  }
+
+  /**
+   * Decodes the JWT from the auth cookie **without** verifying its signature.
+   * Only use this when the caller has already verified the token or when
+   * the decoded payload is not used for authorization decisions.
    *
    * @returns The decoded user payload as a flat {@link LoggedUser}.
    * @throws {AppError} Conflict     – user is already authenticated on the request.
@@ -311,9 +349,12 @@ export class AuthService {
 
   /**
    * Verifies the JWT stored in the auth cookie using the server's signing secret.
+   * Returns a boolean rather than the decoded payload — prefer
+   * {@link verifyAndDecodeToken} when both verification and user data are needed.
    *
-   * @returns `true` if the token is valid.
+   * @returns {@code true} if the token is valid.
    * @throws {AppError} Unauthorized if the token is missing or fails verification.
+   * @see {@link verifyAndDecodeToken}
    */
   verifyJWT(): boolean {
     const token = this.req.cookies[AuthService.cookieName];

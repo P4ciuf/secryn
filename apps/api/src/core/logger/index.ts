@@ -3,7 +3,9 @@ import DailyRotateFile from "winston-daily-rotate-file";
 import path from "path";
 import fs from "fs";
 
-// Ensure the logs directory exists at import time — required before any transport writes
+// Ensure the logs directory exists at module-load time — transports
+// will attempt to write immediately on first log call and will fail
+// if the parent directory is missing.
 const logsDir = path.resolve(process.cwd(), "logs");
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
@@ -64,37 +66,74 @@ const log = winston.createLogger({
 });
 
 /**
- * Thin wrapper around a Winston logger instance.
- *
- * Exposes `error`, `warn`, `info`, and `debug` methods. The `debug` level is
- * automatically suppressed in non-development environments to avoid verbosity.
- * The underlying logger is configured with `exitOnError: false` so that logging
+ * Application logger wrapping a Winston instance with console and daily-rotate
+ * transports. The {@code debug} level is suppressed in production to reduce
+ * verbosity. The underlying logger uses {@code exitOnError: false} so logging
  * failures never crash the process.
+ *
+ * Includes an {@code audit} method for security-relevant events (login attempts,
+ * secret access, MFA changes) that writes at the {@code info} level with a
+ * structured {@code [AUDIT]} prefix for easy filtering in log aggregation tools.
  */
 export const logger = {
   /**
-   * Logs a message at the "error" severity level.
-   * Always emitted regardless of NODE_ENV.
+   * Logs a message at {@code error} severity. Always emitted regardless of
+   * {@code NODE_ENV}.
+   *
+   * @param message - Human-readable error description.
+   * @param meta    - Optional structured context (e.g. the caught error object).
    */
   error(message: string, meta?: unknown): void {
     log.error(message, meta);
   },
 
+  /**
+   * Logs a message at {@code warn} severity.
+   *
+   * @param message - Human-readable warning description.
+   * @param meta    - Optional structured context.
+   */
   warn(message: string, meta?: unknown): void {
     log.warn(message, meta);
   },
 
+  /**
+   * Logs a message at {@code info} severity.
+   *
+   * @param message - Human-readable informational message.
+   * @param meta    - Optional structured context.
+   */
   info(message: string, meta?: unknown): void {
     log.info(message, meta);
   },
 
   /**
-   * Logs a message at the "debug" severity level.
-   * Suppressed in production — debug logs are too verbose for non-development environments.
+   * Logs a message at {@code debug} severity. Automatically suppressed in
+   * production.
+   *
+   * @param message - Debug-level message.
+   * @param meta    - Optional structured context.
    */
   debug(message: string, meta?: unknown): void {
     if (isDevelopment) {
       log.debug(message, meta);
     }
+  },
+
+  /**
+   * Records a security-relevant audit event at {@code info} level with a
+   * structured {@code [AUDIT]} prefix. Use for login attempts, secret access,
+   * MFA state changes, and other actions that require an immutable trail.
+   *
+   * @param action   - Machine-readable action name (e.g. {@code "LOGIN_SUCCESS"}).
+   * @param actor    - Identifier of the user performing the action (typically email).
+   * @param resource - Optional identifier of the target resource (e.g. {@code "secret:abc123"}).
+   * @param meta     - Optional additional structured data (e.g. {@code { count: 5 }}).
+   *
+   * @example
+   * logger.audit("SECRET_READ", user.email, "secret:xyz", { projectId: "proj_1" });
+   */
+  audit(action: string, actor: string, resource?: string, meta?: unknown): void {
+    log.info(`[AUDIT] ${action}`, { actor, resource, ...(meta ? { meta } : {}) });
   },
 };

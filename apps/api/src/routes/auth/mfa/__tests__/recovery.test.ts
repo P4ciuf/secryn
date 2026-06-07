@@ -7,6 +7,7 @@ import route from "../recovery.route.js";
 const {
   mockJwtDecode,
   mockJwtSign,
+  mockJwtVerify,
   mockRecoverMFA,
   mockGetUserOrThrow,
   MockAuthService,
@@ -14,6 +15,7 @@ const {
 } = vi.hoisted(() => {
   const mockJwtDecode = vi.fn();
   const mockJwtSign = vi.fn();
+  const mockJwtVerify = vi.fn();
   const mockRecoverMFA = vi.fn();
   const mockGetUserOrThrow = vi.fn();
 
@@ -41,6 +43,7 @@ const {
   return {
     mockJwtDecode,
     mockJwtSign,
+    mockJwtVerify,
     mockRecoverMFA,
     mockGetUserOrThrow,
     MockAuthService,
@@ -69,7 +72,7 @@ function buildApp() {
   app.decorate("jwt", {
     decode: mockJwtDecode,
     sign: mockJwtSign,
-    verify: vi.fn(),
+    verify: mockJwtVerify,
   } as any);
   app.route(route(app));
   return app;
@@ -81,7 +84,7 @@ describe("POST /auth/mfa/recovery", () => {
   });
 
   it("should return 200 with ok:true and set auth cookie on valid DB recovery code", async () => {
-    mockJwtDecode.mockReturnValue(null);
+    mockJwtVerify.mockReturnValue(null);
     mockRecoverMFA.mockResolvedValue("recovered-jwt-token");
     const app = buildApp();
 
@@ -99,7 +102,7 @@ describe("POST /auth/mfa/recovery", () => {
   });
 
   it("should return 200 with ok:true on valid email backup code from Redis", async () => {
-    mockJwtDecode.mockReturnValue({ email: "user@test.com", userId: "user_001", mfaPending: true });
+    mockJwtVerify.mockReturnValue({ email: "user@test.com", userId: "user_001", mfaPending: true });
     vi.mocked(consumeEmailBackupCode).mockResolvedValue(true);
     mockGetUserOrThrow.mockResolvedValue({
       id: "user_001",
@@ -121,7 +124,7 @@ describe("POST /auth/mfa/recovery", () => {
   });
 
   it("should fall back to DB when Redis email code is not found", async () => {
-    mockJwtDecode.mockReturnValue({ email: "user@test.com", userId: "user_001", mfaPending: true });
+    mockJwtVerify.mockReturnValue({ email: "user@test.com", userId: "user_001", mfaPending: true });
     vi.mocked(consumeEmailBackupCode).mockResolvedValue(false);
     mockRecoverMFA.mockResolvedValue("db-jwt-token");
     const app = buildApp();

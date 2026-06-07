@@ -102,24 +102,18 @@ function resolveUrl(path: string, params?: Record<string, string>): string {
 /**
  * Builds the headers object for a fetch request.
  *
- * Applies {@code Content-Type: application/json} by default, injects a
- * Bearer token from {@code localStorage} when present, and merges any
- * caller-supplied headers. Supports three header formats: Headers
- * instance, array of key-value tuples, and plain object.
+ * Applies {@code Content-Type: application/json} when the request has a body
+ * and merges any caller-supplied headers. Supports three header formats:
+ * Headers instance, array of key-value tuples, and plain object.
  *
- * The {@code typeof window} guard prevents crashes during SSR where
- * {@code localStorage} is not available.
+ * Authentication is handled exclusively via httpOnly cookies
+ * ({@code credentials: "include"}) — no Authorization header is injected.
  */
 function buildHeaders(init?: RequestInit, hasBody?: boolean): HeadersInit {
   const headers: Record<string, string> = {};
 
   if (hasBody) {
     headers["Content-Type"] = "application/json";
-  }
-
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
   }
 
   if (init?.headers) {
@@ -182,7 +176,6 @@ async function request<T>(method: string, path: string, options?: RequestOptions
         return request<T>(method, path, options);
       }
       if (typeof window !== "undefined") {
-        localStorage.removeItem("auth_token");
         window.location.href = "/login";
       }
       throw new ApiError(401, "Session expired", data);
@@ -206,7 +199,6 @@ async function request<T>(method: string, path: string, options?: RequestOptions
  * All methods:
  * - Resolve URLs relative to {@code API_BASE_URL}
  * - Serialize request bodies as JSON
- * - Inject the {@code Authorization} header from localStorage
  * - Send {@code credentials: "include"} for cookie-based auth
  * - Throw {@link ApiError} on non-2xx responses
  * - Return parsed JSON (or {@code undefined} for 204)

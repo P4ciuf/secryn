@@ -5,15 +5,16 @@ import type { MFAConfirmBody } from "@repo/shared";
 
 /**
  * POST /auth/mfa/confirm
- * Completes the MFA login flow by verifying a TOTP code.
- * On success, sets the auth JWT as an httpOnly cookie.
+ * Completes the MFA login flow by verifying a TOTP code against the pending
+ * MFA token issued during login. On success, sets the auth JWT as an httpOnly
+ * cookie. Rate-limited to 3 attempts per 5 minutes to deter brute-forcing.
  */
 export default ((_fastify: FastifyInstance) => ({
   method: "POST",
   url: "/auth/mfa/confirm",
   config: {
     rateLimit: {
-      max: 10,
+      max: 3,
       timeWindow: 5 * 60 * 1000,
     },
   },
