@@ -7,6 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Security
+- JWT authentication hardened: `authenticate` preHandler now cryptographically verifies JWT signatures via `verifyAndDecodeToken()` instead of decoding without verification (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`)
+- CORS restricted: replaced permissive `origin: true` with explicit allowlist (`APP_URL` default + optional `CORS_ORIGINS` env var) to prevent cross-origin credential leakage (`apps/api/src/main.ts`, `apps/api/src/utils/env.ts`)
+- Cross-project authorization fixed: `deleteSecret`, `updateSecret`, `getSecret`, `getProjectSecrets` now resolve the secret first then verify project-scoped membership, preventing users with permissions in one project from accessing secrets in another (`apps/api/src/modules/project/service.ts`)
+- Encryption key derivation upgraded from SHA-256 to scrypt (N=131,072 iterations) for resistance against brute-force attacks on weak passphrases (`apps/api/src/utils/crypto.ts`)
+- HTML injection prevented: invitee email is now HTML-escaped before interpolation into the invitation email template (`apps/api/src/modules/project/service.ts`)
+- Host port mappings removed from `docker-compose.yml` for PostgreSQL (5432) and Redis (6379) — services are now internal to the Docker network (`docker-compose.yml`)
+- Client-side JWT storage removed: `auth_token` no longer written to or read from `localStorage`; authentication is exclusively cookie-based (`apps/web/src/lib/api.ts`, `apps/web/src/features/dashboard/components/Sidebar.tsx`, `apps/web/src/features/dashboard/components/MobileSidebar.tsx`)
+- Password minimum length enforced server-side: `minLength: 8` added to login and register route JSON schemas (`apps/api/src/routes/auth/login.route.ts`, `apps/api/src/routes/auth/register.route.ts`)
+- MFA brute-force protection tightened: TOTP confirmation and recovery code rate limits reduced from 10 to 3 attempts per 5 minutes; recovery route now cryptographically verifies MFA tokens via `jwt.verify` instead of `jwt.decode` (`apps/api/src/routes/auth/mfa/confirm.route.ts`, `apps/api/src/routes/auth/mfa/recovery.route.ts`)
+- Audit logging added: `logger.audit()` records security events (login success/failure, brute-force lockout, MFA enable/disable, secret CRUD, password change) at `info` level with `[AUDIT]` prefix for log aggregation (`apps/api/src/core/logger/index.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`)
+- Plaintext secret logging removed: debug log lines that exposed decrypted secret values in `getProjectSecrets` and `getUserProjects` deleted (`apps/api/src/modules/project/service.ts`)
+
+### Changed
+- `getProject` now returns `null` (instead of throwing) when the user is not a member or owner; authorization is checked against both membership and ownership (`apps/api/src/modules/project/service.ts`)
+- Comprehensive JSDoc added across 17 files: `@param`, `@returns`, `@throws`, `@since`, `@see`, `@deprecated` tags; audit event documentation; architectural decision comments; TOTP plugin rationale; fixed-salt explanation; CORS optionality docs (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/core/logger/index.ts`, `apps/api/src/main.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`, `apps/api/src/routes/auth/mfa/confirm.route.ts`, `apps/api/src/routes/auth/mfa/recovery.route.ts`, `apps/api/src/utils/crypto.ts`, `apps/api/src/utils/env.ts`, `apps/web/src/features/dashboard/components/Sidebar.tsx`, `apps/web/src/features/dashboard/components/MobileSidebar.tsx`, `apps/web/src/lib/api.ts`)
+- `verifyAndDecodeToken()` added to `AuthService` — combines JWT verification and user extraction in one operation, eliminating the window where an unverified token could be trusted (`apps/api/src/core/auth/service.ts`)
+- `activeMFA()` method in `UserService` documented as `@deprecated` — kept for internal compatibility; replaced by `setupMFA` + `enableMFA` TOTP flow (`apps/api/src/modules/user/service.ts`)
+
 ### Added
 - MFA REST API routes under `apps/api/src/routes/auth/mfa/` with full OpenAPI schema documentation and JWT authentication:
   - `GET /auth/mfa/setup` — generate a TOTP secret and QR code data URL for MFA enrollment
@@ -33,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ResizeObserver` polyfill to web test setup for shadcn/ui component compatibility (`apps/web/src/test-setup.ts`)
 
 ### Changed
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 - Updated `todo.md` roadmap: "Search and filtering" corrected from [x] to [ ] (not yet implemented), "GitHub release" marked as [x] (completed)
 - CI workflow: build `@repo/shared` package step added before monorepo typecheck to ensure shared types are compiled (`.github/workflows/ci.yaml`)
 - MFA email templates normalized: indentation and inline CSS formatted consistently across all 4 templates (`apps/api/src/modules/user/email/`)
