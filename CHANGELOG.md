@@ -19,12 +19,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - MFA brute-force protection tightened: TOTP confirmation and recovery code rate limits reduced from 10 to 3 attempts per 5 minutes; recovery route now cryptographically verifies MFA tokens via `jwt.verify` instead of `jwt.decode` (`apps/api/src/routes/auth/mfa/confirm.route.ts`, `apps/api/src/routes/auth/mfa/recovery.route.ts`)
 - Audit logging added: `logger.audit()` records security events (login success/failure, brute-force lockout, MFA enable/disable, secret CRUD, password change) at `info` level with `[AUDIT]` prefix for log aggregation (`apps/api/src/core/logger/index.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`)
 - Plaintext secret logging removed: debug log lines that exposed decrypted secret values in `getProjectSecrets` and `getUserProjects` deleted (`apps/api/src/modules/project/service.ts`)
+- Transitive dependency vulnerability CVE-2026-39406 resolved: `@hono/node-server` forced to >=1.19.13 (resolved to 2.0.4) via `pnpm-workspace.yaml` overrides, fixing middleware bypass via repeated slashes in `serveStatic`
 
 ### Changed
 - `getProject` now returns `null` (instead of throwing) when the user is not a member or owner; authorization is checked against both membership and ownership (`apps/api/src/modules/project/service.ts`)
 - Comprehensive JSDoc added across 17 files: `@param`, `@returns`, `@throws`, `@since`, `@see`, `@deprecated` tags; audit event documentation; architectural decision comments; TOTP plugin rationale; fixed-salt explanation; CORS optionality docs (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/core/logger/index.ts`, `apps/api/src/main.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`, `apps/api/src/routes/auth/mfa/confirm.route.ts`, `apps/api/src/routes/auth/mfa/recovery.route.ts`, `apps/api/src/utils/crypto.ts`, `apps/api/src/utils/env.ts`, `apps/web/src/features/dashboard/components/Sidebar.tsx`, `apps/web/src/features/dashboard/components/MobileSidebar.tsx`, `apps/web/src/lib/api.ts`)
 - `verifyAndDecodeToken()` added to `AuthService` — combines JWT verification and user extraction in one operation, eliminating the window where an unverified token could be trusted (`apps/api/src/core/auth/service.ts`)
 - `activeMFA()` method in `UserService` documented as `@deprecated` — kept for internal compatibility; replaced by `setupMFA` + `enableMFA` TOTP flow (`apps/api/src/modules/user/service.ts`)
+- Updated frontend dependencies: `vite` (8.0.12 → 8.0.16), `react-dom` (19.2.6 → 19.2.7), `react-router` (7.16.0 → 7.17.0), `react-hook-form` (7.77.0 → 7.78.0) (`apps/web/package.json`)
+- `todo.md`: marked "Dependency vulnerability scanning" as completed
 
 ### Added
 - MFA REST API routes under `apps/api/src/routes/auth/mfa/` with full OpenAPI schema documentation and JWT authentication:

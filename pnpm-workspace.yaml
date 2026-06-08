@@ -9,3 +9,9 @@ allowBuilds:
   "@scarf/scarf": true
   bcrypt: true
   prisma: true
+
+overrides:
+  "@hono/node-server": ">=1.19.13"
+
+minimumReleaseAgeExclude:
+  - react-hook-form@7.78.0

@@ -58,7 +58,7 @@
 ## Security Review
 
 - [x] OWASP Top 10 audit
-- [ ] Dependency vulnerability scanning
+- [x] Dependency vulnerability scanning
 - [ ] Security testing checklist
 
 ---
