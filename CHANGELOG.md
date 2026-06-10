@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Fixed
+- Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
+
+### Changed
+- Security testing checklist executed and marked as completed in `todo.md` (`todo.md`)
+
+## 2026-06-06
+
 ### Security
 - JWT authentication hardened: `authenticate` preHandler now cryptographically verifies JWT signatures via `verifyAndDecodeToken()` instead of decoding without verification (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`)
 - CORS restricted: replaced permissive `origin: true` with explicit allowlist (`APP_URL` default + optional `CORS_ORIGINS` env var) to prevent cross-origin credential leakage (`apps/api/src/main.ts`, `apps/api/src/utils/env.ts`)

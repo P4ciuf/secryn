@@ -59,7 +59,7 @@
 
 - [x] OWASP Top 10 audit
 - [x] Dependency vulnerability scanning
-- [ ] Security testing checklist
+- [x] Security testing checklist
 
 ---
 
