@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ROUTES } from "../../routes/paths";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -16,7 +16,8 @@ import { UpdateSecretModal } from "./components/UpdateSecretModal";
  *
  * Fetches both the project name and its secrets from
  * {@code GET /projects/:projectId/secrets} on mount and when the
- * {@code projectId} changes. Supports adding and deleting secrets inline.
+ * {@code projectId} changes. Supports client-side search filtering by
+ * secret name, adding, editing, and deleting secrets inline.
  * The header shows a fallback title of "Project" when no name has been
  * loaded yet.
  */
@@ -29,6 +30,7 @@ export default function SecretsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [editingSecret, setEditingSecret] = useState<Secret | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toggle } = useToggleVisibility();
   const [visibleSet, setVisibleSet] = useState<Set<string>>(new Set());
 
@@ -52,6 +54,16 @@ export default function SecretsPage() {
   useEffect(() => {
     fetchSecrets();
   }, [fetchSecrets]);
+
+  /**
+   * Client-side filtering: case-insensitive match against the secret name.
+   * Re-computes only when {@code secrets} or {@code searchQuery} change.
+   */
+  const filteredSecrets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return secrets;
+    return secrets.filter((s) => s.name.toLowerCase().includes(query));
+  }, [secrets, searchQuery]);
 
   /**
    * Toggles visibility for a single secret. Updates both the local visible-set
@@ -139,11 +151,15 @@ export default function SecretsPage() {
         </div>
       ) : (
         <SecretsTable
-          secrets={secrets}
+          secrets={filteredSecrets}
           visibleSet={visibleSet}
           onToggleVisibility={handleToggleVisibility}
           onDelete={deleteSecret}
           onEdit={handleEditClick}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          hasNoMatches={searchQuery.trim().length > 0 && filteredSecrets.length === 0}
+          totalCount={secrets.length}
         />
       )}
 

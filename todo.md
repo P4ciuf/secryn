@@ -81,7 +81,7 @@
 - [x] Secret listing
 - [x] Add secret
 - [x] Delete secret
-- [ ] Search and filtering
+- [x] Search and filtering
 
 ---
 

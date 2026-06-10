@@ -7,11 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
-### Fixed
-- Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
+### Added
+- Client-side secret search and filtering in `SecretsTable` with case-insensitive name matching, clear button, and contextual empty-state messages (`apps/web/src/features/projects/SecretsPage.tsx`, `apps/web/src/features/projects/components/SecretsTable.tsx`)
 
 ### Changed
-- Security testing checklist executed and marked as completed in `todo.md` (`todo.md`)
+- Search bar in `SecretsTable` only renders when the project already contains secrets (`apps/web/src/features/projects/components/SecretsTable.tsx`)
+- Marked "Search and filtering" as completed in `todo.md` (`todo.md`)
+
+### Fixed
+- Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
 
 ## 2026-06-06
 
