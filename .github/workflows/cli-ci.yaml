@@ -1,0 +1,40 @@
+name: CLI CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+
+defaults:
+  run:
+    working-directory: packages/cli
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" pytest pytest-mock
+
+      - name: Run linter (ruff)
+        run: ruff check .
+
+      - name: Run type checker (mypy)
+        run: pip install mypy && mypy securevault_cli/
+
+      - name: Run tests
+        run: python -m pytest securevault_cli/tests/ -v

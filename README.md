@@ -41,6 +41,8 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
   CRUD, password changes) logged at info level for SIEM/log aggregation.
 - **Dockerized** — Production-ready multi-stage Dockerfiles for API (Node.js) and Web (Nginx),
   plus a `docker-compose.yml` for local development with PostgreSQL 18 and Redis 7.
+- **CLI Tool** — Command-line interface for managing secrets, projects, and API keys directly
+  from the terminal. Supports login, CRUD operations, `.env` export, and JSON output.
 
 ## Tech Stack
 
@@ -57,6 +59,7 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
 | UI Components    | shadcn/ui + Radix UI primitives     |
 | Testing          | Vitest 4 + Testing Library          |
 | Linting          | ESLint 10 + Prettier 3              |
+| CLI              | Python 3.10+ + Click + Requests     |
 | CI/CD            | GitHub Actions                      |
 | Containerization | Docker + Docker Compose             |
 
@@ -101,6 +104,133 @@ To run the full stack with Docker:
 cp .env.example .env   # fill in required values
 docker compose up --build
 ```
+
+## CLI
+
+SecureVault ships with a command-line tool (`sv`) for managing secrets without leaving
+the terminal. It supports cookie-based authentication, project and secret CRUD, API key
+management, and `.env` export. Requires Python 3.10+.
+
+### Installing the CLI
+
+**Via pipx (recommended)**
+
+```bash
+pipx install securevault-cli
+```
+
+**From source with pipx**
+
+```bash
+cd packages/cli
+pipx install -e .
+```
+
+**Manuale con venv** (quando pipx non e' disponibile)
+
+```bash
+cd packages/cli
+python3 -m venv .venv
+.venv/bin/pip install -e .
+ln -sf $(pwd)/.venv/bin/sv ~/.local/bin/sv
+```
+
+**One-liner install script**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/P4ciuf/securevault/main/packages/cli/install.sh | bash
+```
+
+### Comandi CLI
+
+```bash
+sv --help                    # Mostra l'help generale
+sv --api-url <url>           # Override dell'API URL per ogni comando
+```
+
+**Autenticazione**
+
+```bash
+sv auth login                                   # Login interattivo (email + password)
+sv auth login --email <email> --password <pw>   # Login non interattivo
+sv auth logout                                  # Logout e pulizia cookie
+sv auth whoami                                  # Mostra l'utente loggato
+sv auth whoami --json                           # Output in formato JSON
+```
+
+**Progetti**
+
+```bash
+sv projects list                        # Lista tutti i progetti
+sv projects list --json                 # Lista progetti in formato JSON
+sv projects create --name <nome>        # Crea un nuovo progetto
+sv projects create --name <nome>        # Crea progetto con descrizione
+  --description <desc>
+sv projects delete --id <id>            # Elimina un progetto (con conferma)
+sv projects delete --id <id> -f         # Elimina senza chiedere conferma
+```
+
+**Segreti**
+
+```bash
+sv secrets list --project-id <id>             # Lista segreti di un progetto
+sv secrets list --project-id <id> --json      # Lista segreti in formato JSON
+sv secrets get --id <id>                      # Mostra un segreto (valore oscurato)
+sv secrets get --id <id> --show-value         # Mostra il valore in chiaro
+sv secrets get --id <id> --json               # Output in formato JSON
+sv secrets create --project-id <id>           # Crea un nuovo segreto
+  --name <nome> --value <valore>
+sv secrets create --project-id <id>           # Crea un segreto con note
+  --name <nome> --value <valore>
+  --notes <note>
+sv secrets update --id <id>                   # Aggiorna nome, valore e/o note
+  --name <nuovo> --value <nuovo>
+  --notes <nuove>
+sv secrets delete --id <id>                   # Elimina un segreto
+sv secrets delete --id <id> -f                # Elimina senza conferma
+sv secrets export --project-id <id>           # Esporta in formato .env (stdout)
+sv secrets export --project-id <id>           # Esporta su file
+  -o .env
+```
+
+**API Keys**
+
+```bash
+sv api-keys list                        # Lista tutte le API keys
+sv api-keys list --json                 # Lista in formato JSON
+sv api-keys create --name <nome>        # Crea una API key (read+write)
+sv api-keys create --name <nome>        # Crea una API key con permessi specifici
+  --permissions read
+sv api-keys delete --id <id>            # Elimina una API key
+sv api-keys delete --id <id> -f         # Elimina senza conferma
+```
+
+**Utente e Configurazione**
+
+```bash
+sv user info                # Mostra profilo utente
+sv config                   # Mostra percorsi e valori di configurazione
+sv version                  # Versione della CLI
+```
+
+**Opzioni globali**
+
+| Opzione                     | Descrizione                                        |
+| --------------------------- | -------------------------------------------------- |
+| `--api-url <url>`           | Override API base URL (default: localhost:3000)    |
+| `SECUREVAULT_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente |
+| `SECUREVAULT_HOME` (env)    | Directory di configurazione alternativa            |
+| `--json`                    | Output in formato JSON (dove supportato)           |
+| `--force`, `-f`             | Salta le conferme per i comandi distruttivi        |
+
+### Configurazione
+
+La CLI salva configurazione e cookie in `~/.config/securevault/`:
+
+| File           | Contenuto                         |
+| -------------- | --------------------------------- |
+| `config.json`  | API URL, ID utente, email         |
+| `cookies.json` | Cookie di sessione JWT (httpOnly) |
 
 ## Usage
 
@@ -249,7 +379,12 @@ securevault/
 │           ├── styles/         # Tailwind CSS v4 entry + design tokens
 │           └── types/          # Shared TypeScript interfaces for all entities
 ├── packages/
-│   └── shared/                 # @repo/shared — types, DTOs, and enums for API and web
+│   ├── cli/                     # Python CLI tool (sv)
+│   │   ├── securevault_cli/     # CLI source (click commands, API client, config)
+│   │   ├── pyproject.toml       # Python project metadata and dependencies
+│   │   ├── Makefile             # Build and install targets
+│   │   └── install.sh           # One-line installer script
+│   └── shared/                  # @repo/shared — types, DTOs, and enums for API and web
 ├── docker-compose.yml          # Local dev stack: PostgreSQL, Redis, API, Web
 ├── eslint.config.mjs           # ESLint flat config (TS, JSON, Markdown, CSS)
 ├── pnpm-workspace.yaml         # pnpm monorepo workspace definition
