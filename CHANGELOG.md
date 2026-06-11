@@ -70,7 +70,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
 
-## 2026-06-06
+## 2026-06-08
+
+### Security
+- Transitive dependency vulnerability CVE-2026-39406 resolved: `@hono/node-server` forced to >=1.19.13 (resolved to 2.0.4) via `pnpm-workspace.yaml` overrides, fixing middleware bypass via repeated slashes in `serveStatic`
+
+### Changed
+- Updated frontend dependencies: `vite` (8.0.12 → 8.0.16), `react-dom` (19.2.6 → 19.2.7), `react-router` (7.16.0 → 7.17.0), `react-hook-form` (7.77.0 → 7.78.0) (`apps/web/package.json`)
+- `todo.md`: marked "Dependency vulnerability scanning" as completed
+
+## 2026-06-07
 
 ### Security
 - JWT authentication hardened: `authenticate` preHandler now cryptographically verifies JWT signatures via `verifyAndDecodeToken()` instead of decoding without verification (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`)
@@ -84,15 +93,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - MFA brute-force protection tightened: TOTP confirmation and recovery code rate limits reduced from 10 to 3 attempts per 5 minutes; recovery route now cryptographically verifies MFA tokens via `jwt.verify` instead of `jwt.decode` (`apps/api/src/routes/auth/mfa/confirm.route.ts`, `apps/api/src/routes/auth/mfa/recovery.route.ts`)
 - Audit logging added: `logger.audit()` records security events (login success/failure, brute-force lockout, MFA enable/disable, secret CRUD, password change) at `info` level with `[AUDIT]` prefix for log aggregation (`apps/api/src/core/logger/index.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`)
 - Plaintext secret logging removed: debug log lines that exposed decrypted secret values in `getProjectSecrets` and `getUserProjects` deleted (`apps/api/src/modules/project/service.ts`)
-- Transitive dependency vulnerability CVE-2026-39406 resolved: `@hono/node-server` forced to >=1.19.13 (resolved to 2.0.4) via `pnpm-workspace.yaml` overrides, fixing middleware bypass via repeated slashes in `serveStatic`
 
 ### Changed
 - `getProject` now returns `null` (instead of throwing) when the user is not a member or owner; authorization is checked against both membership and ownership (`apps/api/src/modules/project/service.ts`)
 - Comprehensive JSDoc added across 17 files: `@param`, `@returns`, `@throws`, `@since`, `@see`, `@deprecated` tags; audit event documentation; architectural decision comments; TOTP plugin rationale; fixed-salt explanation; CORS optionality docs (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/core/logger/index.ts`, `apps/api/src/main.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`, `apps/api/src/routes/auth/mfa/confirm.route.ts`, `apps/api/src/routes/auth/mfa/recovery.route.ts`, `apps/api/src/utils/crypto.ts`, `apps/api/src/utils/env.ts`, `apps/web/src/features/dashboard/components/Sidebar.tsx`, `apps/web/src/features/dashboard/components/MobileSidebar.tsx`, `apps/web/src/lib/api.ts`)
 - `verifyAndDecodeToken()` added to `AuthService` — combines JWT verification and user extraction in one operation, eliminating the window where an unverified token could be trusted (`apps/api/src/core/auth/service.ts`)
 - `activeMFA()` method in `UserService` documented as `@deprecated` — kept for internal compatibility; replaced by `setupMFA` + `enableMFA` TOTP flow (`apps/api/src/modules/user/service.ts`)
-- Updated frontend dependencies: `vite` (8.0.12 → 8.0.16), `react-dom` (19.2.6 → 19.2.7), `react-router` (7.16.0 → 7.17.0), `react-hook-form` (7.77.0 → 7.78.0) (`apps/web/package.json`)
-- `todo.md`: marked "Dependency vulnerability scanning" as completed
+
+## 2026-06-06
+
+### Changed
+- Extended ioredis type declarations with `pipeline()` and `multi()` method signatures and comprehensive JSDoc documenting the module purpose and method cross-references (`apps/api/src/types/ioredis.d.ts`)
+- Extended `AuthService` with brute-force rate limiting via Redis pipeline counter, `DUMMY_HASH` for timing-safe unknown-email checks, and `incrementFailedLogin` helper for atomic counter operations (`apps/api/src/core/auth/service.ts`)
+
+## 2026-06-05
 
 ### Added
 - MFA REST API routes under `apps/api/src/routes/auth/mfa/` with full OpenAPI schema documentation and JWT authentication:
@@ -118,6 +132,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Redis service to `docker-compose.yml` with `redis:7-alpine` image, `redis-cli ping` healthcheck, persistent volume, and API dependency
 - `ioredis`, `otplib`, `qrcode`, and `@types/qrcode` npm dependencies to API `package.json`
 - `ResizeObserver` polyfill to web test setup for shadcn/ui component compatibility (`apps/web/src/test-setup.ts`)
+- User REST API routes under `apps/api/src/routes/user/` with full OpenAPI schema documentation, JWT authentication, and rate limiting:
+  - `GET /users/:userId` — retrieve a user by ID with `@me` alias for the authenticated user (rate-limited to 50 req/h)
+  - `PUT /users` — update the authenticated user's name, email, or password (rate-limited to 10 req/5 min)
+  - `DELETE /users` — permanently delete the authenticated user's account (rate-limited to 5 req/30 min)
+- Test suites for all 3 user API routes covering 200/201/204/400/401/403/404/409/500 scenarios (`apps/api/src/routes/user/__tests__/`)
+- Test suite for `PUT /projects/:id` covering 200/401/403/404/500 scenarios (`apps/api/src/routes/project/core/__tests__/update.test.ts`)
+- `UpdateSecretModal` test suite covering open/close, pre-populated fields, form submission with changed values, empty-field-to-undefined coercion, and cancel behavior (`apps/web/src/features/projects/components/__tests__/UpdateSecretModal.test.tsx`)
+- `NotificationsSection` UI component with local-state checkbox toggles for email, security alerts, and product updates (`apps/web/src/features/settings/components/NotificationsSection.tsx`)
+- `UpdateUserInput` DTO type to `@repo/shared` for typed user profile update payloads (`packages/shared/src/dtos/user.ts`)
+- Response schema documentation for `GET /projects/:projectId/secrets` route (was missing from original Swagger schema)
 
 ### Changed
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
@@ -147,33 +171,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API `build` script extended to copy email template directory from `src/modules/user/email/` into `dist/` (`apps/api/package.json`)
 - Added logout test cases to `MobileSidebar.test.tsx` and `Sidebar.test.tsx` with API mock coverage, loading-state assertions, and graceful-failure scenarios
 - Added Content-Type header tests and token refresh retry tests to `api.test.ts` (`apps/web/src/lib/__tests__/api.test.ts`)
-- Extended ioredis type declarations with `pipeline()` and `multi()` method signatures and comprehensive JSDoc documenting the module purpose and method cross-references (`apps/api/src/types/ioredis.d.ts`)
-- Extended `AuthService` with brute-force rate limiting via Redis pipeline counter, `DUMMY_HASH` for timing-safe unknown-email checks, and `incrementFailedLogin` helper for atomic counter operations (`apps/api/src/core/auth/service.ts`)
-
-### Fixed
-- `ownsProject` guard in `helper.ts` had inverted condition — was throwing `Forbidden` when the user IS the owner instead of when the user is NOT the owner, causing legitimate owner operations to fail with 403 (`apps/api/src/modules/project/helper.ts`)
-- `ProjectService.createInvite()` now returns the created invite object (was missing return statement) (`apps/api/src/modules/project/service.ts`)
-- Test mocks aligned with refactored routes: added missing `AuthService.Instance` mocks, renamed `updateNameProject` → `updateProject`, fixed secret mock data from object to `Secret[]` array, fixed invite/update/delete test assertions to match new route signatures, fixed `api.post` mock to return `{ ok: true }`, fixed `SettingsPage` to mock `MfaSection` instead of `NotificationsSection` (15 files across API and web)
-- MFA test `Instance` mocks switched to async functions to prevent hoisted `vi.fn()` timeout failures
-- Vitest `testTimeout` increased from 5s to 15s; CI test step changed from parallel to sequential to eliminate resource contention (`.github/workflows/ci.yaml`, `vitest.config.ts`)
-- `ProjectService.updateSecret()` now returns the decrypted secret via `getSecret()` instead of the raw database record with the still-encrypted value (`apps/api/src/modules/project/service.ts`)
-- Fixed secret test mock type casts from `as Secret` to `as unknown as Secret` across 4 test files to satisfy stricter TypeScript type checking (`apps/api/src/routes/project/secrets/__tests__/`)
-
-## 2026-06-05
-
-### Added
-- User REST API routes under `apps/api/src/routes/user/` with full OpenAPI schema documentation, JWT authentication, and rate limiting:
-  - `GET /users/:userId` — retrieve a user by ID with `@me` alias for the authenticated user (rate-limited to 50 req/h)
-  - `PUT /users` — update the authenticated user's name, email, or password (rate-limited to 10 req/5 min)
-  - `DELETE /users` — permanently delete the authenticated user's account (rate-limited to 5 req/30 min)
-- Test suites for all 3 user API routes covering 200/201/204/400/401/403/404/409/500 scenarios (`apps/api/src/routes/user/__tests__/`)
-- Test suite for `PUT /projects/:id` covering 200/401/403/404/500 scenarios (`apps/api/src/routes/project/core/__tests__/update.test.ts`)
-- `UpdateSecretModal` test suite covering open/close, pre-populated fields, form submission with changed values, empty-field-to-undefined coercion, and cancel behavior (`apps/web/src/features/projects/components/__tests__/UpdateSecretModal.test.tsx`)
-- `NotificationsSection` UI component with local-state checkbox toggles for email, security alerts, and product updates (`apps/web/src/features/settings/components/NotificationsSection.tsx`)
-- `UpdateUserInput` DTO type to `@repo/shared` for typed user profile update payloads (`packages/shared/src/dtos/user.ts`)
-- Response schema documentation for `GET /projects/:projectId/secrets` route (was missing from original Swagger schema)
-
-### Changed
 - Wired `ProfileSection` to `GET /users/@me` for fetching and `PUT /users` for saving name/email, with loading skeleton, error banner, and success message; replaced hardcoded `"John Doe"` / `"john@example.com"` defaults with live API data
 - Wired `SecuritySection` to `PUT /users` for password changes with client-side validation (empty fields, password mismatch, minimum 8 characters), loading/error/success states, and field clearing on success
 - Wired `DangerZoneSection` to `DELETE /users` for account deletion with `window.confirm` browser prompt, loading/error states, and post-deletion navigation to landing page
@@ -184,6 +181,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added comprehensive JSDoc documentation to 17 source files: `UserService` (Instance, isAuthorized, updateUser, getUserSafe), `UserRepository` (SafeUser type, find safe param), `AuthService` (Instance, cookieName), `ProjectService` constructor, all user route factory exports, vitest config alias, all settings section components, `UpdateUserInput` DTO, and all new test file `buildApp()` helpers
 
 ### Fixed
+- `ownsProject` guard in `helper.ts` had inverted condition — was throwing `Forbidden` when the user IS the owner instead of when the user is NOT the owner, causing legitimate owner operations to fail with 403 (`apps/api/src/modules/project/helper.ts`)
+- `ProjectService.createInvite()` now returns the created invite object (was missing return statement) (`apps/api/src/modules/project/service.ts`)
+- Test mocks aligned with refactored routes: added missing `AuthService.Instance` mocks, renamed `updateNameProject` → `updateProject`, fixed secret mock data from object to `Secret[]` array, fixed invite/update/delete test assertions to match new route signatures, fixed `api.post` mock to return `{ ok: true }`, fixed `SettingsPage` to mock `MfaSection` instead of `NotificationsSection` (15 files across API and web)
+- MFA test `Instance` mocks switched to async functions to prevent hoisted `vi.fn()` timeout failures
+- Vitest `testTimeout` increased from 5s to 15s; CI test step changed from parallel to sequential to eliminate resource contention (`.github/workflows/ci.yaml`, `vitest.config.ts`)
+- `ProjectService.updateSecret()` now returns the decrypted secret via `getSecret()` instead of the raw database record with the still-encrypted value (`apps/api/src/modules/project/service.ts`)
+- Fixed secret test mock type casts from `as Secret` to `as unknown as Secret` across 4 test files to satisfy stricter TypeScript type checking (`apps/api/src/routes/project/secrets/__tests__/`)
 - Created missing `NotificationsSection.tsx` component resolving test import failures across `NotificationsSection.test.tsx` and `SettingsPage.test.tsx`
 - Fixed `@repo/shared` workspace package resolution error in API vitest that prevented all API test suites from running
 - Fixed incorrect `@param` JSDoc documentation in `ProjectService` constructor (wrong parameter name) and `UserService.updateUser` (incorrect parameter type)
@@ -208,6 +212,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Test suites for `codeExamples`, `endpoints`, `mockApiKeys`, and `mockWebhooks` data modules (`apps/web/src/data/__tests__/`)
 - `build` script and TypeScript devDependency to `packages/shared/package.json`
 - `.dockerignore` patterns excluding `__tests__`, `.git`, `logs`, and `**/__tests__` from Docker context
+- Centralized API client `lib/api.ts` with typed `get`/`post`/`put`/`patch`/`delete` helpers, structured `ApiError` class, auth token injection from `localStorage`, and `credentials: "include"` cookie-based auth
+- Vite dev server proxy forwarding `/api/*` requests to backend with `changeOrigin` and env-var-driven target (`VITE_API_TARGET`)
+- Frontend environment files: `.env.development` (`VITE_API_BASE_URL`, `VITE_API_TARGET`) and `.env.production` (`VITE_API_BASE_URL`)
+- Backend environment template `apps/api/.env.example` documenting all required environment variables
+- Nginx reverse proxy configuration `apps/web/nginx.conf` with SPA fallback, `/api/` proxy to backend, gzip compression, and forwarded headers
+- Docker Compose healthchecks for `db` (`pg_isready`), `api` (`wget /api/v1/health`), and service dependency chains with `condition: service_healthy`
+- `vite-env.d.ts` type declarations for custom Vite environment variables
+- `apps/web/src/pages/__tests__/Landing.test.tsx` covering all 7 landing page sections
+- `apps/web/src/lib/__tests__/api.test.ts` covering all HTTP methods, auth token injection, error handling, and query parameters
+- `apps/web/src/routes/__tests__/paths.test.ts` with route constant validation and snapshot
+- Inline comments documenting non-obvious patterns: httpOnly cookie auth flow, client-side password validation, dual-state visibility tracking, fixed-count skeleton placeholders, and fire-and-forget health check
 
 ### Changed
 - `Secret` entity type expanded with `createdAt` (Date), `notes`, `projectId`, `addedById`, `updatedById` fields; `updatedAt` type changed from `string` to `Date`
@@ -219,6 +234,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `SecretRow` and `SecretsTable` now accept and propagate `onEdit` callback
 - `mockSecretsData` export removed from mock data barrel (`apps/web/src/data/index.ts`)
 - JSDoc added to route factory exports in all 5 secret route files
+- Wired `LoginPage` and `RegisterPage` to `POST /api/v1/auth/login` and `POST /api/v1/auth/register` with loading, error, and success states; added client-side password-match validation to registration
+- Wired `ProjectsPage` to `GET /api/v1/projects` and `POST /api/v1/projects` with loading skeleton placeholders, error banner, and optimistic local-state updates
+- Wired `SecretsPage` to `GET /projects/:projectId/secrets`, `POST /projects/:projectId/secrets`, and `DELETE /secrets/:id` with dual-state visibility tracking (local `Set` + clipboard hook)
+- Wired `ApiKeysPage` to `GET /api-keys`, `POST /api-keys`, and `DELETE /api-keys/:id`
+- Wired `WebhooksPage` to `GET /webhooks`, `POST /webhooks`, and `DELETE /webhooks/:id`
+- Wired `ApiDocsPage` endpoint list to attempt `GET /docs/endpoints` with static fallback catalog matching real backend routes; added fire-and-forget health check on mount
+- Rewrote `CreateProjectModal` with controlled inputs, `onSubmit` callback accepting `CreateProjectInput`, and synchronous form reset on close/submit
+- Inlined `availableEvents` webhook event types into `CreateWebhookModal` (removed import from static data module)
+- Added `PUT` to `ApiEndpoint.method` union type for rename-project endpoint display
+- Moved API service from host-exposed port 3000 to internal-only Docker network; web service now on port 80 (was 5173)
+- Dockerfiles refactored: builder stages use `node:22-alpine`, web runtime uses `nginx:alpine` with custom `nginx.conf`, API runtime copies built `dist` and `node_modules` from builder
+- API Dockerfile: prisma generate during build, `EXPOSE 3000` and `ENV PORT=3000` declared
+- Fixed PostgreSQL volume path in docker-compose from `/var/lib/postgresql` to `/var/lib/postgresql/data`
+- Removed deprecated `version: "3.9"` from docker-compose.yml
+- Updated 9 test files for API-wired pages with API client mocks, loading/error/populated state coverage, form submit assertions, and optimistic update verification
+- Added JSDoc documentation to `ApiError` class, all `api` client helpers, `RequestOptions`, `resolveUrl`, `buildHeaders`, and `request` core function in `lib/api.ts`
+- Added JSDoc annotations to `LoginPage`, `RegisterPage`, `ProjectsPage`, `SecretsPage`, `ApiKeysPage`, `WebhooksPage`, `ApiDocsPage`, `CreateProjectModal`, and `CreateWebhookModal`
+- Expanded `ApiEndpoint` JSDoc with `@property` tags documenting non-obvious `color` field (Tailwind CSS class)
 
 ### Security
 - Secret values are encrypted via AES-256-GCM before database storage and decrypted only after permission verification — raw secrets never reach the database in plain text
@@ -226,7 +259,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 - `apps/web/src/data/secrets.ts` — mock secrets data module removed after SecretsPage switched from mock data to live API
 
-## 03/06/2026
+## 2026-06-03
 
 ### Added
 - `README.md` with project overview, features, tech stack, configuration table, project structure, and available scripts
@@ -247,17 +280,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
 - VS Code workspace settings for TypeScript SDK path (`.vscode/settings.json`, `apps/web/.vscode/settings.json`)
 - SecureVault project roadmap with phased milestone tracking (`todo.md`)
-- Centralized API client `lib/api.ts` with typed `get`/`post`/`put`/`patch`/`delete` helpers, structured `ApiError` class, auth token injection from `localStorage`, and `credentials: "include"` cookie-based auth
-- Vite dev server proxy forwarding `/api/*` requests to backend with `changeOrigin` and env-var-driven target (`VITE_API_TARGET`)
-- Frontend environment files: `.env.development` (`VITE_API_BASE_URL`, `VITE_API_TARGET`) and `.env.production` (`VITE_API_BASE_URL`)
-- Backend environment template `apps/api/.env.example` documenting all required environment variables
-- Nginx reverse proxy configuration `apps/web/nginx.conf` with SPA fallback, `/api/` proxy to backend, gzip compression, and forwarded headers
-- Docker Compose healthchecks for `db` (`pg_isready`), `api` (`wget /api/v1/health`), and service dependency chains with `condition: service_healthy`
-- `vite-env.d.ts` type declarations for custom Vite environment variables
-- `apps/web/src/pages/__tests__/Landing.test.tsx` covering all 7 landing page sections
-- `apps/web/src/lib/__tests__/api.test.ts` covering all HTTP methods, auth token injection, error handling, and query parameters
-- `apps/web/src/routes/__tests__/paths.test.ts` with route constant validation and snapshot
-- Inline comments documenting non-obvious patterns: httpOnly cookie auth flow, client-side password validation, dual-state visibility tracking, fixed-count skeleton placeholders, and fire-and-forget health check
 
 ### Changed
 - Refactored `ProjectService` from constructor-based `new ProjectService(userId)` to async factory `ProjectService.Instance(userId)` with private constructor and pre-loaded `FullUser`
@@ -275,24 +297,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Extended `ProjectService` with `removeMemberToProject` method supporting permission validation (ALL/REMOVE_MEMBERS), member-not-found checks, and self-removal prevention
 - Added `addPermissionToMember` stub method to `ProjectService` (pending implementation)
 - Removed `.vscode` and `todo.md` from `.gitignore` to version-control workspace settings and roadmap
-- Wired `LoginPage` and `RegisterPage` to `POST /api/v1/auth/login` and `POST /api/v1/auth/register` with loading, error, and success states; added client-side password-match validation to registration
-- Wired `ProjectsPage` to `GET /api/v1/projects` and `POST /api/v1/projects` with loading skeleton placeholders, error banner, and optimistic local-state updates
-- Wired `SecretsPage` to `GET /projects/:projectId/secrets`, `POST /projects/:projectId/secrets`, and `DELETE /secrets/:id` with dual-state visibility tracking (local `Set` + clipboard hook)
-- Wired `ApiKeysPage` to `GET /api-keys`, `POST /api-keys`, and `DELETE /api-keys/:id`
-- Wired `WebhooksPage` to `GET /webhooks`, `POST /webhooks`, and `DELETE /webhooks/:id`
-- Wired `ApiDocsPage` endpoint list to attempt `GET /docs/endpoints` with static fallback catalog matching real backend routes; added fire-and-forget health check on mount
-- Rewrote `CreateProjectModal` with controlled inputs, `onSubmit` callback accepting `CreateProjectInput`, and synchronous form reset on close/submit
-- Inlined `availableEvents` webhook event types into `CreateWebhookModal` (removed import from static data module)
-- Added `PUT` to `ApiEndpoint.method` union type for rename-project endpoint display
-- Moved API service from host-exposed port 3000 to internal-only Docker network; web service now on port 80 (was 5173)
-- Dockerfiles refactored: builder stages use `node:22-alpine`, web runtime uses `nginx:alpine` with custom `nginx.conf`, API runtime copies built `dist` and `node_modules` from builder
-- API Dockerfile: prisma generate during build, `EXPOSE 3000` and `ENV PORT=3000` declared
-- Fixed PostgreSQL volume path in docker-compose from `/var/lib/postgresql` to `/var/lib/postgresql/data`
-- Removed deprecated `version: "3.9"` from docker-compose.yml
-- Updated 9 test files for API-wired pages with API client mocks, loading/error/populated state coverage, form submit assertions, and optimistic update verification
-- Added JSDoc documentation to `ApiError` class, all `api` client helpers, `RequestOptions`, `resolveUrl`, `buildHeaders`, and `request` core function in `lib/api.ts`
-- Added JSDoc annotations to `LoginPage`, `RegisterPage`, `ProjectsPage`, `SecretsPage`, `ApiKeysPage`, `WebhooksPage`, `ApiDocsPage`, `CreateProjectModal`, and `CreateWebhookModal`
-- Expanded `ApiEndpoint` JSDoc with `@property` tags documenting non-obvious `color` field (Tailwind CSS class)
 
 ### Fixed
 - `ProjectService.createInvite()` now loads and renders HTML email template from file system instead of inline string
