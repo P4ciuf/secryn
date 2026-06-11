@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Python CLI package under `packages/cli/` with Click-based commands for authentication, project/secret CRUD, API key management, `.env` export, and JSON output — supports cookie-based auth, MFA login flow, interactive prompts, and `--api-url` persistence (`packages/cli/securevault_cli/cli.py`, `packages/cli/securevault_cli/client.py`, `packages/cli/securevault_cli/config.py`)
+- CLI test suite with 54 test cases covering all commands, Click group behavior, API error handling, connection errors, MFA login flow, confirmation prompts, JSON output, masked values, and `main()` entry-point error routing (`packages/cli/securevault_cli/tests/test_cli.py`)
+- CLI one-line installer shell script with automatic pipx/pip/venv fallback, Python version check, and config directory creation (`packages/cli/install.sh`)
+- CLI CI GitHub Actions workflow: ruff lint, mypy type-check, pytest with 54 tests on push/PR to `packages/cli/**` (`.github/workflows/cli-ci.yaml`)
+- Test suites for web common components: `EmptyState` (render, table wrapper, empty message), `Modal` (open/closed states, backdrop click, internal-click isolation, maxWidth), `PageHeader` (title, subtitle, primary/secondary actions, back link, router integration), `SecretValue` (masked/visible toggle, clipboard copy, custom prefix) (`apps/web/src/components/common/__tests__/`)
+- Test suites for web landing components: `FeaturesSection` (heading, 4 feature cards, grid layout), `LandingFooter` (copyright, tagline, footer element), `HeroSection` (heading, subtitle, CTA links, gradient text, router integration) (`apps/web/src/components/landing/__tests__/`)
 - API Key system: Prisma models (`ApiKey`, `ApiKeyPermission`), enum (`ApiKeyPermissions`), repository, and service with AES-256-GCM key encryption, key prefixing (`sv_`), 30-day expiry, and `verifyKey` validation (`apps/api/src/core/apiKeys/repository.ts`, `apps/api/src/core/apiKeys/service.ts`, `apps/api/prisma/models/apiKey.prisma`, `apps/api/prisma/enums/apiKey.prisma`)
 - API Key REST API routes under `apps/api/src/routes/apiKey/` with full OpenAPI schema documentation and JWT authentication:
   - `POST /api-keys` — generate a new API key (rate-limited to 5 req/30 min)
@@ -34,6 +40,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Client-side secret search and filtering in `SecretsTable` with case-insensitive name matching, clear button, and contextual empty-state messages (`apps/web/src/features/projects/SecretsPage.tsx`, `apps/web/src/features/projects/components/SecretsTable.tsx`)
 
 ### Changed
+- `README.md` — Added CLI section with install instructions (pipx, venv, one-liner script), full command reference for auth/projects/secrets/api-keys, and tech-stack row (`README.md`)
+- `.gitignore` — Replaced generic 738-line boilerplate with 45-line project-specific entries covering Python (`__pycache__`, `*.egg-info`, `.venv`), Node (`node_modules`, `dist`, `coverage`, `*.tsbuildinfo`), IDE, OS, Docker, and environment files (`.gitignore`)
+- `todo.md` — Marked "Secret retrieval endpoints" and "CLI planning" as completed (`todo.md`)
+- `cli.py` — Expanded `main()` docstring documenting pre-processing, exception-handling strategy, and exit-code semantics; added explanatory comment for `pyrefly: ignore` directive (`packages/cli/securevault_cli/cli.py`)
+- `install.sh` — Added file-level header block (description, usage, dependencies, exit codes) and per-function doc blocks (`packages/cli/install.sh`)
 - API Dockerfile: `prisma generate` added before build for generated client (`apps/api/Dockerfile`)
 - API key inline permission rejection comments added to 4 secret route handlers — documenting that API keys scoped to "read" only are rejected on write endpoints (`apps/api/src/routes/project/secrets/create.route.ts`, `apps/api/src/routes/project/secrets/get.route.ts`, `apps/api/src/routes/project/secrets/gets.route.ts`, `apps/api/src/routes/project/secrets/update.route.ts`)
 - `ApiKeyRow` updated with edit button (Pencil icon) wiring to `EditApiKeyModal` (`apps/web/src/features/api-keys/components/ApiKeyRow.tsx`)

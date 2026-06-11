@@ -91,13 +91,13 @@
 
 - [x] API key generation
 - [x] API key management
-- [ ] Secret retrieval endpoints
+- [x] Secret retrieval endpoints
 - [x] Secret creation endpoints
 
 ## Integrations
 
 - [x] Environment variable export
-- [ ] CLI planning
+- [x] CLI planning
 - [ ] SDK planning
 
 ## Documentation
