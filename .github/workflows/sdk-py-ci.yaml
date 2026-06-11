@@ -35,3 +35,6 @@ jobs:
 
       - name: Run type checker (mypy)
         run: mypy secryn/
+
+      - name: Run tests (pytest)
+        run: pip install ".[dev]" && python -m pytest secryn/tests/ -v

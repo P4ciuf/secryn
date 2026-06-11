@@ -33,7 +33,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build SDK
-        run: pnpm --filter "./packages/sdk-ts" build
+        working-directory: packages/sdk-ts
+        run: pnpm build
 
       - name: Typecheck
-        run: pnpm --filter "./packages/sdk-ts" typecheck
+        working-directory: packages/sdk-ts
+        run: pnpm typecheck

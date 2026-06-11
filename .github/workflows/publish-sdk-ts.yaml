@@ -44,9 +44,11 @@ jobs:
           echo "Version $PKG_VERSION — ready to publish"
 
       - name: Build SDK
-        run: pnpm --filter "./packages/sdk-ts" build
+        working-directory: packages/sdk-ts
+        run: pnpm build
 
       - name: Publish to npm
-        run: pnpm --filter "./packages/sdk-ts" publish --no-git-checks
+        working-directory: packages/sdk-ts
+        run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
