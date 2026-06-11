@@ -79,9 +79,13 @@ export default ((fastify: FastifyInstance) => ({
   },
   preHandler: [fastify.authenticate],
   handler: async (req, reply) => {
-    if (!req.user) throw AppError.Unauthorized("Not logged in");
+    if (!req.user && !req.apiKey) throw AppError.Unauthorized();
+    // API keys scoped to "read" are rejected on write endpoints
+    if (req.apiKey && !req.apiKey.permissions.includes("write") && req.apiKey.isActive) {
+      throw AppError.Unauthorized();
+    }
 
-    const projectService = await ProjectService.Instance(req.user.id);
+    const projectService = await ProjectService.Instance(req.user?.id || req.apiKey!.userId);
     const params = req.params as { projectId: string };
     const body = req.body as CreateSecretInput;
     const secret = await projectService.createSecret(params.projectId, body);

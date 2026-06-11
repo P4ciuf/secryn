@@ -545,7 +545,8 @@ export class ProjectService {
       throw AppError.Forbidden("You don't have permission to create secrets");
     }
 
-    const crypto = new CryptoUtils(data.value);
+    const plainValue = data.value;
+    const crypto = new CryptoUtils(plainValue);
     const secretValue = await crypto.encrypt();
 
     return await this.repository
@@ -562,7 +563,7 @@ export class ProjectService {
           projectId,
           name: data.name,
         });
-        return secret;
+        return { ...secret, value: plainValue };
       });
   }
 
@@ -708,6 +709,45 @@ export class ProjectService {
     const secret = await this.getSecret(id);
     if (!secret) throw AppError.ResourceNotFound("Secret");
     return secret;
+  }
+
+  /**
+   * Exports all project secrets in dotenv format ({@code KEY=VALUE}).
+   * Values containing whitespace or special characters are wrapped in double
+   * quotes with standard escape sequences. The export is intended for direct
+   * download as a {@code .env} file.
+   *
+   * Delegates authorization and decryption to {@link getProjectSecrets}.
+   *
+   * @async
+   * @param projectId - ID of the project whose secrets are being exported
+   * @returns A dotenv-formatted string suitable for writing to a {@code .env} file
+   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
+   */
+  async exportProjectSecrets(projectId: string): Promise<string> {
+    const secrets = await this.getProjectSecrets(projectId);
+
+    logger.audit("SECRETS_EXPORTED", this.user.email, `project:${projectId}`, {
+      count: secrets.length,
+    });
+
+    const needsQuoting = (v: string) => /[^\w@%\-+=:,./]/.test(v);
+
+    const escape = (v: string) =>
+      v
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/\t/g, "\\t");
+
+    return secrets
+      .map((s) => {
+        const value = needsQuoting(s.value) ? `"${escape(s.value)}"` : s.value;
+        return `${s.name}=${value}`;
+      })
+      .join("\n");
   }
 
   /**

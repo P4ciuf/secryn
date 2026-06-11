@@ -1,0 +1,9 @@
+/// Defines the permission scopes an API key can be granted.
+/// These are independent of user roles and control what
+/// programmatic consumers of the API are allowed to do.
+enum ApiKeyPermissions {
+  /// Read-only access to secrets and project metadata.
+  READ @map("read")
+  /// Full read/write access to secrets and project metadata.
+  WRITE @map("write")
+}

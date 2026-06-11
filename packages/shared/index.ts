@@ -24,6 +24,8 @@ export type {
   MFAEnableBody,
   MFAStatusResponse,
   MFARecoveryCodesResponse,
+  ForgotPasswordBody,
+  ResetPasswordBody,
 } from "./src/dtos/auth.js";
 export type { CreateProjectInput } from "./src/dtos/project.js";
 export type {
@@ -31,7 +33,7 @@ export type {
   UpdateSecretInput,
   ProjectSecretsData,
 } from "./src/dtos/secret.js";
-export type { CreateApiKeyInput } from "./src/dtos/api-key.js";
+export type { CreateApiKeyInput, UpdateApiKeyInput } from "./src/dtos/api-key.js";
 export type { CreateWebhookInput } from "./src/dtos/webhook.js";
 export type { UpdateUserInput } from "./src/dtos/user.js";
 

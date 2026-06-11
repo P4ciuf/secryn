@@ -36,4 +36,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "dist/src/main.js"]
+CMD npx prisma db push --accept-data-loss && node dist/src/main.js

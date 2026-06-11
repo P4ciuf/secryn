@@ -1,0 +1,49 @@
+/// An API key for programmatic access to a Project's secrets.
+/// API keys are per-user, per-project credentials that allow external
+/// tools and services to interact with the SecureVault API without
+/// human authentication. Each key has an expiration date and can be
+/// deactivated (isActive = false) to revoke access without deleting
+/// the record. Permissions are assigned via the ApiKeyPermission join
+/// table (one-to-many).
+model ApiKey {
+  id String @id @default(uuid())
+
+  userId    String
+
+  /// Human-readable label to distinguish this key from others.
+  keyName  String
+  /// The bearer token value; hashed before storage.
+  key      String  @unique
+  /// When false, the key is disabled regardless of its expiration date.
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// The date and time after which this key is no longer valid.
+  expiresAt DateTime
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Permissions granted to this API key.
+  apiKeyPermissions ApiKeyPermission[]
+
+  @@map("api_keys")
+}
+
+/// Associates a specific permission scope with an API key.
+/// Prevents duplicate permission assignments on the same key
+/// through a composite unique constraint on [apiKeyId, permission].
+model ApiKeyPermission {
+  id       String @id @default(uuid())
+  apiKeyId String
+
+  /// The permission scope granted to the associated API key.
+  permission ApiKeyPermissions
+
+  createdAt DateTime @default(now())
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  /// Each permission can only be assigned once per API key.
+  @@unique([apiKeyId, permission])
+  @@map("api_key_permissions")
+}

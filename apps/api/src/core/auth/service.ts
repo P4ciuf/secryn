@@ -1,5 +1,12 @@
 import type { FastifyRequest } from "fastify";
-import type { RegisterBody, LoginBody, LoginMFAResponse } from "@repo/shared";
+import type {
+  RegisterBody,
+  LoginBody,
+  LoginMFAResponse,
+  ForgotPasswordBody,
+  ResetPasswordBody,
+  ApiKey,
+} from "@repo/shared";
 import { UserService } from "../../modules/user/service.js";
 import { AppError } from "../errors/appError.js";
 import { fastifyApp } from "../../lib/fastify.js";
@@ -11,6 +18,10 @@ import Redis from "ioredis";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { logger } from "../../core/logger/index.js";
+import { ApiKeyService } from "../apiKeys/service.js";
+import { userRepository } from "../../modules/user/repository.js";
+import { EmailUtils } from "../../utils/email.js";
+import { readFileSync } from "node:fs";
 
 /**
  * Payload shape for the short-lived JWT issued during login when MFA is enabled.
@@ -310,7 +321,7 @@ export class AuthService {
    * @throws {AppError} Conflict     – user is already authenticated on the request.
    * @throws {AppError} Unauthorized – token is missing, invalid, or expired.
    */
-  async verifyAndDecodeToken(): Promise<LoggedUser> {
+  private async verifyAndDecodeToken(): Promise<LoggedUser> {
     if (this.req.user) throw AppError.Conflict("User is already logged in.");
 
     const token = this.req.cookies[AuthService.cookieName];
@@ -366,5 +377,136 @@ export class AuthService {
     } catch {
       throw AppError.Unauthorized("Invalid JWT.");
     }
+  }
+
+  private async verifyWithApiKey(key: string): Promise<ApiKey> {
+    const apiKeyService = await ApiKeyService.SystemInstance(key);
+    const apiKey = await apiKeyService.getApiKeyByKey(key);
+    if (!apiKey) throw AppError.Unauthorized("Invalid API key.");
+    return apiKey;
+  }
+
+  async authenticateRequest(): Promise<
+    (LoggedUser & { type: "USER" }) | (ApiKey & { type: "APIKEY" })
+  > {
+    const apiKeyHeader = this.req.headers["api-key"] as string;
+    if (apiKeyHeader && this.req.url.includes("/secrets")) {
+      return { ...(await this.verifyWithApiKey(apiKeyHeader)), type: "APIKEY" };
+    }
+
+    const token = this.req.cookies[AuthService.cookieName];
+    if (!token) throw AppError.Unauthorized("Missing JWT.");
+
+    try {
+      const verified = fastifyApp.jwt.verify<{ user: LoggedUser }>(token);
+      return { ...verified.user, type: "USER" };
+    } catch {
+      throw AppError.Unauthorized("Invalid JWT.");
+    }
+  }
+
+  /**
+   * Initiates a password reset for the given email address.
+   *
+   * Always returns a success response regardless of whether the email is
+   * registered — this prevents user enumeration. If the email exists, a
+   * cryptographically random token is generated, persisted with a 1‑hour
+   * expiry, and sent to the user's email address.
+   *
+   * Rate-limited to 3 requests per 15 minutes per email address via Redis.
+   *
+   * @param data - Contains the user's email address.
+   * @returns Always `{ ok: true }`.
+   */
+  async forgotPassword(data: ForgotPasswordBody) {
+    const redisClient = getRedis();
+    const rateLimitKey = `forgot_password:${data.email}`;
+
+    const attempts = Number((await redisClient.get(rateLimitKey)) ?? 0);
+    if (attempts >= 3) {
+      logger.audit("FORGOT_PASSWORD_BRUTE_FORCE", data.email);
+      return { ok: true };
+    }
+
+    const user = await this.userService.getUser({ email: data.email });
+    if (!user) {
+      // Unknown email — increment rate limit counter to prevent enumeration
+      const pipeline = (redisClient as Redis).pipeline();
+      pipeline.incr(rateLimitKey);
+      pipeline.expire(rateLimitKey, 60 * 15);
+      await pipeline.exec();
+      return { ok: true };
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    await userRepository.createPasswordResetToken({
+      user: { connect: { id: user.id } },
+      token,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+    });
+
+    const pipeline = (redisClient as Redis).pipeline();
+    pipeline.incr(rateLimitKey);
+    pipeline.expire(rateLimitKey, 60 * 15);
+    await pipeline.exec();
+
+    // Send email asynchronously — don't block the response
+    this.sendResetEmail(user.email, token).catch((err) => {
+      logger.error("[AuthService] Failed to send password reset email", {
+        email: user.email,
+        error: err,
+      });
+    });
+
+    logger.audit("FORGOT_PASSWORD_REQUESTED", user.email);
+
+    return { ok: true };
+  }
+
+  /**
+   * Resets a user's password using a valid reset token.
+   *
+   * Looks up the token, verifies it has not expired and has not been used,
+   * hashes the new password, updates the user, and marks the token as consumed.
+   *
+   * @param data - Contains the reset token and the new password.
+   * @returns `{ ok: true }` on success.
+   * @throws {AppError} Unauthorized — token is invalid, expired, or already used.
+   */
+  async resetPassword(data: ResetPasswordBody) {
+    const resetToken = await userRepository.findPasswordResetToken(data.token);
+
+    if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
+      throw AppError.Unauthorized("Invalid or expired reset token.");
+    }
+
+    const hashedPassword = await UserService.hashPassword(data.password);
+
+    await userRepository.update({ id: resetToken.userId }, { password: hashedPassword });
+
+    await userRepository.consumePasswordResetToken(resetToken.id);
+
+    const user = await this.userService.getUser({ id: resetToken.userId });
+    logger.audit("PASSWORD_RESET", user?.email ?? resetToken.userId);
+
+    return { ok: true };
+  }
+
+  private async sendResetEmail(to: string, token: string): Promise<void> {
+    const emailUtils = new EmailUtils();
+    const appUrl = EnvUtils.envVariables().appUrl;
+    const resetUrl = `${appUrl}/reset-password/${token}`;
+
+    const template = readFileSync(
+      `${import.meta.dirname}/../../modules/user/email/forgotPassword.html`,
+      "utf-8",
+    );
+
+    const html = template
+      .replaceAll("{{APP_NAME}}", "SecureVault")
+      .replaceAll("{{RESET_URL}}", resetUrl);
+
+    await emailUtils.sendEmail(to, "Reset your SecureVault password", html);
   }
 }

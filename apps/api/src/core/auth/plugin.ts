@@ -21,6 +21,10 @@ export const authenticate: preHandlerHookHandler = async (
 ) => {
   const authService = await AuthService.Instance(req);
 
-  const user = await authService.verifyAndDecodeToken();
-  req.user = user;
+  const userOrApiKey = await authService.authenticateRequest();
+  if (userOrApiKey.type === "APIKEY") {
+    req.apiKey = userOrApiKey;
+  } else {
+    req.user = userOrApiKey;
+  }
 };

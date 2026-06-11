@@ -64,9 +64,13 @@ export default ((fastify: FastifyInstance) => ({
   },
   preHandler: [fastify.authenticate],
   handler: async (req, reply) => {
-    if (!req.user) throw AppError.Unauthorized("Not logged in");
+    if (!req.user && !req.apiKey) throw AppError.Unauthorized();
+    // API keys without at least "read" scope are rejected
+    if (req.apiKey && !req.apiKey.permissions.includes("read") && req.apiKey.isActive) {
+      throw AppError.Unauthorized();
+    }
 
-    const projectService = await ProjectService.Instance(req.user.id);
+    const projectService = await ProjectService.Instance(req.user?.id || req.apiKey!.userId);
     const params = req.params as { projectId: string };
     const secrets = await projectService.getProjectSecrets(params.projectId);
     return reply.code(200).send(secrets);

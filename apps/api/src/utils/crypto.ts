@@ -12,7 +12,7 @@ const SALT = Buffer.from("SecureVault::AES256GCM::v1", "utf-8");
  *
  * The encryption key is derived at construction time from the
  * {@code ENCRYPTION_KEY} environment variable using scrypt with a fixed
- * salt and N=2^17 (131,072) iterations, producing a deterministic 32-byte
+ * salt and N=2^14 (16,384) iterations, producing a deterministic 32-byte
  * buffer. Each {@link encrypt} call generates a fresh 96-bit random IV and
  * a GCM authentication tag; the output is the colon-separated hex encoding
  * {@code iv:tag:ciphertext}.
@@ -27,7 +27,7 @@ const SALT = Buffer.from("SecureVault::AES256GCM::v1", "utf-8");
  */
 export class CryptoUtils {
   private cryptoKey = crypto.scryptSync(EnvUtils.envVariables().encryptionKey, SALT, 32, {
-    N: 131072,
+    N: 16384,
   });
   private algorithm: crypto.CipherGCMTypes = "aes-256-gcm";
 

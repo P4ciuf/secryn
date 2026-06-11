@@ -1,4 +1,4 @@
-import type { MFARecoveryCode, Prisma, User } from "@prisma/client";
+import type { MFARecoveryCode, PasswordResetToken, Prisma, User } from "@prisma/client";
 import { prisma } from "../../core/db/prisma.js";
 
 /**
@@ -181,6 +181,43 @@ class UserRepository {
     return prisma.mFARecoveryCode.findMany({
       where: { userId, isValid: true },
       orderBy: { createdAt: "asc" },
+    });
+  }
+
+  /**
+   * Persists a new password reset token for the given user.
+   * Tokens are stored as plaintext since they are cryptographically random
+   * and expire after 1 hour — hashing is unnecessary here.
+   *
+   * @param data - Prisma create input for the token
+   * @returns The created password reset token record
+   */
+  async createPasswordResetToken(
+    data: Prisma.PasswordResetTokenCreateInput,
+  ): Promise<PasswordResetToken> {
+    return prisma.passwordResetToken.create({ data });
+  }
+
+  /**
+   * Looks up a password reset token by its plaintext value.
+   *
+   * @param token - The plaintext token string
+   * @returns The matching token or null if not found
+   */
+  async findPasswordResetToken(token: string): Promise<PasswordResetToken | null> {
+    return prisma.passwordResetToken.findUnique({ where: { token } });
+  }
+
+  /**
+   * Marks a password reset token as consumed so it cannot be reused.
+   *
+   * @param id - The token's unique identifier
+   * @returns The updated token record
+   */
+  async consumePasswordResetToken(id: string): Promise<PasswordResetToken> {
+    return prisma.passwordResetToken.update({
+      where: { id },
+      data: { used: true },
     });
   }
 }

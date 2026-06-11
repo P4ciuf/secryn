@@ -1,6 +1,5 @@
 import "fastify";
-import type { LoggedUser } from "@repo/shared";
-
+import type { ApiKey, LoggedUser } from "@repo/shared";
 export type { LoggedUser };
 
 /**
@@ -10,6 +9,7 @@ export type { LoggedUser };
 declare module "fastify" {
   interface FastifyRequest {
     user?: LoggedUser;
+    apiKey?: ApiKey;
   }
   interface FastifyInstance {
     authenticate: import("fastify").preHandlerHookHandler;

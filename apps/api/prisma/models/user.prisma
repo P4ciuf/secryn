@@ -38,6 +38,10 @@ model User {
   members          ProjectMember[]
   /// Projects for which this user is the owner.
   projects         Project[]
+  /// API keys created by this user.
+  apiKeys          ApiKey[]
+  /// Password reset tokens requested by this user.
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
