@@ -1,6 +1,6 @@
 [project]
 name = "secryn"
-version = "1.0.0"
+version = "1.0.1"
 description = "Secryn Python SDK — manage secrets, projects, and API keys programmatically"
 readme = "README.md"
 license = { text = "Apache-2.0" }
