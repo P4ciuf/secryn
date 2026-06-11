@@ -46,3 +46,4 @@ export type { ErrorResponse } from "./src/errors/index.js";
 export type { PaginatedResponse } from "./src/pagination/index.js";
 
 export type { Nullable, DeepPartial } from "./src/utils/index.js";
+export * from "./src/utils/logger.js";

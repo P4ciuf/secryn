@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { EnvUtils } from "./env.js";
-import { logger } from "../core/logger/index.js";
+import { logger } from "@repo/shared";
 
 let redis: Redis | null = null;
 

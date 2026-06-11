@@ -1,11 +1,12 @@
 import type { FastifyRequest } from "fastify";
-import type {
-  RegisterBody,
-  LoginBody,
-  LoginMFAResponse,
-  ForgotPasswordBody,
-  ResetPasswordBody,
-  ApiKey,
+import {
+  type RegisterBody,
+  type LoginBody,
+  type LoginMFAResponse,
+  type ForgotPasswordBody,
+  type ResetPasswordBody,
+  type ApiKey,
+  logger,
 } from "@repo/shared";
 import { UserService } from "../../modules/user/service.js";
 import { AppError } from "../errors/appError.js";
@@ -17,7 +18,6 @@ import { getRedis } from "../../utils/redis.js";
 import Redis from "ioredis";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { logger } from "../../core/logger/index.js";
 import { ApiKeyService } from "../apiKeys/service.js";
 import { userRepository } from "../../modules/user/repository.js";
 import { EmailUtils } from "../../utils/email.js";

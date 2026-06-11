@@ -1,4 +1,4 @@
-import { logger } from "../logger/index.js";
+import { logger } from "@repo/shared";
 import { AppError, type ErrorCodeValue } from "./appError.js";
 import type { FastifyInstance } from "fastify";
 import type { ErrorResponse } from "@repo/shared";

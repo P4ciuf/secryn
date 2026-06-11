@@ -8,7 +8,7 @@ import { PolicyProject } from "./policy.js";
 import { generateInvitationExpiryDate, generateSlugFromName, ownsProject } from "./helper.js";
 import type { FullUser } from "../user/repository.js";
 import { readFileSync } from "node:fs";
-import { logger } from "../../core/logger/index.js";
+import { logger } from "@repo/shared";
 import { CryptoUtils } from "../../utils/crypto.js";
 
 /**

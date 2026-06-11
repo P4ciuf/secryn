@@ -4,7 +4,7 @@ import { join, dirname } from "path";
 import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../types/route.js";
 import { readdirSync } from "fs";
-import { logger } from "../core/logger/index.js";
+import { logger } from "@repo/shared";
 
 /**
  * Discovers and registers all route modules matching `**\/*.route.{ts,js}` under the routes directory.

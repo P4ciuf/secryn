@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { AppRouteObject } from "../../../types/route.js";
 import { ProjectService } from "../../../modules/project/service.js";
 import { AppError } from "../../../core/errors/appError.js";
-import { logger } from "../../../core/logger/index.js";
+import { logger } from "@repo/shared";
 
 interface GetProjectParams {
   id: string;

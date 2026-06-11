@@ -8,7 +8,7 @@ import cookie from "@fastify/cookie";
 import { fastifyApp } from "./lib/fastify.js";
 import { EnvUtils } from "./utils/env.js";
 import { loadRoutes } from "./utils/loader.js";
-import { logger } from "./core/logger/index.js";
+import { logger } from "@repo/shared";
 import { authenticate } from "./core/auth/plugin.js";
 import { registerErrorHandler } from "./core/errors/errorHandler.js";
 

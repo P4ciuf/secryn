@@ -6,7 +6,7 @@ import { AppError } from "../../core/errors/appError.js";
 import { userRepository, type FullUser, type SafeUser } from "./repository.js";
 import { randomBytes, createHmac } from "node:crypto";
 import type { LoggedUser, RegisterBody, UpdateUserInput } from "@repo/shared";
-import { logger } from "../../core/logger/index.js";
+import { logger } from "@repo/shared";
 import { readFileSync } from "node:fs";
 import { EnvUtils } from "../../utils/env.js";
 import { EmailUtils } from "../../utils/email.js";

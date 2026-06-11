@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { EnvUtils } from "./env.js";
-import { logger } from "../core/logger/index.js";
+import { logger } from "@repo/shared";
 
 /**
  * Utility wrapper around the Resend email API.
