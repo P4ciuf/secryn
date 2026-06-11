@@ -1,7 +1,9 @@
 # Secryn
 
 > A secure, developer-focused secrets management platform. Store, encrypt, and access API keys,
-> tokens, and environment variables safely through a dashboard and API.
+> tokens, and environment variables safely through a dashboard, CLI, and API.
+>
+> **Production**: [secryn.xyz](https://secryn.xyz) — **API**: [api.secryn.xyz](https://api.secryn.xyz)
 
 ## Overview
 
@@ -43,6 +45,8 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
   plus a `docker-compose.yml` for local development with PostgreSQL 18 and Redis 7.
 - **CLI Tool** — Command-line interface for managing secrets, projects, and API keys directly
   from the terminal. Supports login, CRUD operations, `.env` export, and JSON output.
+- **SDKs** — Python (`secryn`) and TypeScript (`@secryn/sdk`) client libraries with
+  namespaced proxy objects for all API resources and built-in cookie persistence.
 
 ## Tech Stack
 
@@ -215,13 +219,13 @@ sc version                  # Versione della CLI
 
 **Opzioni globali**
 
-| Opzione                | Descrizione                                        |
-| ---------------------- | -------------------------------------------------- |
-| `--api-url <url>`      | Override API base URL (default: localhost:3000)    |
-| `SECRYN_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente |
-| `SECRYN_HOME` (env)    | Directory di configurazione alternativa            |
-| `--json`               | Output in formato JSON (dove supportato)           |
-| `--force`, `-f`        | Salta le conferme per i comandi distruttivi        |
+| Opzione                | Descrizione                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `--api-url <url>`      | Override API base URL (default: `http://localhost:3000` in dev, `https://api.secryn.xyz` in prod) |
+| `SECRYN_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente                                                |
+| `SECRYN_HOME` (env)    | Directory di configurazione alternativa                                                           |
+| `--json`               | Output in formato JSON (dove supportato)                                                          |
+| `--force`, `-f`        | Salta le conferme per i comandi distruttivi                                                       |
 
 ### Configurazione
 
@@ -236,9 +240,9 @@ La CLI salva configurazione e cookie in `~/.config/secryn/`:
 
 After starting the services, access:
 
-- **Web Dashboard** at [http://localhost:5173](http://localhost:5173)
-- **API** at [http://localhost:3000/api/v1](http://localhost:3000/api/v1)
-- **Swagger UI** at [http://localhost:3000/docs](http://localhost:3000/docs)
+- **Web Dashboard** at [http://localhost:5173](http://localhost:5173) (dev) or [https://secryn.xyz](https://secryn.xyz) (prod)
+- **API** at [http://localhost:3000/api/v1](http://localhost:3000/api/v1) (dev) or [https://api.secryn.xyz/api/v1](https://api.secryn.xyz/api/v1) (prod)
+- **Swagger UI** at [http://localhost:3000/docs](http://localhost:3000/docs) (dev)
 
 ### API Endpoints
 
@@ -344,7 +348,7 @@ All environment variables are defined in `.env.example`. Copy it to `.env` and f
 | `ENCRYPTION_KEY`    | Yes      | AES-256 key for secret encryption (min 32 characters)             |
 | `EMAIL`             | Yes      | Sender email address for transactional emails (Resend)            |
 | `RESEND_API_KEY`    | Yes      | API key for the Resend email delivery service                     |
-| `APP_URL`           | Yes      | Public URL of the application (e.g. `http://localhost:5173`)      |
+| `APP_URL`           | Yes      | Public URL of the application (e.g. `https://secryn.xyz`)         |
 | `CORS_ORIGINS`      | No       | Comma-separated additional CORS origins (falls back to `APP_URL`) |
 
 ## Project Structure
@@ -380,11 +384,19 @@ secryn/
 │           └── types/          # Shared TypeScript interfaces for all entities
 ├── packages/
 │   ├── cli/                     # Python CLI tool (sc)
-│   │   ├── secryn_cli/     # CLI source (click commands, API client, config)
+│   │   ├── secryn_cli/          # CLI source (click commands, API client, config)
 │   │   ├── pyproject.toml       # Python project metadata and dependencies
 │   │   ├── Makefile             # Build and install targets
 │   │   └── install.sh           # One-line installer script
-│   └── shared/                  # @repo/shared — types, DTOs, and enums for API and web
+│   ├── sdk-py/                  # Python SDK (secryn)
+│   │   ├── secryn/              # SecrynClient, errors
+│   │   ├── pyproject.toml
+│   │   └── tests/
+│   ├── sdk-ts/                  # TypeScript SDK (@secryn/sdk)
+│   │   ├── src/                 # SecrynClient, CookieJar, logger
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   └── shared/                  # @repo/shared — types, DTOs, logger, and enums for API and web
 ├── docker-compose.yml          # Local dev stack: PostgreSQL, Redis, API, Web
 ├── eslint.config.mjs           # ESLint flat config (TS, JSON, Markdown, CSS)
 ├── pnpm-workspace.yaml         # pnpm monorepo workspace definition

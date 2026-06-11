@@ -98,7 +98,7 @@
 
 - [x] Environment variable export
 - [x] CLI planning
-- [ ] SDK planning
+- [x] SDK planning
 
 ## Documentation
 
@@ -165,13 +165,13 @@
 
 - [ ] Teams and organizations
 - [ ] Secret versioning
-- [ ] Audit logs
+- [x] Audit logs
 - [ ] Role-based access control (RBAC)
 - [ ] Secret rotation
 - [ ] CI/CD integrations
-- [ ] CLI tool
-- [ ] SDKs
-- [ ] Self-hosted edition
+- [x] CLI tool
+- [x] SDKs
+- [x] Self-hosted edition
 
 ---
 
