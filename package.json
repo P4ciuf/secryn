@@ -1,5 +1,6 @@
 {
-  "name": "secryn",
+  "name": "secryn-monorepo",
+  "private": true,
   "description": "secryn is a secure, developer-focused secrets management platform. Store, encrypt, and access API keys, tokens, and environment variables safely through a dashboard and API",
   "scripts": {
     "build": "pnpm -r build",

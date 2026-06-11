@@ -1,7 +1,7 @@
-# @secryn/sdk
+# secryn
 
-[![npm](https://img.shields.io/npm/v/@secryn/sdk)](https://www.npmjs.com/package/@secryn/sdk)
-[![License](https://img.shields.io/npm/l/@secryn/sdk.svg)](https://github.com/P4ciuf/secryn/blob/main/LICENSE)
+[![npm](https://img.shields.io/npm/v/secryn)](https://www.npmjs.com/package/secryn)
+[![License](https://img.shields.io/npm/l/secryn.svg)](https://github.com/P4ciuf/secryn/blob/main/LICENSE)
 
 TypeScript/JavaScript client for the [Secryn](https://secryn.xyz) secrets management API.  
 Manage projects, secrets, API keys, and team members programmatically from Node.js.
@@ -9,9 +9,9 @@ Manage projects, secrets, API keys, and team members programmatically from Node.
 ## Installation
 
 ```bash
-npm install @secryn/sdk
+npm install secryn
 # or
-pnpm add @secryn/sdk
+pnpm add secryn
 ```
 
 Requires Node.js 22+.
@@ -19,7 +19,7 @@ Requires Node.js 22+.
 ## Quick Start
 
 ```typescript
-import { SecrynClient } from "@secryn/sdk";
+import { SecrynClient } from "secryn";
 
 // Connect to your Secryn instance
 const client = new SecrynClient({
@@ -128,7 +128,7 @@ await client.users.delete();
 ## Error Handling
 
 ```typescript
-import { SecrynApiError } from "@secryn/sdk";
+import { SecrynApiError } from "secryn";
 
 try {
   await client.secrets.get("nonexistent");

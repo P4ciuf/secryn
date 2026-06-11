@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `PrismaConfig` with config-based schema path and migration directory (`apps/api/prisma.config.ts`)
 - Client-side secret search and filtering in `SecretsTable` with case-insensitive name matching, clear button, and contextual empty-state messages (`apps/web/src/features/projects/SecretsPage.tsx`, `apps/web/src/features/projects/components/SecretsTable.tsx`)
 - CLI PyPI publish GitHub Actions workflow triggered by `cli-v*` tags or manual dispatch — builds sdist + wheel with `python -m build`, verifies tag matches `__version__`, and publishes via OIDC Trusted Publishing (`.github/workflows/publish-cli.yaml`)
+- README documentation for Python SDK, TypeScript SDK, and CLI packages with full usage guides, proxy method references, and command references (`packages/sdk-py/README.md`, `packages/sdk-ts/README.md`, `packages/cli/README.md`)
+- Repository and homepage URLs to Python SDK and CLI `pyproject.toml` files for PyPI metadata (`packages/sdk-py/pyproject.toml`, `packages/cli/pyproject.toml`)
 
 ### Changed
 - Extracted `winston` and `winston-daily-rotate-file` from API dependencies to `@repo/shared` dependencies; added `export * from "./src/utils/logger.js"` to shared barrel exports (`apps/api/package.json`, `packages/shared/package.json`, `packages/shared/index.ts`)
@@ -77,9 +79,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `SecretValue` component `maskedPrefix` prop made configurable with default `"••"` (`apps/web/src/components/common/SecretValue.tsx`)
 - Added `forgot-password` and `reset-password` test mocks to `api-keys` data test (`apps/web/src/data/__tests__/api-keys.test.ts`)
 - Full project rebranding from **SecureVault** to **Secryn** across all layers (~55 files): package name in `package.json`, Python package renamed to `secryn-cli` with `secryn_cli/` module directory, environment variables (`SECRYN_API_URL`, `SECRYN_HOME`), Docker volume/network names (`secryn_db`, `secryn_net`, `secryn_redis`), API key prefix (`sc_`), CLI binary renamed from `sv` to `sc` (entry point, `pyproject.toml`, `install.sh`, `Makefile`), config directory (`~/.config/secryn/`), Prisma schema doc headers, encryption SALT, OTP issuer, email templates (`APP_NAME`), landing page branding, and inline references across all `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `todo.md`, and source files
+- Renamed TypeScript SDK package from `@secryn/sdk` to `secryn`; updated all import paths, install instructions, npm badges, and README references across SDK and root documentation (`packages/sdk-ts/package.json`, `packages/sdk-ts/README.md`, `README.md`)
+- Renamed root workspace name from `secryn` to `secryn-monorepo` and marked as `private: true` to prevent accidental npm publish and avoid workspace name collision with SDK package (`package.json`)
 
 ### Fixed
 - Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
+- CI workflow fixes: `publish-sdk-py.yaml` and `publish-cli.yaml` now read version from `pyproject.toml` via grep/sed instead of Python import (avoids `ModuleNotFoundError`); `sdk-ts-ci.yaml` and `publish-sdk-ts.yaml` use `working-directory` instead of `pnpm --filter` for reliable workspace builds; `sdk-py-ci.yaml` missing `pytest` step added to run the 92-test SDK suite (`.github/workflows/`)
 
 ### Removed
 - `.vscode/settings.json` (root) — VS Code workspace settings consolidated into per-app directories (`apps/api/.vscode/settings.json`)

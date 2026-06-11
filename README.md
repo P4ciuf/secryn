@@ -45,7 +45,7 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
   plus a `docker-compose.yml` for local development with PostgreSQL 18 and Redis 7.
 - **CLI Tool** — Command-line interface for managing secrets, projects, and API keys directly
   from the terminal. Supports login, CRUD operations, `.env` export, and JSON output.
-- **SDKs** — Python (`secryn`) and TypeScript (`@secryn/sdk`) client libraries with
+- **SDKs** — Python (`secryn`) and TypeScript (`secryn`) client libraries with
   namespaced proxy objects for all API resources and built-in cookie persistence.
 
 ## Tech Stack
@@ -392,7 +392,7 @@ secryn/
 │   │   ├── secryn/              # SecrynClient, errors
 │   │   ├── pyproject.toml
 │   │   └── tests/
-│   ├── sdk-ts/                  # TypeScript SDK (@secryn/sdk)
+│   ├── sdk-ts/                  # TypeScript SDK (secryn)
 │   │   ├── src/                 # SecrynClient, CookieJar, logger
 │   │   ├── package.json
 │   │   └── tsconfig.json
