@@ -31,11 +31,13 @@ __pycache__/
 venv/
 
 # IDE
-.vscode/
+.vscode/*
 .idea/
 *.swp
 *.swo
 *~
+!apps/api/.vscode/settings.json
+!apps/web/.vscode/settings.json
 
 # OS
 .DS_Store
