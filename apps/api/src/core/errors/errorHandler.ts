@@ -30,7 +30,9 @@ function standardErrorResponse(
  */
 export function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((error, req, reply) => {
-    logger.error("New Error detected:", (error as Record<string, unknown>).message);
+    if (process.env.NODE_ENV !== "test") {
+      logger.error("New Error detected:", error);
+    }
 
     if (error instanceof AppError) {
       return reply.code(error.statusCode).send({
