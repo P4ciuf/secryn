@@ -26,18 +26,18 @@ export function SecretValue({ value, isVisible, onToggle, maskedPrefix = "••
         <span className="break-all">{value}</span>
       ) : (
         // Fixed-length mask ensures consistent layout regardless of the actual value length
-        <span>{maskedPrefix}••••••••••••••••••••••••••••••••••••</span>
+        <span>{maskedPrefix}••••••••••••••••••••••••••••••••</span>
       )}
       <button
         onClick={onToggle}
-        className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors flex-shrink-0"
+        className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
         title={isVisible ? "Hide" : "Show"}
       >
         {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
       <button
         onClick={() => copyToClipboard(value)}
-        className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors flex-shrink-0"
+        className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors shrink-0"
         title="Copy"
       >
         <Copy className="w-4 h-4" />

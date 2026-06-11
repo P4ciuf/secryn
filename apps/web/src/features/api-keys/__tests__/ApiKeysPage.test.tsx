@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import ApiKeysPage from "@/features/api-keys/ApiKeysPage";
 import { api } from "@/lib/api";
-import type { ApiKey } from "@/types";
+import type { ApiKey } from "@repo/shared";
 
 vi.mock("@/lib/api");
 
@@ -26,19 +26,25 @@ function renderPage() {
 
 const mockKey: ApiKey = {
   id: "key-1",
-  name: "Production API Key",
+  keyName: "Production API Key",
   key: "sv_prod_abc123",
-  createdAt: "2026-05-15",
-  lastUsed: "2026-06-02",
+  userId: "user-1",
+  isActive: true,
+  createdAt: "2026-05-15T10:00:00.000Z",
+  updatedAt: "2026-06-02T08:30:00.000Z",
+  expiresAt: "2026-08-15T10:00:00.000Z",
   permissions: ["read", "write"],
 };
 
 const mockKey2: ApiKey = {
   id: "key-2",
-  name: "Development API Key",
+  keyName: "Development API Key",
   key: "sv_dev_def456",
-  createdAt: "2026-05-20",
-  lastUsed: "2026-06-01",
+  userId: "user-1",
+  isActive: true,
+  createdAt: "2026-05-20T10:00:00.000Z",
+  updatedAt: "2026-06-01T08:30:00.000Z",
+  expiresAt: "2026-07-20T10:00:00.000Z",
   permissions: ["read"],
 };
 
@@ -147,13 +153,14 @@ describe("ApiKeysPage", () => {
       expect(screen.getByText("write")).toBeInTheDocument();
     });
 
-    it("renders last used timestamp for keys", async () => {
+    it("renders expiresAt timestamp for keys", async () => {
       mockApi.get.mockResolvedValue([mockKey]);
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText("2026-06-02")).toBeInTheDocument();
+        expect(screen.getByText("Production API Key")).toBeInTheDocument();
       });
+      expect(screen.getByText("2026-08-15T10:00:00.000Z")).toBeInTheDocument();
     });
   });
 
@@ -210,10 +217,13 @@ describe("ApiKeysPage", () => {
       mockApi.get.mockResolvedValue([]);
       const newKey: ApiKey = {
         id: "key-3",
-        name: "My New Key",
+        keyName: "My New Key",
         key: "sv_new_ghi789",
-        createdAt: "2026-06-03",
-        lastUsed: "never",
+        userId: "user-1",
+        isActive: true,
+        createdAt: "2026-06-03T10:00:00.000Z",
+        updatedAt: "2026-06-03T10:00:00.000Z",
+        expiresAt: "2026-09-03T10:00:00.000Z",
         permissions: ["read", "write"],
       };
       mockApi.post.mockResolvedValue(newKey);
@@ -244,10 +254,13 @@ describe("ApiKeysPage", () => {
       mockApi.get.mockResolvedValue([]);
       const newKey: ApiKey = {
         id: "key-3",
-        name: "My New Key",
+        keyName: "My New Key",
         key: "sv_new_ghi789",
-        createdAt: "2026-06-03",
-        lastUsed: "never",
+        userId: "user-1",
+        isActive: true,
+        createdAt: "2026-06-03T10:00:00.000Z",
+        updatedAt: "2026-06-03T10:00:00.000Z",
+        expiresAt: "2026-09-03T10:00:00.000Z",
         permissions: ["read"],
       };
       mockApi.post.mockResolvedValue(newKey);

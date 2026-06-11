@@ -13,10 +13,13 @@ vi.mock("@/hooks/use-clipboard", () => ({
 
 const mockApiKey: ApiKey = {
   id: "1",
-  name: "Production API Key",
+  keyName: "Production API Key",
   key: "sv_prod_abc123def456",
-  createdAt: "2026-05-15",
-  lastUsed: "2026-06-02",
+  userId: "user-1",
+  isActive: true,
+  createdAt: "2026-05-15T10:00:00.000Z",
+  updatedAt: "2026-06-02T08:30:00.000Z",
+  expiresAt: "2026-08-15T10:00:00.000Z",
   permissions: ["read", "write"],
 };
 
@@ -94,7 +97,7 @@ describe("<ApiKeyRow />", () => {
     expect(screen.getByText("write")).toBeInTheDocument();
   });
 
-  it("should render the last used date", () => {
+  it("should render the expiresAt date", () => {
     render(
       <table>
         <tbody>
@@ -109,7 +112,7 @@ describe("<ApiKeyRow />", () => {
       </table>,
     );
 
-    expect(screen.getByText("2026-06-02")).toBeInTheDocument();
+    expect(screen.getByText("2026-08-15T10:00:00.000Z")).toBeInTheDocument();
   });
 
   it("should call onDelete when delete button is clicked", async () => {

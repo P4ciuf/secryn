@@ -12,6 +12,8 @@ interface PageHeaderProps {
   actionLabel?: string;
   /** Callback fired when the primary action button is clicked. */
   onAction?: () => void;
+  /** Optional secondary action button (e.g. export). */
+  secondaryAction?: { label: string; icon?: React.ReactNode; onClick: () => void };
   /** Optional back-navigation link shown above the heading. */
   backTo?: { label: string; to: string };
 }
@@ -20,7 +22,14 @@ interface PageHeaderProps {
  * Consistent page-level heading with an optional back link,
  * subtitle, and primary action button.
  */
-export function PageHeader({ title, subtitle, actionLabel, onAction, backTo }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
+  secondaryAction,
+  backTo,
+}: PageHeaderProps) {
   return (
     <div className="mb-8">
       {backTo && (
@@ -37,17 +46,30 @@ export function PageHeader({ title, subtitle, actionLabel, onAction, backTo }: P
           <h1 className="text-3xl font-bold mb-2">{title}</h1>
           {subtitle && <p className="text-slate-400">{subtitle}</p>}
         </div>
-        {actionLabel && onAction && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onAction}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span>{actionLabel}</span>
-          </motion.button>
-        )}
+        <div className="flex items-center gap-3">
+          {secondaryAction && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={secondaryAction.onClick}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+            >
+              {secondaryAction.icon}
+              <span>{secondaryAction.label}</span>
+            </motion.button>
+          )}
+          {actionLabel && onAction && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onAction}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span>{actionLabel}</span>
+            </motion.button>
+          )}
+        </div>
       </div>
     </div>
   );

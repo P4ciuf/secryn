@@ -1,4 +1,4 @@
-import { Key, Calendar, Trash2 } from "lucide-react";
+import { Key, Calendar, Trash2, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { SecretValue } from "../../../components/common/SecretValue";
 import type { ApiKey } from "@repo/shared";
@@ -9,6 +9,7 @@ interface ApiKeyRowProps {
   isVisible: boolean;
   onToggleVisibility: () => void;
   onDelete: () => void;
+  onEdit: () => void;
 }
 
 /**
@@ -21,6 +22,7 @@ export function ApiKeyRow({
   isVisible,
   onToggleVisibility,
   onDelete,
+  onEdit,
 }: ApiKeyRowProps) {
   return (
     <motion.tr
@@ -33,17 +35,11 @@ export function ApiKeyRow({
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <Key className="w-4 h-4 text-blue-400" />
-          <span className="font-medium">{apiKey.name}</span>
+          <span className="font-medium">{apiKey.keyName}</span>
         </div>
       </td>
       <td className="px-6 py-4">
-        <SecretValue
-          value={apiKey.key}
-          isVisible={isVisible}
-          onToggle={onToggleVisibility}
-          /** Keep the `sv_` prefix visible so users can identify the key type. */
-          maskedPrefix="sv_"
-        />
+        <SecretValue value={apiKey.key} isVisible={isVisible} onToggle={onToggleVisibility} />
       </td>
       <td className="px-6 py-4">
         <div className="flex gap-2">
@@ -60,11 +56,18 @@ export function ApiKeyRow({
       <td className="px-6 py-4">
         <div className="flex items-center gap-2 text-sm text-slate-400">
           <Calendar className="w-4 h-4" />
-          <span>{apiKey.lastUsed}</span>
+          <span>{apiKey.expiresAt}</span>
         </div>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={onEdit}
+            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Edit"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
           <button
             onClick={onDelete}
             className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"

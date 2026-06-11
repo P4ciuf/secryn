@@ -12,15 +12,21 @@ describe("mockApiKeys", () => {
     for (const apiKey of mockApiKeys) {
       expect(apiKey).toHaveProperty("id");
       expect(typeof apiKey.id).toBe("string");
-      expect(apiKey).toHaveProperty("name");
-      expect(typeof apiKey.name).toBe("string");
+      expect(apiKey).toHaveProperty("keyName");
+      expect(typeof apiKey.keyName).toBe("string");
       expect(apiKey).toHaveProperty("key");
       expect(typeof apiKey.key).toBe("string");
       expect(apiKey.key).toMatch(/^sv_/);
+      expect(apiKey).toHaveProperty("userId");
+      expect(typeof apiKey.userId).toBe("string");
+      expect(apiKey).toHaveProperty("isActive");
+      expect(typeof apiKey.isActive).toBe("boolean");
       expect(apiKey).toHaveProperty("createdAt");
       expect(typeof apiKey.createdAt).toBe("string");
-      expect(apiKey).toHaveProperty("lastUsed");
-      expect(typeof apiKey.lastUsed).toBe("string");
+      expect(apiKey).toHaveProperty("updatedAt");
+      expect(typeof apiKey.updatedAt).toBe("string");
+      expect(apiKey).toHaveProperty("expiresAt");
+      expect(typeof apiKey.expiresAt).toBe("string");
       expect(apiKey).toHaveProperty("permissions");
       expect(Array.isArray(apiKey.permissions)).toBe(true);
       expect(apiKey.permissions.length).toBeGreaterThan(0);

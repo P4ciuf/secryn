@@ -1,12 +1,13 @@
 import { useParams } from "react-router";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
+import { Download } from "lucide-react";
 import { ROUTES } from "../../routes/paths";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SecretsTable } from "../../features/projects/components/SecretsTable";
 import { CreateSecretModal } from "../../features/projects/components/CreateSecretModal";
 import { useToggleVisibility } from "../../hooks/use-toggle-visibility";
-import { api } from "../../lib/api";
+import { api, API_BASE_URL } from "../../lib/api.js";
 import type { CreateSecretInput, Secret, UpdateSecretInput } from "@repo/shared";
 import { UpdateSecretModal } from "./components/UpdateSecretModal";
 
@@ -108,6 +109,43 @@ export default function SecretsPage() {
     }
   };
 
+  /**
+   * Downloads all project secrets as a {@code .env} file.
+   *
+   * Streams the export via a direct {@code fetch} call (not the typed API
+   * client) because the response is a plain-text blob, not JSON. Creates a
+   * temporary object URL to trigger the browser download, then revokes it
+   * to free memory.
+   */
+  const handleExport = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      setError("");
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/secrets/export`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      const content = await response.text();
+      const disposition = response.headers.get("content-disposition");
+      const filename = disposition?.match(/filename="(.+)"/)?.[1] ?? "secrets.env";
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export secrets");
+    }
+  }, [projectId]);
+
   const handleAddSecret = async (input: CreateSecretInput) => {
     if (!projectId) return;
     try {
@@ -133,6 +171,11 @@ export default function SecretsPage() {
         subtitle="Manage your environment variables and API keys"
         actionLabel="Add Secret"
         onAction={() => setShowAddModal(true)}
+        secondaryAction={{
+          label: "Export .env",
+          icon: <Download className="w-4 h-4" />,
+          onClick: handleExport,
+        }}
         backTo={{ label: "Back to Projects", to: ROUTES.PROJECTS }}
       />
 

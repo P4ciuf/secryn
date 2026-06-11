@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "../../components/common/PageHeader";
 import { ApiKeyRow } from "../../features/api-keys/components/ApiKeyRow";
 import { CreateApiKeyModal } from "../../features/api-keys/components/CreateApiKeyModal";
+import { EditApiKeyModal } from "../../features/api-keys/components/EditApiKeyModal";
 import { api } from "../../lib/api";
-import type { ApiKey, CreateApiKeyInput } from "@repo/shared";
+import type { ApiKey, ApiKeyPermission, CreateApiKeyInput, UpdateApiKeyInput } from "@repo/shared";
 
 /**
  * API Keys management page.
@@ -18,6 +19,7 @@ export default function ApiKeysPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingApiKey, setEditingApiKey] = useState<ApiKey | null>(null);
   /** Tracks which key IDs have their full value revealed locally. */
   const [localVisible, setLocalVisible] = useState<Set<string>>(new Set());
 
@@ -25,7 +27,7 @@ export default function ApiKeysPage() {
     try {
       setError("");
       setLoading(true);
-      const data = await api.get<ApiKey[]>("/api-keys");
+      const data = await api.get<ApiKey[]>("/api-keys/@all-user");
       setApiKeys(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load API keys");
@@ -47,6 +49,10 @@ export default function ApiKeysPage() {
     });
   };
 
+  /**
+   * Deletes an API key via {@code DELETE /api-keys/:id} and removes it
+   * from the local list optimistically on success.
+   */
   const deleteKey = async (id: string) => {
     try {
       await api.delete<void>(`/api-keys/${id}`);
@@ -62,11 +68,33 @@ export default function ApiKeysPage() {
    */
   const handleCreate = async (input: CreateApiKeyInput) => {
     try {
-      const created = await api.post<ApiKey, CreateApiKeyInput>("/api-keys", input);
+      const created = await api.post<ApiKey, CreateApiKeyInput>("/api-keys", {
+        ...input,
+        permissions: input.permissions.map((perm) => perm.toUpperCase()) as ApiKeyPermission[],
+      });
       setApiKeys((prev) => [...prev, created]);
       setShowCreateModal(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create API key");
+    }
+  };
+
+  /**
+   * Updates an existing API key via {@code PUT /api-keys/:id} and
+   * replaces the stale entry in the local list with the server response.
+   */
+  const handleUpdate = async (id: string, input: UpdateApiKeyInput) => {
+    try {
+      const updated = await api.put<ApiKey, UpdateApiKeyInput>(`/api-keys/${id}`, {
+        ...input,
+        addPermissions: input.addPermissions?.map((p) => p.toUpperCase()) as ApiKeyPermission[],
+        removePermissions: input.removePermissions?.map((p) =>
+          p.toUpperCase(),
+        ) as ApiKeyPermission[],
+      });
+      setApiKeys((prev) => prev.map((k) => (k.id === id ? updated : k)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update API key");
     }
   };
 
@@ -102,7 +130,7 @@ export default function ApiKeysPage() {
                 <th className="px-6 py-4 text-left text-sm font-semibold">Name</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold">API Key</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold">Permissions</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold">Last Used</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold">Expires</th>
                 <th className="px-6 py-4 text-right text-sm font-semibold">Actions</th>
               </tr>
             </thead>
@@ -123,6 +151,7 @@ export default function ApiKeysPage() {
                       isVisible={localVisible.has(apiKey.id)}
                       onToggleVisibility={() => toggleVisibility(apiKey.id)}
                       onDelete={() => deleteKey(apiKey.id)}
+                      onEdit={() => setEditingApiKey(apiKey)}
                     />
                   ))}
                 </AnimatePresence>
@@ -136,6 +165,13 @@ export default function ApiKeysPage() {
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreate}
+      />
+
+      <EditApiKeyModal
+        open={editingApiKey !== null}
+        apiKey={editingApiKey}
+        onClose={() => setEditingApiKey(null)}
+        onSubmit={handleUpdate}
       />
     </motion.div>
   );

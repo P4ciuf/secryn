@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { Mail, Lock, Key } from "lucide-react";
 import { AuthLayout } from "../../features/auth/components/AuthLayout";
 import { ROUTES } from "../../routes/paths";
@@ -267,9 +267,9 @@ export default function LoginPage() {
             <input type="checkbox" className="rounded" />
             <span className="text-slate-300">Remember me</span>
           </label>
-          <a href="#" className="text-blue-400 hover:text-blue-300">
+          <Link to={ROUTES.FORGOT_PASSWORD} className="text-blue-400 hover:text-blue-300">
             Forgot password?
-          </a>
+          </Link>
         </div>
 
         <button
