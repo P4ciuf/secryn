@@ -669,7 +669,7 @@ def main() -> None:
     try:
         cli.main(args=args, prog_name="sc", standalone_mode=False)
     except click.exceptions.Exit as e:
-        exit_code = e.code if e.code is not None else 0
+        exit_code = e.exit_code if e.exit_code is not None else 0
     except click.ClickException as e:
         if isinstance(e, click.exceptions.NoArgsIsHelpError):
             click.echo(cli.get_help(click.Context(cli, info_name="sc")))

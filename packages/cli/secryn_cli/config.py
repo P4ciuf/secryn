@@ -8,7 +8,7 @@ import json
 import os
 import platform
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 APP_NAME = "secryn"
 API_BASE_PATH = "/api/v1"
@@ -65,7 +65,7 @@ class Config:
         self.api_url: str = f"http://localhost:3000{API_BASE_PATH}"
         self.user_id: Optional[str] = None
         self.user_email: Optional[str] = None
-        self.version: str = "0.1.0"
+        self.version: str = "0.1.1"
 
     @property
     def user_agent(self) -> str:
@@ -124,7 +124,7 @@ def save_config(cfg: Config) -> None:
     config_path().chmod(0o600)
 
 
-def load_cookies() -> Optional[dict]:
+def load_cookies() -> Optional[list[dict[str, Any]]]:
     """Load persisted session cookies from disk.
 
     Returns:
@@ -140,7 +140,7 @@ def load_cookies() -> Optional[dict]:
         return None
 
 
-def save_cookies(data: dict) -> None:
+def save_cookies(data: list[dict[str, Any]]) -> None:
     """Persist session cookies to disk.
 
     Writes ``cookies.json`` with mode ``0600`` inside the config directory.
