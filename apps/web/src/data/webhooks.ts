@@ -4,7 +4,7 @@ import type { Webhook, WebhookEvent } from "@repo/shared";
 export const mockWebhooks: Webhook[] = [
   {
     id: "1",
-    url: "https://api.myapp.com/webhooks/securevault",
+    url: "https://api.myapp.com/webhooks/secryn",
     events: ["secret.created", "secret.deleted"],
     status: "active",
     lastTriggered: "2026-06-02 09:15:23",

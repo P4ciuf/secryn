@@ -8,13 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
-- Python CLI package under `packages/cli/` with Click-based commands for authentication, project/secret CRUD, API key management, `.env` export, and JSON output — supports cookie-based auth, MFA login flow, interactive prompts, and `--api-url` persistence (`packages/cli/securevault_cli/cli.py`, `packages/cli/securevault_cli/client.py`, `packages/cli/securevault_cli/config.py`)
-- CLI test suite with 54 test cases covering all commands, Click group behavior, API error handling, connection errors, MFA login flow, confirmation prompts, JSON output, masked values, and `main()` entry-point error routing (`packages/cli/securevault_cli/tests/test_cli.py`)
+- Python CLI package under `packages/cli/` with Click-based commands for authentication, project/secret CRUD, API key management, `.env` export, and JSON output — supports cookie-based auth, MFA login flow, interactive prompts, and `--api-url` persistence (`packages/cli/secryn_cli/cli.py`, `packages/cli/secryn_cli/client.py`, `packages/cli/secryn_cli/config.py`)
+- CLI test suite with 54 test cases covering all commands, Click group behavior, API error handling, connection errors, MFA login flow, confirmation prompts, JSON output, masked values, and `main()` entry-point error routing (`packages/cli/secryn_cli/tests/test_cli.py`)
 - CLI one-line installer shell script with automatic pipx/pip/venv fallback, Python version check, and config directory creation (`packages/cli/install.sh`)
 - CLI CI GitHub Actions workflow: ruff lint, mypy type-check, pytest with 54 tests on push/PR to `packages/cli/**` (`.github/workflows/cli-ci.yaml`)
 - Test suites for web common components: `EmptyState` (render, table wrapper, empty message), `Modal` (open/closed states, backdrop click, internal-click isolation, maxWidth), `PageHeader` (title, subtitle, primary/secondary actions, back link, router integration), `SecretValue` (masked/visible toggle, clipboard copy, custom prefix) (`apps/web/src/components/common/__tests__/`)
 - Test suites for web landing components: `FeaturesSection` (heading, 4 feature cards, grid layout), `LandingFooter` (copyright, tagline, footer element), `HeroSection` (heading, subtitle, CTA links, gradient text, router integration) (`apps/web/src/components/landing/__tests__/`)
-- API Key system: Prisma models (`ApiKey`, `ApiKeyPermission`), enum (`ApiKeyPermissions`), repository, and service with AES-256-GCM key encryption, key prefixing (`sv_`), 30-day expiry, and `verifyKey` validation (`apps/api/src/core/apiKeys/repository.ts`, `apps/api/src/core/apiKeys/service.ts`, `apps/api/prisma/models/apiKey.prisma`, `apps/api/prisma/enums/apiKey.prisma`)
+- API Key system: Prisma models (`ApiKey`, `ApiKeyPermission`), enum (`ApiKeyPermissions`), repository, and service with AES-256-GCM key encryption, key prefixing (`sc_`), 30-day expiry, and `verifyKey` validation (`apps/api/src/core/apiKeys/repository.ts`, `apps/api/src/core/apiKeys/service.ts`, `apps/api/prisma/models/apiKey.prisma`, `apps/api/prisma/enums/apiKey.prisma`)
 - API Key REST API routes under `apps/api/src/routes/apiKey/` with full OpenAPI schema documentation and JWT authentication:
   - `POST /api-keys` — generate a new API key (rate-limited to 5 req/30 min)
   - `GET /api-keys/:id` — retrieve a key by ID, or all user keys via `@all-user` (rate-limited to 50 req/h)
@@ -38,12 +38,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Database migrations for `ApiKey`, `ApiKeyPermission` tables and `PasswordResetToken` table
 - `PrismaConfig` with config-based schema path and migration directory (`apps/api/prisma.config.ts`)
 - Client-side secret search and filtering in `SecretsTable` with case-insensitive name matching, clear button, and contextual empty-state messages (`apps/web/src/features/projects/SecretsPage.tsx`, `apps/web/src/features/projects/components/SecretsTable.tsx`)
+- CLI PyPI publish GitHub Actions workflow triggered by `cli-v*` tags or manual dispatch — builds sdist + wheel with `python -m build`, verifies tag matches `__version__`, and publishes via OIDC Trusted Publishing (`.github/workflows/publish-cli.yaml`)
 
 ### Changed
 - `README.md` — Added CLI section with install instructions (pipx, venv, one-liner script), full command reference for auth/projects/secrets/api-keys, and tech-stack row (`README.md`)
 - `.gitignore` — Replaced generic 738-line boilerplate with 45-line project-specific entries covering Python (`__pycache__`, `*.egg-info`, `.venv`), Node (`node_modules`, `dist`, `coverage`, `*.tsbuildinfo`), IDE, OS, Docker, and environment files (`.gitignore`)
 - `todo.md` — Marked "Secret retrieval endpoints" and "CLI planning" as completed (`todo.md`)
-- `cli.py` — Expanded `main()` docstring documenting pre-processing, exception-handling strategy, and exit-code semantics; added explanatory comment for `pyrefly: ignore` directive (`packages/cli/securevault_cli/cli.py`)
+- `cli.py` — Expanded `main()` docstring documenting pre-processing, exception-handling strategy, and exit-code semantics; added explanatory comment for `pyrefly: ignore` directive (`packages/cli/secryn_cli/cli.py`)
 - `install.sh` — Added file-level header block (description, usage, dependencies, exit codes) and per-function doc blocks (`packages/cli/install.sh`)
 - API Dockerfile: `prisma generate` added before build for generated client (`apps/api/Dockerfile`)
 - API key inline permission rejection comments added to 4 secret route handlers — documenting that API keys scoped to "read" only are rejected on write endpoints (`apps/api/src/routes/project/secrets/create.route.ts`, `apps/api/src/routes/project/secrets/get.route.ts`, `apps/api/src/routes/project/secrets/gets.route.ts`, `apps/api/src/routes/project/secrets/update.route.ts`)
@@ -66,6 +67,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `PageHeader` component extended with `secondaryAction` prop for supplementary buttons (e.g. export) (`apps/web/src/components/common/PageHeader.tsx`)
 - `SecretValue` component `maskedPrefix` prop made configurable with default `"••"` (`apps/web/src/components/common/SecretValue.tsx`)
 - Added `forgot-password` and `reset-password` test mocks to `api-keys` data test (`apps/web/src/data/__tests__/api-keys.test.ts`)
+
+### Changed
+- Full project rebranding from **SecureVault** to **Secryn** across all layers (~55 files): package name in `package.json`, Python package renamed to `secryn-cli` with `secryn_cli/` module directory, environment variables (`SECRYN_API_URL`, `SECRYN_HOME`), Docker volume/network names (`secryn_db`, `secryn_net`, `secryn_redis`), API key prefix (`sc_`), CLI binary renamed from `sv` to `sc` (entry point, `pyproject.toml`, `install.sh`, `Makefile`), config directory (`~/.config/secryn/`), Prisma schema doc headers, encryption SALT, OTP issuer, email templates (`APP_NAME`), landing page branding, and inline references across all `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `todo.md`, and source files
 
 ### Fixed
 - Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
@@ -148,7 +152,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Updated `todo.md` roadmap: "Search and filtering" corrected from [x] to [ ] (not yet implemented), "GitHub release" marked as [x] (completed)
 - CI workflow: build `@repo/shared` package step added before monorepo typecheck to ensure shared types are compiled (`.github/workflows/ci.yaml`)
 - MFA email templates normalized: indentation and inline CSS formatted consistently across all 4 templates (`apps/api/src/modules/user/email/`)
-- EMAIL environment variable default set to `SecureVault <name@domain>` in `.env.example`
+- EMAIL environment variable default set to `Secryn <name@domain>` in `.env.example`
 - API `build` script extended to copy `src/modules/project/email/` templates into `dist/` (`apps/api/package.json`)
 - `ProjectService.createInvite()` email template path changed from `path.join(__dirname, ...)` to `import.meta.dirname`; removed unused `node:path` import (`apps/api/src/modules/project/service.ts`)
 - `EmailUtils.sendEmail()` enhanced with structured logging: logs email ID on success and error details on failure; returns email ID instead of raw Resend API response (`apps/api/src/utils/email.ts`)
@@ -279,7 +283,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Test suite for project invite accept route covering 204/400/401/404/500 scenarios (`routes/project/invite/__tests__/accept.test.ts`)
 - Project member removal route `DELETE /projects/:projectId/members/:memberId` with ALL/REMOVE_MEMBERS permission check and self-removal guard (`routes/project/members/remove.ts`)
 - VS Code workspace settings for TypeScript SDK path (`.vscode/settings.json`, `apps/web/.vscode/settings.json`)
-- SecureVault project roadmap with phased milestone tracking (`todo.md`)
+- Secryn project roadmap with phased milestone tracking (`todo.md`)
 
 ### Changed
 - Refactored `ProjectService` from constructor-based `new ProjectService(userId)` to async factory `ProjectService.Instance(userId)` with private constructor and pre-loaded `FullUser`

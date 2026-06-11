@@ -1,8 +1,8 @@
-# SecureVault Roadmap
+# Secryn Roadmap
 
 <!-- eslint-disable markdown/no-missing-label-refs -->
 
-> SecureVault is a secure secrets management platform for developers and teams.
+> Secryn is a secure secrets management platform for developers and teams.
 >
 > Goal: build a simple, secure, and developer-friendly solution for storing and managing environment variables and application secrets.
 

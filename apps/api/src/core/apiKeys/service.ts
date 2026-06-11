@@ -147,7 +147,7 @@ export class ApiKeyService {
    * Generates a new API key for the current user.
    *
    * A 16-byte cryptographically random hex string is generated, encrypted
-   * via AES-256-GCM, prefixed with {@code sv_} for quick identification,
+   * via AES-256-GCM, prefixed with {@code sc_} for quick identification,
    * and stored in the database. The key expires after 30 days unless updated.
    *
    * The returned {@link ApiKey} object includes the decrypted key value
@@ -165,7 +165,7 @@ export class ApiKeyService {
 
     const apiKey = await this.repository.createApiKey({
       keyName: data.name,
-      key: `sv_${encryptedKey}`,
+      key: `sc_${encryptedKey}`,
       expiresAt,
       user: {
         connect: {

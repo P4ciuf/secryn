@@ -504,9 +504,9 @@ export class AuthService {
     );
 
     const html = template
-      .replaceAll("{{APP_NAME}}", "SecureVault")
+      .replaceAll("{{APP_NAME}}", "Secryn")
       .replaceAll("{{RESET_URL}}", resetUrl);
 
-    await emailUtils.sendEmail(to, "Reset your SecureVault password", html);
+    await emailUtils.sendEmail(to, "Reset your Secryn password", html);
   }
 }

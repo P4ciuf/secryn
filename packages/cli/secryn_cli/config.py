@@ -1,7 +1,7 @@
-"""Configuration management for the SecureVault CLI.
+"""Configuration management for the Secryn CLI.
 
 Stores API URL, user identity, and persisted cookies under
-``~/.config/securevault/`` (or the platform-appropriate equivalent).
+``~/.config/secryn/`` (or the platform-appropriate equivalent).
 """
 
 import json
@@ -10,7 +10,7 @@ import platform
 from pathlib import Path
 from typing import Optional
 
-APP_NAME = "securevault"
+APP_NAME = "secryn"
 API_BASE_PATH = "/api/v1"
 
 
@@ -18,15 +18,15 @@ def config_dir() -> Path:
     """Return the platform-specific configuration directory.
 
     Resolution order:
-      1. ``SECUREVAULT_HOME`` environment variable.
-      2. Windows: ``%APPDATA%\\securevault``.
-      3. Linux/macOS: ``$XDG_CONFIG_HOME/securevault`` or
-         ``~/.config/securevault``.
+      1. ``SECRYN_HOME`` environment variable.
+      2. Windows: ``%APPDATA%\\secryn``.
+      3. Linux/macOS: ``$XDG_CONFIG_HOME/secryn`` or
+         ``~/.config/secryn``.
 
     Returns:
         Absolute path to the configuration directory.
     """
-    env_home = os.environ.get("SECUREVAULT_HOME")
+    env_home = os.environ.get("SECRYN_HOME")
     if env_home:
         return Path(env_home)
 
@@ -55,7 +55,7 @@ class Config:
     """In-memory representation of the CLI configuration.
 
     Attributes:
-        api_url: Base URL of the SecureVault API including the ``/api/v1`` prefix.
+        api_url: Base URL of the Secryn API including the ``/api/v1`` prefix.
         user_id: ID of the currently authenticated user, if any.
         user_email: Email of the currently authenticated user, if any.
         version: CLI version string.
@@ -70,7 +70,7 @@ class Config:
     @property
     def user_agent(self) -> str:
         """``User-Agent`` header value sent with every API request."""
-        return f"securevault-cli/{self.version}"
+        return f"secryn-cli/{self.version}"
 
 
 def load_config() -> Config:

@@ -19,8 +19,8 @@ export function HeroSection() {
           Secure Your Secrets, Simplify Your Workflow
         </h1>
         <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-          SecureVault is the modern platform for managing API keys, tokens, and credentials.
-          Self-hosted, encrypted, and built for teams.
+          Secryn is the modern platform for managing API keys, tokens, and credentials. Self-hosted,
+          encrypted, and built for teams.
         </p>
         <div className="flex gap-4 justify-center">
           <Link

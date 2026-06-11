@@ -1,7 +1,7 @@
 {
   "name": "api",
   "version": "0.0.1",
-  "description": "API service for SecureVault",
+  "description": "API service for Secryn",
   "main": "dist/src/main.js",
   "scripts": {
     "start": "node dist/src/main.js",

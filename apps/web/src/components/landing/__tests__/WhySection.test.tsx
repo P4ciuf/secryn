@@ -5,7 +5,7 @@ import { WhySection } from "@/components/landing/WhySection";
 describe("<WhySection />", () => {
   it("should render the heading", () => {
     render(<WhySection />);
-    expect(screen.getByRole("heading", { name: "Why SecureVault?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Why Secryn?" })).toBeInTheDocument();
   });
 
   it("should render all three reasons", () => {

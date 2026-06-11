@@ -13,7 +13,7 @@ import { authenticate } from "./core/auth/plugin.js";
 import { registerErrorHandler } from "./core/errors/errorHandler.js";
 
 /**
- * SecureVault API server bootstrap.
+ * Secryn API server bootstrap.
  *
  * Registration order matters:
  *   1. Validate environment variables and fail fast on missing critical config.
@@ -61,11 +61,11 @@ app.register(fastifySwagger, {
   openapi: {
     openapi: "3.1.0",
     info: {
-      title: "SecureVault API",
+      title: "Secryn API",
       version: "0.0.1",
-      description: "REST API for SecureVault — a secure credential and secret management service.",
+      description: "REST API for Secryn — a secure credential and secret management service.",
     },
-    servers: [{ url: "https://securevault.cc/api" }],
+    servers: [{ url: "https://secryn.cc/api" }],
   },
 });
 

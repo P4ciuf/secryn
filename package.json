@@ -1,6 +1,6 @@
 {
-  "name": "securevault",
-  "description": "SecureValue is a secure, developer-focused secrets management platform. Store, encrypt, and access API keys, tokens, and environment variables safely through a dashboard and API",
+  "name": "secryn",
+  "description": "secryn is a secure, developer-focused secrets management platform. Store, encrypt, and access API keys, tokens, and environment variables safely through a dashboard and API",
   "scripts": {
     "build": "pnpm -r build",
     "lint": "eslint .",

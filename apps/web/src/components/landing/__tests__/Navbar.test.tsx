@@ -8,9 +8,9 @@ function renderWithRouter(ui: React.ReactElement) {
 }
 
 describe("<LandingNavbar />", () => {
-  it("should render the SecureVault brand name", () => {
+  it("should render the Secryn brand name", () => {
     renderWithRouter(<LandingNavbar />);
-    expect(screen.getByText("SecureVault")).toBeInTheDocument();
+    expect(screen.getByText("Secryn")).toBeInTheDocument();
   });
 
   it("should render the Login link", () => {

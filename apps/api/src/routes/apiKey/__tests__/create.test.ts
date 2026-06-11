@@ -37,7 +37,7 @@ const now = new Date().toISOString();
 const mockApiKey = {
   id: "key_001",
   name: "My API Key",
-  key: "sv_decrypted_key_value",
+  key: "sc_decrypted_key_value",
   userId: "user_001",
   isActive: true,
   permissions: ["READ", "WRITE"],

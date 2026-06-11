@@ -34,7 +34,7 @@ jobs:
         run: ruff check .
 
       - name: Run type checker (mypy)
-        run: pip install mypy && mypy securevault_cli/
+        run: pip install mypy && mypy secryn_cli/
 
       - name: Run tests
-        run: python -m pytest securevault_cli/tests/ -v
+        run: python -m pytest secryn_cli/tests/ -v

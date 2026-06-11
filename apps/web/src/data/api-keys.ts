@@ -5,7 +5,7 @@ export const mockApiKeys: ApiKey[] = [
   {
     id: "1",
     keyName: "Production API Key",
-    key: "sv_prod_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
+    key: "sc_prod_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
     userId: "user-1",
     isActive: true,
     createdAt: "2026-05-15T10:00:00.000Z",
@@ -16,7 +16,7 @@ export const mockApiKeys: ApiKey[] = [
   {
     id: "2",
     keyName: "Development API Key",
-    key: "sv_dev_xyz789abc012def345ghi678jkl901mno234pqr567stu890vw",
+    key: "sc_dev_xyz789abc012def345ghi678jkl901mno234pqr567stu890vw",
     userId: "user-1",
     isActive: true,
     createdAt: "2026-04-20T10:00:00.000Z",

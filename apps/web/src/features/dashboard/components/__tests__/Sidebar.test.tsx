@@ -49,9 +49,9 @@ describe("<Sidebar />", () => {
     vi.clearAllMocks();
   });
 
-  it("should render the SecureVault brand", () => {
+  it("should render the Secryn brand", () => {
     renderWithRouter(<Sidebar />);
-    expect(screen.getByText("SecureVault")).toBeInTheDocument();
+    expect(screen.getByText("Secryn")).toBeInTheDocument();
   });
 
   it("should render the SidebarNav component", () => {

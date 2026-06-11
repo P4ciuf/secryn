@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# SecureVault CLI — One-line installer
+# Secryn CLI — One-line installer
 # -----------------------------------------------------------------------------
 # Description: Detects the local Python environment and installs the
-#              SecureVault CLI (sv) via pipx, pip, or a standalone venv
+#              Secryn CLI (sc) via pipx, pip, or a standalone venv
 #              as a fallback.  Creates the config directory with restricted
 #              permissions (0700).
 # Usage:       ./install.sh
@@ -14,10 +14,10 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-APP_NAME="sv"
+APP_NAME="sc"
 VERSION="${VERSION:-0.1.0}"
 HOME_DIR="${HOME:-$HOME}"
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME_DIR/.config}/securevault"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME_DIR/.config}/secryn"
 INSTALL_DIR="${INSTALL_DIR:-$HOME_DIR/.local/bin}"
 
 RED="\033[31m"
@@ -32,7 +32,7 @@ err()   { echo -e "${RED}\342\234\227${RESET} $*"; }
 warn()  { echo -e "${YELLOW}\342\232\240${RESET} $*"; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_URL="https://github.com/securevault/securevault.git"
+REPO_URL="https://github.com/secryn/secryn.git"
 CLI_PATH="packages/cli"
 
 # Verify that a supported Python interpreter is available on PATH.
@@ -94,11 +94,11 @@ install_via_pip() {
     python3 -m pip install --user "$SCRIPT_DIR" 2>/dev/null && return 0
 
     warn "System pip is externally managed (PEP 668). Using a local venv."
-    python3 -m venv "$HOME_DIR/.local/share/securevault-cli"
-    "$HOME_DIR/.local/share/securevault-cli/bin/pip" install "$SCRIPT_DIR"
+    python3 -m venv "$HOME_DIR/.local/share/secryn-cli"
+    "$HOME_DIR/.local/share/secryn-cli/bin/pip" install "$SCRIPT_DIR"
 
     mkdir -p "$INSTALL_DIR"
-    ln -sf "$HOME_DIR/.local/share/securevault-cli/bin/sv" "$INSTALL_DIR/sv"
+    ln -sf "$HOME_DIR/.local/share/secryn-cli/bin/sc" "$INSTALL_DIR/sc"
     export PATH="$INSTALL_DIR:$PATH"
 
     if command -v "${APP_NAME}" &>/dev/null; then
@@ -111,21 +111,21 @@ install_via_pip() {
 # Standalone install into an isolated virtual environment.
 # Used when neither pipx nor pip (user mode) is available.
 install_via_venv() {
-    info "Creating a virtual environment for SecureVault CLI..."
-    local venv_dir="$HOME_DIR/.local/share/securevault-cli"
+    info "Creating a virtual environment for Secryn CLI..."
+    local venv_dir="$HOME_DIR/.local/share/secryn-cli"
 
     python3 -m venv "$venv_dir"
     "$venv_dir/bin/pip" install --quiet "$SCRIPT_DIR"
 
     mkdir -p "$INSTALL_DIR"
-    ln -sf "$venv_dir/bin/sv" "$INSTALL_DIR/sv"
+    ln -sf "$venv_dir/bin/sc" "$INSTALL_DIR/sc"
 
     export PATH="$INSTALL_DIR:$PATH"
 
     if command -v "${APP_NAME}" &>/dev/null; then
         ok "Installed: $($APP_NAME version)"
     else
-        warn "Installed to $venv_dir/bin/sv"
+        warn "Installed to $venv_dir/bin/sc"
         warn "Add $INSTALL_DIR to your PATH:"
         warn "  export PATH=\"$INSTALL_DIR:\$PATH\""
     fi
@@ -135,7 +135,7 @@ install_via_venv() {
 # strategy available on this system.
 main() {
     echo ""
-    info "SecureVault CLI installer v${VERSION}"
+    info "Secryn CLI installer v${VERSION}"
     echo ""
 
     ensure_python3

@@ -49,10 +49,10 @@ describe("<MobileSidebar />", () => {
     vi.clearAllMocks();
   });
 
-  it("should render the SecureVault brand", () => {
+  it("should render the Secryn brand", () => {
     const onClose = vi.fn();
     renderWithRouter(<MobileSidebar onClose={onClose} />);
-    expect(screen.getByText("SecureVault")).toBeInTheDocument();
+    expect(screen.getByText("Secryn")).toBeInTheDocument();
   });
 
   it("should render the SidebarNav with onItemClick set to onClose", () => {

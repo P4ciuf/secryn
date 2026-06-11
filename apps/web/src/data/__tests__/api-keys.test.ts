@@ -16,7 +16,7 @@ describe("mockApiKeys", () => {
       expect(typeof apiKey.keyName).toBe("string");
       expect(apiKey).toHaveProperty("key");
       expect(typeof apiKey.key).toBe("string");
-      expect(apiKey.key).toMatch(/^sv_/);
+      expect(apiKey.key).toMatch(/^sc_/);
       expect(apiKey).toHaveProperty("userId");
       expect(typeof apiKey.userId).toBe("string");
       expect(apiKey).toHaveProperty("isActive");

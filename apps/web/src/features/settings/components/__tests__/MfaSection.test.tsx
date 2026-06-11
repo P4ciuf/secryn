@@ -28,7 +28,7 @@ import { api } from "@/lib/api";
 const setupResponse = {
   secret: "JBSWY3DPEHPK3PXP",
   qrCode: "data:image/png;base64,QR_CODE",
-  otpauthUrl: "otpauth://totp/SecureVault:user@test.com?secret=JBSWY3DPEHPK3PXP",
+  otpauthUrl: "otpauth://totp/Secryn:user@test.com?secret=JBSWY3DPEHPK3PXP",
 };
 
 const enabledStatus = { enabled: true };

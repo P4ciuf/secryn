@@ -12,7 +12,7 @@ export function LandingNavbar() {
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-8 h-8 text-blue-400" />
-          <span className="text-2xl font-bold">SecureVault</span>
+          <span className="text-2xl font-bold">Secryn</span>
         </div>
         <div className="flex gap-4">
           <Link

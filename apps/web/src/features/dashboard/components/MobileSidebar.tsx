@@ -49,7 +49,7 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-blue-400" />
-              <span className="text-xl font-bold">SecureVault</span>
+              <span className="text-xl font-bold">Secryn</span>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white">
               <X className="w-6 h-6" />

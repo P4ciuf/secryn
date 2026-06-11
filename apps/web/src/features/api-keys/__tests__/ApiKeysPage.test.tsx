@@ -27,7 +27,7 @@ function renderPage() {
 const mockKey: ApiKey = {
   id: "key-1",
   keyName: "Production API Key",
-  key: "sv_prod_abc123",
+  key: "sc_prod_abc123",
   userId: "user-1",
   isActive: true,
   createdAt: "2026-05-15T10:00:00.000Z",
@@ -39,7 +39,7 @@ const mockKey: ApiKey = {
 const mockKey2: ApiKey = {
   id: "key-2",
   keyName: "Development API Key",
-  key: "sv_dev_def456",
+  key: "sc_dev_def456",
   userId: "user-1",
   isActive: true,
   createdAt: "2026-05-20T10:00:00.000Z",
@@ -218,7 +218,7 @@ describe("ApiKeysPage", () => {
       const newKey: ApiKey = {
         id: "key-3",
         keyName: "My New Key",
-        key: "sv_new_ghi789",
+        key: "sc_new_ghi789",
         userId: "user-1",
         isActive: true,
         createdAt: "2026-06-03T10:00:00.000Z",
@@ -255,7 +255,7 @@ describe("ApiKeysPage", () => {
       const newKey: ApiKey = {
         id: "key-3",
         keyName: "My New Key",
-        key: "sv_new_ghi789",
+        key: "sc_new_ghi789",
         userId: "user-1",
         isActive: true,
         createdAt: "2026-06-03T10:00:00.000Z",

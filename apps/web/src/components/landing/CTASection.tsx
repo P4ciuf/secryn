@@ -11,7 +11,7 @@ export function CTASection() {
       <div className="max-w-3xl mx-auto bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-12">
         <h2 className="text-4xl font-bold mb-4">Ready to Secure Your Secrets?</h2>
         <p className="text-xl mb-8 opacity-90">
-          Join thousands of developers who trust SecureVault to protect their credentials.
+          Join thousands of developers who trust Secryn to protect their credentials.
         </p>
         <Link
           to={ROUTES.REGISTER}

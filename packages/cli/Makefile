@@ -1,4 +1,4 @@
-APP_NAME = sv
+APP_NAME = sc
 VERSION = 0.1.0
 
 .PHONY: all build install clean test lint

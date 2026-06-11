@@ -1,6 +1,6 @@
-# Contributing to SecureVault
+# Contributing to Secryn
 
-Thank you for considering a contribution. SecureVault is a pnpm monorepo with a Fastify API and
+Thank you for considering a contribution. Secryn is a pnpm monorepo with a Fastify API and
 a React frontend. This document covers everything you need to start contributing.
 
 ## Code of Conduct
@@ -16,7 +16,7 @@ witness unacceptable behavior, open a private discussion with the maintainers.
 3. Add the upstream remote:
 
    ```bash
-   git remote add upstream https://github.com/P4ciuf/securevault.git
+   git remote add upstream https://github.com/P4ciuf/secryn.git
    ```
 
 4. Keep your fork in sync with upstream before starting new work:

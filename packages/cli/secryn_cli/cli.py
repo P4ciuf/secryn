@@ -1,4 +1,4 @@
-"""SecureVault CLI — manage your secrets from the terminal.
+"""Secryn CLI — manage your secrets from the terminal.
 
 Provides commands for authentication, project management, secret
 operations, API key management, and user profile access.
@@ -115,12 +115,12 @@ def mask_value(value: str) -> str:
 @click.group()
 @click.option(
     "--api-url",
-    envvar="SECUREVAULT_API_URL",
+    envvar="SECRYN_API_URL",
     help="API base URL (default: http://localhost:3000/api/v1)",
 )
 @click.pass_context
 def cli(ctx: click.Context, api_url: Optional[str]) -> None:
-    """SecureVault CLI — manage secrets, projects, and API keys."""
+    """Secryn CLI — manage secrets, projects, and API keys."""
     ctx.obj = get_client(api_url)
 
 
@@ -130,7 +130,7 @@ def cli(ctx: click.Context, api_url: Optional[str]) -> None:
 
 @cli.group()
 def auth() -> None:
-    """Authenticate with SecureVault."""
+    """Authenticate with Secryn."""
 
 
 @auth.command("login")
@@ -138,7 +138,7 @@ def auth() -> None:
 @click.option("--password", help="Password")
 @click.pass_obj
 def auth_login(client: Client, email: Optional[str], password: Optional[str]) -> None:
-    """Log in to SecureVault.
+    """Log in to Secryn.
 
     Prompts interactively for email and password if not supplied via flags.
     Supports MFA: when the account has MFA enabled you will be asked for
@@ -292,7 +292,7 @@ def secrets() -> None:
 def secrets_list(client: Client, project_id: str, as_json: bool) -> None:
     """List all secrets in a project.
 
-    Secret values are masked in table output; use ``sv secrets get`` with
+    Secret values are masked in table output; use ``sc secrets get`` with
     ``--show-value`` to reveal a single secret.
     """
     result = client.get(f"/projects/{project_id}/secrets")
@@ -605,7 +605,7 @@ def user_info(client: Client) -> None:
 @cli.command("version")
 def version() -> None:
     """Print the CLI version and exit."""
-    click.echo(f"SecureVault CLI v{__version__}")
+    click.echo(f"Secryn CLI v{__version__}")
 
 
 @cli.command("config")
@@ -667,18 +667,18 @@ def main() -> None:
 
     exit_code = 0
     try:
-        cli.main(args=args, prog_name="sv", standalone_mode=False)
+        cli.main(args=args, prog_name="sc", standalone_mode=False)
     except click.exceptions.Exit as e:
         exit_code = e.code if e.code is not None else 0
     except click.ClickException as e:
         if isinstance(e, click.exceptions.NoArgsIsHelpError):
-            click.echo(cli.get_help(click.Context(cli, info_name="sv")))
+            click.echo(cli.get_help(click.Context(cli, info_name="sc")))
         elif isinstance(e, click.UsageError):
             msg = str(e)
             if "Missing command" in msg or "No such command" in msg:
                 click.echo(f"Error: {msg}", err=True)
                 click.echo()
-                click.echo(cli.get_help(click.Context(cli, info_name="sv")))
+                click.echo(cli.get_help(click.Context(cli, info_name="sc")))
             else:
                 echo_error(msg)
                 exit_code = 1

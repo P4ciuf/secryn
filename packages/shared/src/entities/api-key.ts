@@ -6,7 +6,7 @@ export type ApiKeyPermission = "read" | "write";
  *
  * @property id - Unique key identifier
  * @property keyName - Human-readable label (e.g. "Production API Key")
- * @property key - The full secret key value (prefixed with {@code sv_})
+ * @property key - The full secret key value (prefixed with {@code sc_})
  * @property userId - The owner user ID
  * @property isActive - Whether the key is currently active
  * @property createdAt - ISO-8601 creation timestamp

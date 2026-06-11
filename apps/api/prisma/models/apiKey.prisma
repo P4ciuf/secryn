@@ -1,6 +1,6 @@
 /// An API key for programmatic access to a Project's secrets.
 /// API keys are per-user, per-project credentials that allow external
-/// tools and services to interact with the SecureVault API without
+/// tools and services to interact with the Secryn API without
 /// human authentication. Each key has an expiration date and can be
 /// deactivated (isActive = false) to revoke access without deleting
 /// the record. Permissions are assigned via the ApiKeyPermission join

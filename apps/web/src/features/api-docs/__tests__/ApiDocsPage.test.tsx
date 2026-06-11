@@ -66,7 +66,7 @@ describe("ApiDocsPage", () => {
       renderPage();
       expect(screen.getByText("API Documentation")).toBeInTheDocument();
       expect(
-        screen.getByText("Learn how to integrate SecureVault into your applications"),
+        screen.getByText("Learn how to integrate Secryn into your applications"),
       ).toBeInTheDocument();
     });
 
@@ -111,7 +111,7 @@ describe("ApiDocsPage", () => {
       const user = userEvent.setup();
       await user.click(screen.getByText("NODE"));
 
-      expect(screen.getByText(/securevault-sdk/)).toBeInTheDocument();
+      expect(screen.getByText(/secryn-sdk/)).toBeInTheDocument();
     });
 
     it("switches to python example when PYTHON tab is clicked", async () => {
@@ -121,7 +121,7 @@ describe("ApiDocsPage", () => {
       const user = userEvent.setup();
       await user.click(screen.getByText("PYTHON"));
 
-      expect(screen.getByText(/import securevault/)).toBeInTheDocument();
+      expect(screen.getByText(/import secryn/)).toBeInTheDocument();
     });
   });
 

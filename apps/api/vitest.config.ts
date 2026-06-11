@@ -22,7 +22,7 @@ export default defineConfig({
       POSTGRES_DB: "test",
       ENCRYPTION_KEY: "test-encryption-key-32-chars-min!!",
       JWT_SECRET: "test-jwt-secret",
-      EMAIL: "test@securevault.local",
+      EMAIL: "test@secryn.local",
       RESEND_API_KEY: "re_test_dummy_key",
       APP_URL: "http://localhost:5173",
     },

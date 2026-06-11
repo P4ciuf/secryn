@@ -26,7 +26,7 @@ vi.mock("@/components/common/Modal", () => ({
 const mockApiKey: ApiKey = {
   id: "key_001",
   keyName: "My API Key",
-  key: "sv_test",
+  key: "sc_test",
   userId: "user_001",
   isActive: true,
   permissions: ["read"] as ApiKeyPermission[],

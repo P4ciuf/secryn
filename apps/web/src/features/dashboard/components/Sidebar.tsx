@@ -35,7 +35,7 @@ export function Sidebar() {
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center gap-3">
           <Shield className="w-8 h-8 text-blue-400" />
-          <span className="text-xl font-bold">SecureVault</span>
+          <span className="text-xl font-bold">Secryn</span>
         </div>
       </div>
 

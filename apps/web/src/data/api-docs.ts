@@ -2,12 +2,12 @@ import type { CodeLanguage, ApiEndpoint } from "../types";
 
 /** Code snippets for each supported language, displayed on the API docs page. */
 export const codeExamples: Record<CodeLanguage, string> = {
-  curl: `curl -X GET https://api.securevault.dev/v1/projects \\
+  curl: `curl -X GET https://api.secryn.dev/v1/projects \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json"`,
-  node: `const SecureVault = require('securevault-sdk');
+  node: `const Secryn = require('secryn-sdk');
 
-const client = new SecureVault({
+const client = new Secryn({
   apiKey: 'YOUR_API_KEY'
 });
 
@@ -15,9 +15,9 @@ async function getProjects() {
   const projects = await client.projects.list();
   console.log(projects);
 }`,
-  python: `import securevault
+  python: `import secryn
 
-client = securevault.Client(
+client = secryn.Client(
     api_key='YOUR_API_KEY'
 )
 

@@ -1,9 +1,9 @@
 [project]
-name = "securevault-cli"
+name = "secryn-cli"
 version = "0.1.0"
-description = "SecureVault CLI — manage your secrets from the terminal"
+description = "Secryn CLI — manage your secrets from the terminal"
 license = { text = "Apache-2.0" }
-authors = [{ name = "SecureVault" }]
+authors = [{ name = "Secryn" }]
 requires-python = ">=3.10"
 dependencies = [
     "click>=8.0",
@@ -16,10 +16,10 @@ dev = [
 ]
 
 [project.scripts]
-sv = "securevault_cli.cli:main"
+sc = "secryn_cli.cli:main"
 
 [project.urls]
-Repository = "https://github.com/securevault/securevault"
+Repository = "https://github.com/secryn/secryn"
 
 [build-system]
 requires = ["setuptools>=68"]

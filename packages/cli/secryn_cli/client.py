@@ -1,4 +1,4 @@
-"""HTTP client for the SecureVault API.
+"""HTTP client for the Secryn API.
 
 Manages authentication cookies, request serialisation, and error handling.
 """
@@ -13,7 +13,7 @@ from .config import Config, clear_cookies, load_cookies, save_cookies
 
 
 class APIError(Exception):
-    """Raised when the SecureVault API returns a non-2xx status code.
+    """Raised when the Secryn API returns a non-2xx status code.
 
     Attributes:
         status_code: HTTP status code returned by the server.
@@ -42,7 +42,7 @@ class APIError(Exception):
 
 
 class Client:
-    """Low-level HTTP client that talks to the SecureVault API.
+    """Low-level HTTP client that talks to the Secryn API.
 
     Automatically persists and restores authentication cookies between
     invocations so that a login survives across CLI sessions.

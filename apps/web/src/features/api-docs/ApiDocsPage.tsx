@@ -63,9 +63,9 @@ function SecurityCard() {
  * These are illustrative references, not fetched from the backend.
  */
 const codeExamples: Record<CodeLanguage, string> = {
-  curl: `curl -X GET https://api.securevault.dev/v1/projects \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json"`,
-  node: `const SecureVault = require('securevault-sdk');\n\nconst client = new SecureVault({ apiKey: 'YOUR_API_KEY' });\n\nasync function getProjects() { const projects = await client.projects.list(); console.log(projects); }`,
-  python: `import securevault\n\nclient = securevault.Client(api_key='YOUR_API_KEY')\n\nprojects = client.projects.list()\nprint(projects)`,
+  curl: `curl -X GET https://api.secryn.dev/v1/projects \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json"`,
+  node: `const Secryn = require('secryn-sdk');\n\nconst client = new Secryn({ apiKey: 'YOUR_API_KEY' });\n\nasync function getProjects() { const projects = await client.projects.list(); console.log(projects); }`,
+  python: `import secryn\n\nclient = secryn.Client(api_key='YOUR_API_KEY')\n\nprojects = client.projects.list()\nprint(projects)`,
 };
 
 /**
@@ -258,7 +258,7 @@ export default function ApiDocsPage() {
     >
       <PageHeader
         title="API Documentation"
-        subtitle="Learn how to integrate SecureVault into your applications"
+        subtitle="Learn how to integrate Secryn into your applications"
       />
 
       <div className="grid lg:grid-cols-2 gap-6 mb-8">

@@ -3,7 +3,7 @@
  *
  * Extends the upstream {@link https://github.com/redis/ioredis | ioredis}
  * type declarations with the subset of the Redis client API used by the
- * SecureVault backend. This file exists because the default ioredis types
+ * Secryn backend. This file exists because the default ioredis types
  * do not declare `pipeline()` or `multi()` on the `Redis` class itself
  * (they are only available via the `ChainableCommander`-returning static
  * helpers), yet the app calls them directly on the client instance.

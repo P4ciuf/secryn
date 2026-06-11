@@ -1,4 +1,4 @@
-"""Tests for the SecureVault CLI — covers all commands and error handling."""
+"""Tests for the Secryn CLI — covers all commands and error handling."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from click.testing import CliRunner
 # pyrefly: ignore [missing-import]
 from pytest_mock import MockerFixture
 
-from securevault_cli import __version__
-from securevault_cli.cli import cli, main
-from securevault_cli.client import APIError
-from securevault_cli.config import Config
+from secryn_cli import __version__
+from secryn_cli.cli import cli, main
+from secryn_cli.client import APIError
+from secryn_cli.config import Config
 
 @pytest.fixture()
 def runner() -> CliRunner:
@@ -30,7 +30,7 @@ def mock_client(mocker: MockerFixture) -> MagicMock:
     """Patches the Client constructor and returns a MagicMock instance."""
     mock_instance = MagicMock()
     mock_instance.config = Config()
-    mock_class = mocker.patch("securevault_cli.cli.Client", return_value=mock_instance)
+    mock_class = mocker.patch("secryn_cli.cli.Client", return_value=mock_instance)
     mock_class.return_value = mock_instance
     return mock_instance
 
@@ -40,14 +40,14 @@ def mock_config_funcs(mocker: MockerFixture) -> dict[str, MagicMock]:
     """Mocks config utility functions to prevent real file I/O."""
     mocks: dict[str, MagicMock] = {}
     mocks["load_config"] = mocker.patch(
-        "securevault_cli.cli.load_config", return_value=Config()
+        "secryn_cli.cli.load_config", return_value=Config()
     )
-    mocks["save_config"] = mocker.patch("securevault_cli.cli.save_config")
+    mocks["save_config"] = mocker.patch("secryn_cli.cli.save_config")
     mocks["config_path"] = mocker.patch(
-        "securevault_cli.cli.config_path", return_value=Path("/tmp/test-config.json")
+        "secryn_cli.cli.config_path", return_value=Path("/tmp/test-config.json")
     )
     mocks["cookie_jar_path"] = mocker.patch(
-        "securevault_cli.cli.cookie_jar_path",
+        "secryn_cli.cli.cookie_jar_path",
         return_value=Path("/tmp/test-cookies.json"),
     )
     return mocks
@@ -73,27 +73,27 @@ class TestRootGroup:
     """Tests for the top-level CLI group and meta commands."""
 
     def test_no_args_shows_help(self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]) -> None:
-        """``sv`` with no arguments displays the help text."""
+        """``sc`` with no arguments displays the help text."""
         result = runner.invoke(cli, [])
-        assert "SecureVault CLI" in _strip(result.output)
+        assert "Secryn CLI" in _strip(result.output)
 
     def test_help_flag(self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]) -> None:
-        """``sv --help`` displays the help text."""
+        """``sc --help`` displays the help text."""
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        assert "SecureVault CLI" in _strip(result.stdout)
+        assert "Secryn CLI" in _strip(result.stdout)
 
     def test_bad_command_shows_error_and_help(
         self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
-        """``sv badcommand`` prints an error and the command list."""
+        """``sc badcommand`` prints an error and the command list."""
         result = runner.invoke(cli, ["badcommand"])
         assert "No such command" in _strip(result.output)
 
     def test_bad_option_shows_error(
         self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
-        """``sv --badflag`` prints a clear error and exits non-zero."""
+        """``sc --badflag`` prints a clear error and exits non-zero."""
         result = runner.invoke(cli, ["--badflag"])
         assert result.exit_code != 0
         assert "No such option" in _strip(result.output)
@@ -101,15 +101,15 @@ class TestRootGroup:
     def test_version_command(
         self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
-        """``sv version`` prints the version string."""
+        """``sc version`` prints the version string."""
         result = runner.invoke(cli, ["version"])
         assert result.exit_code == 0
-        assert f"SecureVault CLI v{__version__}" in result.stdout
+        assert f"Secryn CLI v{__version__}" in result.stdout
 
     def test_config_command(
         self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
-        """``sv config`` displays the current configuration."""
+        """``sc config`` displays the current configuration."""
         result = runner.invoke(cli, ["config"])
         assert result.exit_code == 0
         assert "API URL" in _strip(result.stdout)
@@ -125,8 +125,8 @@ class TestRootGroup:
         cfg = Config()
         cfg.api_url = "http://localhost:3000/api/v1"
         mock_config_funcs["load_config"].return_value = cfg
-        mocker.patch("sys.argv", ["sv", "--api-url", new_url])
-        mocker.patch("securevault_cli.cli.Client")
+        mocker.patch("sys.argv", ["sc", "--api-url", new_url])
+        mocker.patch("secryn_cli.cli.Client")
 
         with pytest.raises(SystemExit) as exc_info:
             main()
@@ -136,7 +136,7 @@ class TestRootGroup:
     def test_config_show_not_logged_in(
         self, runner: CliRunner, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
-        """``sv config`` shows '(not logged in)' when no user is stored."""
+        """``sc config`` shows '(not logged in)' when no user is stored."""
         result = runner.invoke(cli, ["config"])
         assert "(not logged in)" in _strip(result.stdout)
 
@@ -147,7 +147,7 @@ class TestRootGroup:
 
 
 class TestAuthLogin:
-    """Tests for ``sv auth login``."""
+    """Tests for ``sc auth login``."""
 
     def test_login_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -222,7 +222,7 @@ class TestAuthLogin:
 
 
 class TestAuthLogout:
-    """Tests for ``sv auth logout``."""
+    """Tests for ``sc auth logout``."""
 
     def test_logout_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -235,7 +235,7 @@ class TestAuthLogout:
 
 
 class TestAuthWhoami:
-    """Tests for ``sv auth whoami``."""
+    """Tests for ``sc auth whoami``."""
 
     def test_whoami_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -279,7 +279,7 @@ class TestAuthWhoami:
 
 
 class TestProjectsList:
-    """Tests for ``sv projects list``."""
+    """Tests for ``sc projects list``."""
 
     def test_list_empty(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -321,7 +321,7 @@ class TestProjectsList:
 
 
 class TestProjectsCreate:
-    """Tests for ``sv projects create``."""
+    """Tests for ``sc projects create``."""
 
     def test_create_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -348,7 +348,7 @@ class TestProjectsCreate:
 
 
 class TestProjectsDelete:
-    """Tests for ``sv projects delete``."""
+    """Tests for ``sc projects delete``."""
 
     def test_delete_aborted(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -383,7 +383,7 @@ class TestProjectsDelete:
 
 
 class TestSecretsList:
-    """Tests for ``sv secrets list``."""
+    """Tests for ``sc secrets list``."""
 
     def test_list_empty(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -427,7 +427,7 @@ class TestSecretsList:
 
 
 class TestSecretsGet:
-    """Tests for ``sv secrets get``."""
+    """Tests for ``sc secrets get``."""
 
     def test_get_masked(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -504,7 +504,7 @@ class TestSecretsGet:
 
 
 class TestSecretsCreate:
-    """Tests for ``sv secrets create``."""
+    """Tests for ``sc secrets create``."""
 
     def test_create_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -543,7 +543,7 @@ class TestSecretsCreate:
 
 
 class TestSecretsUpdate:
-    """Tests for ``sv secrets update``."""
+    """Tests for ``sc secrets update``."""
 
     def test_update_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -583,7 +583,7 @@ class TestSecretsUpdate:
 
 
 class TestSecretsDelete:
-    """Tests for ``sv secrets delete``."""
+    """Tests for ``sc secrets delete``."""
 
     def test_delete_aborted(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -603,7 +603,7 @@ class TestSecretsDelete:
 
 
 class TestSecretsExport:
-    """Tests for ``sv secrets export``."""
+    """Tests for ``sc secrets export``."""
 
     def test_export_stdout(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -638,7 +638,7 @@ class TestSecretsExport:
 
 
 class TestApiKeysList:
-    """Tests for ``sv api-keys list``."""
+    """Tests for ``sc api-keys list``."""
 
     def test_list_empty(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -699,7 +699,7 @@ class TestApiKeysList:
 
 
 class TestApiKeysCreate:
-    """Tests for ``sv api-keys create``."""
+    """Tests for ``sc api-keys create``."""
 
     def test_create_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -707,14 +707,14 @@ class TestApiKeysCreate:
         """Creates an API key and displays the key value."""
         mock_client.post.return_value = {
             "id": "ak-new",
-            "key": "sv_abcdef1234567890",
+            "key": "sc_abcdef1234567890",
             "permissions": ["read", "write"],
             "keyName": "My Key",
         }
         result = runner.invoke(cli, ["api-keys", "create", "--name", "My Key"])
         assert result.exit_code == 0
         assert "Save this key" in _strip(result.stdout)
-        assert "sv_abcdef1234567890" in _strip(result.stdout)
+        assert "sc_abcdef1234567890" in _strip(result.stdout)
         mock_client.post.assert_called_once_with(
             "/api-keys", {"name": "My Key", "permissions": ["read", "write"]}
         )
@@ -725,7 +725,7 @@ class TestApiKeysCreate:
         """Custom permission string is parsed correctly."""
         mock_client.post.return_value = {
             "id": "ak-1",
-            "key": "sv_xxxx",
+            "key": "sc_xxxx",
             "permissions": ["read"],
             "keyName": "RO Key",
         }
@@ -739,7 +739,7 @@ class TestApiKeysCreate:
 
 
 class TestApiKeysDelete:
-    """Tests for ``sv api-keys delete``."""
+    """Tests for ``sc api-keys delete``."""
 
     def test_delete_aborted(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -764,7 +764,7 @@ class TestApiKeysDelete:
 
 
 class TestUserInfo:
-    """Tests for ``sv user info``."""
+    """Tests for ``sc user info``."""
 
     def test_info_success(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
@@ -807,12 +807,12 @@ class TestMainEntryPoint:
 
     def test_main_handles_system_exit(self, mocker: MockerFixture) -> None:
         """``main()`` exits cleanly when Click raises ``SystemExit``."""
-        mocker.patch("sys.argv", ["sv", "version"])
-        mocker.patch("securevault_cli.cli.load_config", return_value=Config())
-        mocker.patch("securevault_cli.cli.save_config")
-        mocker.patch("securevault_cli.cli.config_path", return_value=Path("/tmp/test-cfg.json"))
+        mocker.patch("sys.argv", ["sc", "version"])
+        mocker.patch("secryn_cli.cli.load_config", return_value=Config())
+        mocker.patch("secryn_cli.cli.save_config")
+        mocker.patch("secryn_cli.cli.config_path", return_value=Path("/tmp/test-cfg.json"))
         mocker.patch(
-            "securevault_cli.cli.cookie_jar_path", return_value=Path("/tmp/test-ck.json")
+            "secryn_cli.cli.cookie_jar_path", return_value=Path("/tmp/test-ck.json")
         )
         with pytest.raises(SystemExit) as exc_info:
             main()
@@ -820,15 +820,15 @@ class TestMainEntryPoint:
 
     def test_main_catches_api_error(self, mocker: MockerFixture) -> None:
         """``main()`` exits with code 1 on APIError."""
-        mocker.patch("sys.argv", ["sv", "auth", "whoami"])
-        mocker.patch("securevault_cli.cli.load_config", return_value=Config())
-        mocker.patch("securevault_cli.cli.save_config")
-        mocker.patch("securevault_cli.cli.config_path", return_value=Path("/tmp/test-cfg.json"))
+        mocker.patch("sys.argv", ["sc", "auth", "whoami"])
+        mocker.patch("secryn_cli.cli.load_config", return_value=Config())
+        mocker.patch("secryn_cli.cli.save_config")
+        mocker.patch("secryn_cli.cli.config_path", return_value=Path("/tmp/test-cfg.json"))
         mocker.patch(
-            "securevault_cli.cli.cookie_jar_path", return_value=Path("/tmp/test-ck.json")
+            "secryn_cli.cli.cookie_jar_path", return_value=Path("/tmp/test-ck.json")
         )
 
-        mock_cls = mocker.patch("securevault_cli.cli.Client")
+        mock_cls = mocker.patch("secryn_cli.cli.Client")
         mock_inst = MagicMock()
         mock_inst.get.side_effect = APIError(401, "Not authenticated", "UNAUTHORIZED")
         mock_cls.return_value = mock_inst

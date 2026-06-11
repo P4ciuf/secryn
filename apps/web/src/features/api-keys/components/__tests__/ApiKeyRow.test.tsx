@@ -14,7 +14,7 @@ vi.mock("@/hooks/use-clipboard", () => ({
 const mockApiKey: ApiKey = {
   id: "1",
   keyName: "Production API Key",
-  key: "sv_prod_abc123def456",
+  key: "sc_prod_abc123def456",
   userId: "user-1",
   isActive: true,
   createdAt: "2026-05-15T10:00:00.000Z",
@@ -57,7 +57,7 @@ describe("<ApiKeyRow />", () => {
       </table>,
     );
 
-    expect(screen.queryByText("sv_prod_abc123def456")).not.toBeInTheDocument();
+    expect(screen.queryByText("sc_prod_abc123def456")).not.toBeInTheDocument();
   });
 
   it("should render the real key when visible", () => {
@@ -75,7 +75,7 @@ describe("<ApiKeyRow />", () => {
       </table>,
     );
 
-    expect(screen.getByText("sv_prod_abc123def456")).toBeInTheDocument();
+    expect(screen.getByText("sc_prod_abc123def456")).toBeInTheDocument();
   });
 
   it("should render permission badges", () => {

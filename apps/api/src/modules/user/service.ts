@@ -258,7 +258,7 @@ export class UserService {
     }
 
     const secret = totp.generateSecret();
-    const otpauthUrl = totp.toURI({ issuer: "SecureVault", label: user.email, secret });
+    const otpauthUrl = totp.toURI({ issuer: "Secryn", label: user.email, secret });
     const qrCode = await QRCode.toDataURL(otpauthUrl);
 
     // Store the secret temporarily (not yet active)
@@ -412,10 +412,10 @@ export class UserService {
 
     const html = template
       .replaceAll("{{CODE}}", code)
-      .replaceAll("{{APP_NAME}}", "SecureVault")
+      .replaceAll("{{APP_NAME}}", "Secryn")
       .replaceAll("{{YEAR}}", String(new Date().getFullYear()));
 
-    await emailUtils.sendEmail(user.email, "Your SecureVault Backup Code", html);
+    await emailUtils.sendEmail(user.email, "Your Secryn Backup Code", html);
   }
 
   /**
@@ -430,7 +430,7 @@ export class UserService {
     const template = readFileSync(templatePath, "utf-8");
 
     const html = template
-      .replaceAll("{{APP_NAME}}", "SecureVault")
+      .replaceAll("{{APP_NAME}}", "Secryn")
       .replaceAll("{{APP_URL}}", EnvUtils.envVariables().appUrl)
       .replaceAll("{{YEAR}}", String(new Date().getFullYear()));
 

@@ -5,7 +5,7 @@ import { EnvUtils } from "./env.js";
 // always produces the same 32-byte AES key, which is required for decrypting
 // previously stored ciphertexts. The salt is versioned so a future key-rotation
 // scheme can introduce a new salt without breaking existing data.
-const SALT = Buffer.from("SecureVault::AES256GCM::v1", "utf-8");
+const SALT = Buffer.from("Secryn::AES256GCM::v1", "utf-8");
 
 /**
  * Symmetric encryption utility using AES-256-GCM.

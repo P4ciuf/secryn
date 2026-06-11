@@ -10,7 +10,7 @@ function renderWithRouter(ui: React.ReactElement) {
 describe("Landing", () => {
   it("renders the navbar with brand name", () => {
     renderWithRouter(<Landing />);
-    expect(screen.getByText("SecureVault")).toBeInTheDocument();
+    expect(screen.getByText("Secryn")).toBeInTheDocument();
   });
 
   it("renders the Login and Get Started links in the navbar", () => {
@@ -32,7 +32,7 @@ describe("Landing", () => {
 
   it("renders the Why section heading", () => {
     renderWithRouter(<Landing />);
-    expect(screen.getByText("Why SecureVault?")).toBeInTheDocument();
+    expect(screen.getByText("Why Secryn?")).toBeInTheDocument();
   });
 
   it("renders each Why section card title", () => {
@@ -75,6 +75,6 @@ describe("Landing", () => {
 
   it("renders the footer with copyright", () => {
     renderWithRouter(<Landing />);
-    expect(screen.getByText(/2026 SecureVault/)).toBeInTheDocument();
+    expect(screen.getByText(/2026 Secryn/)).toBeInTheDocument();
   });
 });

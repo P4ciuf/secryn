@@ -5,7 +5,7 @@ import { LandingFooter } from "../Footer";
 describe("<LandingFooter />", () => {
   it("should render the copyright text", () => {
     render(<LandingFooter />);
-    expect(screen.getByText(/2026 SecureVault/)).toBeInTheDocument();
+    expect(screen.getByText(/2026 Secryn/)).toBeInTheDocument();
   });
 
   it("should render the tagline", () => {

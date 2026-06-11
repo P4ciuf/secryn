@@ -1,11 +1,11 @@
-# SecureVault
+# Secryn
 
 > A secure, developer-focused secrets management platform. Store, encrypt, and access API keys,
 > tokens, and environment variables safely through a dashboard and API.
 
 ## Overview
 
-SecureVault provides a self-hosted service for teams to manage application secrets — API keys,
+Secryn provides a self-hosted service for teams to manage application secrets — API keys,
 database passwords, environment variables, and tokens — with encryption at rest, role-based
 access control, and a modern React dashboard.
 
@@ -25,7 +25,7 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
 - **Multi-Factor Authentication** — TOTP-based MFA with QR code setup, one-time recovery codes,
   email backup code delivery, and brute-force rate limiting.
 - **API Key Management** — Generate, edit, and revoke API keys with read/write permission
-  scoping for programmatic access. Keys are encrypted at rest and prefixed with `sv_`.
+  scoping for programmatic access. Keys are encrypted at rest and prefixed with `sc_`.
 - **Team Invites** — Generate 7-day invitation links to add members to projects, with email
   notifications via Resend.
 - **Password Reset** — Self-service forgot-password flow with single-use email tokens and
@@ -75,8 +75,8 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/P4ciuf/securevault.git
-cd securevault
+git clone https://github.com/P4ciuf/secryn.git
+cd secryn
 
 # 2. Enable Corepack (bundled with Node.js 22+) and install dependencies
 corepack enable
@@ -107,7 +107,7 @@ docker compose up --build
 
 ## CLI
 
-SecureVault ships with a command-line tool (`sv`) for managing secrets without leaving
+Secryn ships with a command-line tool (`sc`) for managing secrets without leaving
 the terminal. It supports cookie-based authentication, project and secret CRUD, API key
 management, and `.env` export. Requires Python 3.10+.
 
@@ -116,7 +116,7 @@ management, and `.env` export. Requires Python 3.10+.
 **Via pipx (recommended)**
 
 ```bash
-pipx install securevault-cli
+pipx install secryn-cli
 ```
 
 **From source with pipx**
@@ -132,100 +132,100 @@ pipx install -e .
 cd packages/cli
 python3 -m venv .venv
 .venv/bin/pip install -e .
-ln -sf $(pwd)/.venv/bin/sv ~/.local/bin/sv
+ln -sf $(pwd)/.venv/bin/sc ~/.local/bin/sc
 ```
 
 **One-liner install script**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/P4ciuf/securevault/main/packages/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/P4ciuf/secryn/main/packages/cli/install.sh | bash
 ```
 
 ### Comandi CLI
 
 ```bash
-sv --help                    # Mostra l'help generale
-sv --api-url <url>           # Override dell'API URL per ogni comando
+sc --help                    # Mostra l'help generale
+sc --api-url <url>           # Override dell'API URL per ogni comando
 ```
 
 **Autenticazione**
 
 ```bash
-sv auth login                                   # Login interattivo (email + password)
-sv auth login --email <email> --password <pw>   # Login non interattivo
-sv auth logout                                  # Logout e pulizia cookie
-sv auth whoami                                  # Mostra l'utente loggato
-sv auth whoami --json                           # Output in formato JSON
+sc auth login                                   # Login interattivo (email + password)
+sc auth login --email <email> --password <pw>   # Login non interattivo
+sc auth logout                                  # Logout e pulizia cookie
+sc auth whoami                                  # Mostra l'utente loggato
+sc auth whoami --json                           # Output in formato JSON
 ```
 
 **Progetti**
 
 ```bash
-sv projects list                        # Lista tutti i progetti
-sv projects list --json                 # Lista progetti in formato JSON
-sv projects create --name <nome>        # Crea un nuovo progetto
-sv projects create --name <nome>        # Crea progetto con descrizione
+sc projects list                        # Lista tutti i progetti
+sc projects list --json                 # Lista progetti in formato JSON
+sc projects create --name <nome>        # Crea un nuovo progetto
+sc projects create --name <nome>        # Crea progetto con descrizione
   --description <desc>
-sv projects delete --id <id>            # Elimina un progetto (con conferma)
-sv projects delete --id <id> -f         # Elimina senza chiedere conferma
+sc projects delete --id <id>            # Elimina un progetto (con conferma)
+sc projects delete --id <id> -f         # Elimina senza chiedere conferma
 ```
 
 **Segreti**
 
 ```bash
-sv secrets list --project-id <id>             # Lista segreti di un progetto
-sv secrets list --project-id <id> --json      # Lista segreti in formato JSON
-sv secrets get --id <id>                      # Mostra un segreto (valore oscurato)
-sv secrets get --id <id> --show-value         # Mostra il valore in chiaro
-sv secrets get --id <id> --json               # Output in formato JSON
-sv secrets create --project-id <id>           # Crea un nuovo segreto
+sc secrets list --project-id <id>             # Lista segreti di un progetto
+sc secrets list --project-id <id> --json      # Lista segreti in formato JSON
+sc secrets get --id <id>                      # Mostra un segreto (valore oscurato)
+sc secrets get --id <id> --show-value         # Mostra il valore in chiaro
+sc secrets get --id <id> --json               # Output in formato JSON
+sc secrets create --project-id <id>           # Crea un nuovo segreto
   --name <nome> --value <valore>
-sv secrets create --project-id <id>           # Crea un segreto con note
+sc secrets create --project-id <id>           # Crea un segreto con note
   --name <nome> --value <valore>
   --notes <note>
-sv secrets update --id <id>                   # Aggiorna nome, valore e/o note
+sc secrets update --id <id>                   # Aggiorna nome, valore e/o note
   --name <nuovo> --value <nuovo>
   --notes <nuove>
-sv secrets delete --id <id>                   # Elimina un segreto
-sv secrets delete --id <id> -f                # Elimina senza conferma
-sv secrets export --project-id <id>           # Esporta in formato .env (stdout)
-sv secrets export --project-id <id>           # Esporta su file
+sc secrets delete --id <id>                   # Elimina un segreto
+sc secrets delete --id <id> -f                # Elimina senza conferma
+sc secrets export --project-id <id>           # Esporta in formato .env (stdout)
+sc secrets export --project-id <id>           # Esporta su file
   -o .env
 ```
 
 **API Keys**
 
 ```bash
-sv api-keys list                        # Lista tutte le API keys
-sv api-keys list --json                 # Lista in formato JSON
-sv api-keys create --name <nome>        # Crea una API key (read+write)
-sv api-keys create --name <nome>        # Crea una API key con permessi specifici
+sc api-keys list                        # Lista tutte le API keys
+sc api-keys list --json                 # Lista in formato JSON
+sc api-keys create --name <nome>        # Crea una API key (read+write)
+sc api-keys create --name <nome>        # Crea una API key con permessi specifici
   --permissions read
-sv api-keys delete --id <id>            # Elimina una API key
-sv api-keys delete --id <id> -f         # Elimina senza conferma
+sc api-keys delete --id <id>            # Elimina una API key
+sc api-keys delete --id <id> -f         # Elimina senza conferma
 ```
 
 **Utente e Configurazione**
 
 ```bash
-sv user info                # Mostra profilo utente
-sv config                   # Mostra percorsi e valori di configurazione
-sv version                  # Versione della CLI
+sc user info                # Mostra profilo utente
+sc config                   # Mostra percorsi e valori di configurazione
+sc version                  # Versione della CLI
 ```
 
 **Opzioni globali**
 
-| Opzione                     | Descrizione                                        |
-| --------------------------- | -------------------------------------------------- |
-| `--api-url <url>`           | Override API base URL (default: localhost:3000)    |
-| `SECUREVAULT_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente |
-| `SECUREVAULT_HOME` (env)    | Directory di configurazione alternativa            |
-| `--json`                    | Output in formato JSON (dove supportato)           |
-| `--force`, `-f`             | Salta le conferme per i comandi distruttivi        |
+| Opzione                | Descrizione                                        |
+| ---------------------- | -------------------------------------------------- |
+| `--api-url <url>`      | Override API base URL (default: localhost:3000)    |
+| `SECRYN_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente |
+| `SECRYN_HOME` (env)    | Directory di configurazione alternativa            |
+| `--json`               | Output in formato JSON (dove supportato)           |
+| `--force`, `-f`        | Salta le conferme per i comandi distruttivi        |
 
 ### Configurazione
 
-La CLI salva configurazione e cookie in `~/.config/securevault/`:
+La CLI salva configurazione e cookie in `~/.config/secryn/`:
 
 | File           | Contenuto                         |
 | -------------- | --------------------------------- |
@@ -350,7 +350,7 @@ All environment variables are defined in `.env.example`. Copy it to `.env` and f
 ## Project Structure
 
 ```text
-securevault/
+secryn/
 ├── .github/
 │   └── workflows/              # CI/CD pipelines (lint, test, Docker build)
 ├── apps/
@@ -379,8 +379,8 @@ securevault/
 │           ├── styles/         # Tailwind CSS v4 entry + design tokens
 │           └── types/          # Shared TypeScript interfaces for all entities
 ├── packages/
-│   ├── cli/                     # Python CLI tool (sv)
-│   │   ├── securevault_cli/     # CLI source (click commands, API client, config)
+│   ├── cli/                     # Python CLI tool (sc)
+│   │   ├── secryn_cli/     # CLI source (click commands, API client, config)
 │   │   ├── pyproject.toml       # Python project metadata and dependencies
 │   │   ├── Makefile             # Build and install targets
 │   │   └── install.sh           # One-line installer script
