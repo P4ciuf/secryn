@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Python SDK package under `packages/sdk-py/` with `SecrynClient` HTTP client wrapping `requests.Session`, proxy sub-objects for all API resource groups (auth, MFA, users, API keys, projects, invites, members, secrets), `SecrynApiError` exception class with structured error fields, and 92-test pytest suite covering all proxy methods, HTTP error codes, and edge cases (`packages/sdk-py/secryn/client.py`, `packages/sdk-py/secryn/errors.py`, `packages/sdk-py/secryn/tests/test_client.py`)
+- TypeScript SDK package under `packages/sdk-ts/` with `SecrynClient` using native `fetch`, internal `CookieJar` for Node.js cookie persistence across requests, namespaced proxy sub-objects, `SecrynApiError` exception class, and debug-gated logger (`packages/sdk-ts/src/client.ts`, `packages/sdk-ts/src/types.ts`, `packages/sdk-ts/src/logger.ts`)
+- `packages/shared/src/utils/logger.ts` — Shared Winston logger utility with daily-rotate-file transport, ANSI-coloured console output per log level, `exitOnError: false` graceful degradation, and structured `audit()` method for security-relevant events (`packages/shared/src/utils/logger.ts`)
+- SDK CI GitHub Actions workflows: `sdk-py-ci.yaml` (ruff lint, mypy type-check, pytest), `sdk-ts-ci.yaml` (ESLint, tsc typecheck, vitest), `publish-sdk-py.yaml` (build sdist/wheel, verify tag, OIDC PyPI publish), and `publish-sdk-ts.yaml` (npm publish) (`.github/workflows/`)
+- `apps/api/.vscode/settings.json` — Workspace-specific VS Code configuration for TypeScript SDK path (`apps/api/.vscode/settings.json`)
 - Python CLI package under `packages/cli/` with Click-based commands for authentication, project/secret CRUD, API key management, `.env` export, and JSON output — supports cookie-based auth, MFA login flow, interactive prompts, and `--api-url` persistence (`packages/cli/secryn_cli/cli.py`, `packages/cli/secryn_cli/client.py`, `packages/cli/secryn_cli/config.py`)
 - CLI test suite with 54 test cases covering all commands, Click group behavior, API error handling, connection errors, MFA login flow, confirmation prompts, JSON output, masked values, and `main()` entry-point error routing (`packages/cli/secryn_cli/tests/test_cli.py`)
 - CLI one-line installer shell script with automatic pipx/pip/venv fallback, Python version check, and config directory creation (`packages/cli/install.sh`)
@@ -41,6 +46,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - CLI PyPI publish GitHub Actions workflow triggered by `cli-v*` tags or manual dispatch — builds sdist + wheel with `python -m build`, verifies tag matches `__version__`, and publishes via OIDC Trusted Publishing (`.github/workflows/publish-cli.yaml`)
 
 ### Changed
+- Extracted `winston` and `winston-daily-rotate-file` from API dependencies to `@repo/shared` dependencies; added `export * from "./src/utils/logger.js"` to shared barrel exports (`apps/api/package.json`, `packages/shared/package.json`, `packages/shared/index.ts`)
+- Fixed PostgreSQL volume mount path in `docker-compose.yml` from `/var/lib/postgresql/data` to `/var/lib/postgresql` (`docker-compose.yml`)
+- `.gitignore` — Excluded `*` glob under `.vscode/` while unignoring specific `apps/api/.vscode/settings.json` and `apps/web/.vscode/settings.json` for per-app VS Code configuration (`.gitignore`)
+- Updated 10 API source files to import `logger` from `@repo/shared` instead of local `../../core/logger/index.js` as part of logger extraction to shared package (`apps/api/src/core/auth/service.ts`, `apps/api/src/core/db/prisma.ts`, `apps/api/src/core/errors/errorHandler.ts`, `apps/api/src/main.ts`, `apps/api/src/modules/project/service.ts`, `apps/api/src/modules/user/service.ts`, `apps/api/src/routes/project/core/get.route.ts`, `apps/api/src/utils/email.ts`, `apps/api/src/utils/loader.ts`, `apps/api/src/utils/redis.ts`)
 - `README.md` — Added CLI section with install instructions (pipx, venv, one-liner script), full command reference for auth/projects/secrets/api-keys, and tech-stack row (`README.md`)
 - `.gitignore` — Replaced generic 738-line boilerplate with 45-line project-specific entries covering Python (`__pycache__`, `*.egg-info`, `.venv`), Node (`node_modules`, `dist`, `coverage`, `*.tsbuildinfo`), IDE, OS, Docker, and environment files (`.gitignore`)
 - `todo.md` — Marked "Secret retrieval endpoints" and "CLI planning" as completed (`todo.md`)
@@ -67,12 +76,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `PageHeader` component extended with `secondaryAction` prop for supplementary buttons (e.g. export) (`apps/web/src/components/common/PageHeader.tsx`)
 - `SecretValue` component `maskedPrefix` prop made configurable with default `"••"` (`apps/web/src/components/common/SecretValue.tsx`)
 - Added `forgot-password` and `reset-password` test mocks to `api-keys` data test (`apps/web/src/data/__tests__/api-keys.test.ts`)
-
-### Changed
 - Full project rebranding from **SecureVault** to **Secryn** across all layers (~55 files): package name in `package.json`, Python package renamed to `secryn-cli` with `secryn_cli/` module directory, environment variables (`SECRYN_API_URL`, `SECRYN_HOME`), Docker volume/network names (`secryn_db`, `secryn_net`, `secryn_redis`), API key prefix (`sc_`), CLI binary renamed from `sv` to `sc` (entry point, `pyproject.toml`, `install.sh`, `Makefile`), config directory (`~/.config/secryn/`), Prisma schema doc headers, encryption SALT, OTP issuer, email templates (`APP_NAME`), landing page branding, and inline references across all `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `todo.md`, and source files
 
 ### Fixed
 - Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
+
+### Removed
+- `.vscode/settings.json` (root) — VS Code workspace settings consolidated into per-app directories (`apps/api/.vscode/settings.json`)
+- `apps/api/src/core/logger/index.ts` — Winston logger module moved to `@repo/shared` as `packages/shared/src/utils/logger.ts`; all API modules now import logger from shared package (`apps/api/src/core/logger/index.ts`)
 
 ## 2026-06-08
 
