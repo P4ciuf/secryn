@@ -2,6 +2,7 @@
 name = "secryn-cli"
 version = "0.1.0"
 description = "Secryn CLI — manage your secrets from the terminal"
+readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Secryn" }]
 requires-python = ">=3.10"
@@ -19,7 +20,7 @@ dev = [
 sc = "secryn_cli.cli:main"
 
 [project.urls]
-Repository = "https://github.com/secryn/secryn"
+Repository = "https://github.com/P4ciuf/secryn"
 
 [build-system]
 requires = ["setuptools>=68"]
