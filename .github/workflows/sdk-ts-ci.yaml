@@ -33,7 +33,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build SDK
-        run: pnpm --filter secryn build
+        run: pnpm --filter "./packages/sdk-ts" build
 
       - name: Typecheck
-        run: pnpm --filter secryn typecheck
+        run: pnpm --filter "./packages/sdk-ts" typecheck

@@ -1,5 +1,5 @@
 {
-  "name": "secryn",
+  "name": "@secryn/sdk",
   "version": "1.0.0",
   "description": "Secryn TypeScript SDK — manage secrets, projects, and API keys programmatically",
   "author": "Secryn",
@@ -32,10 +32,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/secryn/secryn.git",
+    "url": "https://github.com/P4ciuf/secryn.git",
     "directory": "packages/sdk-ts"
   },
-  "homepage": "https://secryn.cc",
+  "homepage": "https://secryn.xyz",
   "publishConfig": {
     "access": "public"
   },

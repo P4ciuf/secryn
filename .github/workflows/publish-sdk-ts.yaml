@@ -44,9 +44,9 @@ jobs:
           echo "Version $PKG_VERSION — ready to publish"
 
       - name: Build SDK
-        run: pnpm --filter secryn build
+        run: pnpm --filter "./packages/sdk-ts" build
 
       - name: Publish to npm
-        run: pnpm publish --filter secryn --no-git-checks
+        run: pnpm --filter "./packages/sdk-ts" publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
