@@ -8,11 +8,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- API Key system: Prisma models (`ApiKey`, `ApiKeyPermission`), enum (`ApiKeyPermissions`), repository, and service with AES-256-GCM key encryption, key prefixing (`sv_`), 30-day expiry, and `verifyKey` validation (`apps/api/src/core/apiKeys/repository.ts`, `apps/api/src/core/apiKeys/service.ts`, `apps/api/prisma/models/apiKey.prisma`, `apps/api/prisma/enums/apiKey.prisma`)
+- API Key REST API routes under `apps/api/src/routes/apiKey/` with full OpenAPI schema documentation and JWT authentication:
+  - `POST /api-keys` — generate a new API key (rate-limited to 5 req/30 min)
+  - `GET /api-keys/:id` — retrieve a key by ID, or all user keys via `@all-user` (rate-limited to 50 req/h)
+  - `PUT /api-keys/:id` — update name, active status, and/or permissions with diff-based add/remove (rate-limited to 5 req/h)
+  - `DELETE /api-keys/:id` — permanently delete a key (rate-limited to 5 req/h)
+- Test suites for all 4 API key routes covering 201/200/204/400/401/404/500 scenarios (`apps/api/src/routes/apiKey/__tests__/`)
+- Password reset Prisma model (`PasswordResetToken`) with 1-hour expiry and consumed flag (`apps/api/prisma/models/passwordResetToken.prisma`)
+- Password reset REST routes with Swagger schema documentation:
+  - `POST /auth/forgot-password` — initiate reset; always returns ok to prevent email enumeration (rate-limited to 3 req/15 min per email)
+  - `POST /auth/reset-password` — reset password with single-use token (rate-limited to 5 req/15 min)
+- Test suites for forgot-password and reset-password routes covering 200/400/401/500 scenarios (`apps/api/src/routes/auth/__tests__/forgot-password.test.ts`, `apps/api/src/routes/auth/__tests__/reset-password.test.ts`)
+- `GET /projects/:projectId/secrets/export` route returning project secrets as a downloadable `.env` file with `Content-Disposition` header (rate-limited to 5 req/5 min) (`apps/api/src/routes/project/secrets/export.route.ts`)
+- Test suite for secrets export route covering 200/401/403/404/500 scenarios (`apps/api/src/routes/project/secrets/__tests__/export.test.ts`)
+- `ForgotPasswordPage` frontend component with email submission and anti-enumeration UI (always shows "check your inbox") (`apps/web/src/features/auth/ForgotPasswordPage.tsx`)
+- `ResetPasswordPage` frontend component with client-side validation (min 8 chars, password match, token presence) (`apps/web/src/features/auth/ResetPasswordPage.tsx`)
+- `EditApiKeyModal` frontend component with permission diffing — computes add/remove deltas against original key permissions (`apps/web/src/features/api-keys/components/EditApiKeyModal.tsx`)
+- Test suites for `ForgotPasswordPage`, `ResetPasswordPage`, and `EditApiKeyModal` covering render, loading, error, success, and interaction states (`apps/web/src/features/auth/__tests__/`, `apps/web/src/features/api-keys/components/__tests__/`)
+- Forgot-password email HTML template (`apps/api/src/modules/user/email/forgotPassword.html`)
+- `@fastify/swagger` schemas (summary, description, operationId, tags, params, body, response) for all 4 API key routes, both password reset routes, and secrets export route
+- `apiKey` and `passwordResetTokens` relations to `User` Prisma model
+- Database migrations for `ApiKey`, `ApiKeyPermission` tables and `PasswordResetToken` table
+- `PrismaConfig` with config-based schema path and migration directory (`apps/api/prisma.config.ts`)
 - Client-side secret search and filtering in `SecretsTable` with case-insensitive name matching, clear button, and contextual empty-state messages (`apps/web/src/features/projects/SecretsPage.tsx`, `apps/web/src/features/projects/components/SecretsTable.tsx`)
 
 ### Changed
+- API Dockerfile: `prisma generate` added before build for generated client (`apps/api/Dockerfile`)
+- API key inline permission rejection comments added to 4 secret route handlers — documenting that API keys scoped to "read" only are rejected on write endpoints (`apps/api/src/routes/project/secrets/create.route.ts`, `apps/api/src/routes/project/secrets/get.route.ts`, `apps/api/src/routes/project/secrets/gets.route.ts`, `apps/api/src/routes/project/secrets/update.route.ts`)
+- `ApiKeyRow` updated with edit button (Pencil icon) wiring to `EditApiKeyModal` (`apps/web/src/features/api-keys/components/ApiKeyRow.tsx`)
+- `ApiKeysPage` wired to `EditApiKeyModal` with `PUT /api-keys/:id` update handler and optimistic local-state refresh (`apps/web/src/features/api-keys/ApiKeysPage.tsx`)
+- Router paths updated: `/forgot-password` and `/reset-password/:token` routes added; `FORGOT_PASSWORD` and `RESET_PASSWORD` path constants added (`apps/web/src/routes.ts`, `apps/web/src/routes/paths.ts`)
+- `LoginPage` "Forgot password?" link now resolves to `ROUTES.FORGOT_PASSWORD` (`apps/web/src/features/auth/LoginPage.tsx`)
+- `SecretsPage` export handler uses `API_BASE_URL` for direct `fetch` of dotenv blob (bypasses JSON-typed API client) (`apps/web/src/features/projects/SecretsPage.tsx`)
+- `CreateApiKeyInput` DTO type added to `@repo/shared` with `name` and `permissions` fields; `UpdateApiKeyInput` DTO added with optional `name`, `isActive`, `addPermissions`, `removePermissions` (`packages/shared/src/dtos/api-key.ts`)
+- `ForgotPasswordBody` and `ResetPasswordBody` DTO types added to `@repo/shared` (`packages/shared/src/dtos/auth.ts`)
+- `ApiKey` and `ApiKeyPermission` entity types added to `@repo/shared` barrel exports (`packages/shared/src/entities/api-key.ts`, `packages/shared/index.ts`)
+- JSDoc added across 11 backend files: `ApiKeyRepository` class, `ApiKeyService` (class, `Instance`, `SystemInstance`, `normalizeApiKey`, `generateApiKey`, `updateApiKeyPermissions`, `verifyKey`), `UpdateApiKeyInput` DTO, `ForgotPasswordBody`/`ResetPasswordBody` DTOs, `MFAStatusResponse` DTO, and 4 API key route factory exports
+- Fixed misplaced JSDoc in auth DTOs — recovery codes response comment moved from `ForgotPasswordBody` to `MFARecoveryCodesResponse` (`packages/shared/src/dtos/auth.ts`)
+- JSDoc added across 5 frontend files: `handleUpdate` and `deleteKey` in `ApiKeysPage`, `EditApiKeyModal` component and `handleSubmit` permission-diffing logic, `ForgotPasswordPage` anti-enumeration behavior, `ResetPasswordPage` validation flow, `handleExport` in `SecretsPage` (`apps/web/src/features/`)
+- `ApiKeyService` instance imported from `apiKeys/service.js` in `AuthService.authenticateRequest` — API keys are resolved via `api-key` header for `/secrets` endpoints (`apps/api/src/core/auth/plugin.ts`, `apps/api/src/core/auth/service.ts`)
+- `loggedUser` type exported from fastify type declarations alongside module augmentation (`apps/api/src/types/fastify.d.ts`)
 - Search bar in `SecretsTable` only renders when the project already contains secrets (`apps/web/src/features/projects/components/SecretsTable.tsx`)
 - Marked "Search and filtering" as completed in `todo.md` (`todo.md`)
+- Mock API key data updated with `ApiKey` entity fields: `id`, `keyName`, `key`, `userId`, `isActive`, `permissions`, `createdAt`, `updatedAt`, `expiresAt` (`apps/web/src/data/api-keys.ts`)
+- `PageHeader` component extended with `secondaryAction` prop for supplementary buttons (e.g. export) (`apps/web/src/components/common/PageHeader.tsx`)
+- `SecretValue` component `maskedPrefix` prop made configurable with default `"••"` (`apps/web/src/components/common/SecretValue.tsx`)
+- Added `forgot-password` and `reset-password` test mocks to `api-keys` data test (`apps/web/src/data/__tests__/api-keys.test.ts`)
 
 ### Fixed
 - Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)

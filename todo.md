@@ -89,14 +89,14 @@
 
 ## API Access
 
-- [ ] API key generation
-- [ ] API key management
+- [x] API key generation
+- [x] API key management
 - [ ] Secret retrieval endpoints
-- [ ] Secret creation endpoints
+- [x] Secret creation endpoints
 
 ## Integrations
 
-- [ ] Environment variable export
+- [x] Environment variable export
 - [ ] CLI planning
 - [ ] SDK planning
 
