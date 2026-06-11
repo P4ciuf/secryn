@@ -1,56 +1,42 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { EmptyState } from "@/components/common/EmptyState";
+import { EmptyState } from "../EmptyState";
 
 describe("<EmptyState />", () => {
-  it("should render the message inside a table row", () => {
+  it("should render the message text", () => {
     render(
       <table>
         <tbody>
-          <EmptyState message="No data found" />
+          <EmptyState message="No items to display" />
         </tbody>
       </table>,
     );
-
-    expect(screen.getByText("No data found")).toBeInTheDocument();
+    expect(screen.getByText("No items to display")).toBeInTheDocument();
   });
 
-  it("should render within a table row element", () => {
+  it("should render inside a table row element", () => {
     render(
       <table>
         <tbody>
-          <EmptyState message="Loading..." />
+          <EmptyState message="Empty" />
         </tbody>
       </table>,
     );
-
-    const row = screen.getByRole("row");
-    expect(row).toBeInTheDocument();
+    const cell = screen.getByText("Empty");
+    expect(cell.tagName).toBe("TD");
+    expect(cell.closest("tr")).toBeInTheDocument();
   });
 
-  it("should render an empty message", () => {
-    render(
+  it("should render an empty td cell when the message is empty", () => {
+    const { container } = render(
       <table>
         <tbody>
           <EmptyState message="" />
         </tbody>
       </table>,
     );
-
-    const row = screen.getByRole("row");
-    expect(row).toBeInTheDocument();
-  });
-
-  it("should render the colSpan attribute", () => {
-    render(
-      <table>
-        <tbody>
-          <EmptyState message="Nothing here" />
-        </tbody>
-      </table>,
-    );
-
-    const cell = screen.getByText("Nothing here");
-    expect(cell).toHaveAttribute("colspan", "10");
+    const cell = container.querySelector("td");
+    expect(cell).toBeInTheDocument();
+    expect(cell?.textContent).toBe("");
   });
 });

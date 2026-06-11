@@ -1,78 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SecretValue } from "@/components/common/SecretValue";
+import { SecretValue } from "../SecretValue";
 
-vi.mock("@/hooks/use-clipboard", () => ({
-  useClipboard: () => ({
-    copied: false,
-    copyToClipboard: vi.fn(),
-  }),
-}));
+const mockWriteText = vi.fn();
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText: mockWriteText },
+    writable: true,
+    configurable: true,
+  });
+});
 
 describe("<SecretValue />", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it("should show masked value when isVisible is false", () => {
+    render(<SecretValue value="sk-1234567890abcdef" isVisible={false} onToggle={vi.fn()} />);
+    expect(screen.getByText(/^\u2022\u2022/)).toBeInTheDocument();
+    expect(screen.queryByText("sk-1234567890abcdef")).not.toBeInTheDocument();
   });
 
-  it("should render the masked value when not visible", () => {
-    const onToggle = vi.fn();
-    render(<SecretValue value="my-secret-123" isVisible={false} onToggle={onToggle} />);
-
-    expect(screen.getByText(/••/)).toBeInTheDocument();
-    expect(screen.queryByText("my-secret-123")).not.toBeInTheDocument();
+  it("should show the plain-text value when isVisible is true", () => {
+    render(<SecretValue value="sk-1234567890abcdef" isVisible={true} onToggle={vi.fn()} />);
+    expect(screen.getByText("sk-1234567890abcdef")).toBeInTheDocument();
   });
 
-  it("should render the real value when visible", () => {
-    const onToggle = vi.fn();
-    render(<SecretValue value="my-secret-123" isVisible={true} onToggle={onToggle} />);
-
-    expect(screen.getByText("my-secret-123")).toBeInTheDocument();
+  it("should call onToggle when the show/hide button is clicked", async () => {
+    const handleToggle = vi.fn();
+    render(<SecretValue value="secret" isVisible={false} onToggle={handleToggle} />);
+    const toggleBtn = screen.getByTitle("Show");
+    await userEvent.click(toggleBtn);
+    expect(handleToggle).toHaveBeenCalledOnce();
   });
 
-  it("should call onToggle when the visibility button is clicked", async () => {
-    const onToggle = vi.fn();
-    const user = userEvent.setup();
-
-    render(<SecretValue value="secret" isVisible={false} onToggle={onToggle} />);
-
-    const toggleButton = screen.getByRole("button", { name: "Show" });
-    await user.click(toggleButton);
-    expect(onToggle).toHaveBeenCalledTimes(1);
+  it("should show the hide icon when visible", () => {
+    render(<SecretValue value="secret" isVisible={true} onToggle={vi.fn()} />);
+    expect(screen.getByTitle("Hide")).toBeInTheDocument();
   });
 
-  it("should show Hide button title when visible is true", () => {
-    const onToggle = vi.fn();
-    render(<SecretValue value="secret" isVisible={true} onToggle={onToggle} />);
-
-    expect(screen.getByRole("button", { name: "Hide" })).toBeInTheDocument();
-  });
-
-  it("should show Show button title when visible is false", () => {
-    const onToggle = vi.fn();
-    render(<SecretValue value="secret" isVisible={false} onToggle={onToggle} />);
-
-    expect(screen.getByRole("button", { name: "Show" })).toBeInTheDocument();
+  it("should copy the value to clipboard when the copy button is clicked", async () => {
+    render(<SecretValue value="my-secret-token" isVisible={true} onToggle={vi.fn()} />);
+    await userEvent.click(screen.getByTitle("Copy"));
+    expect(mockWriteText).toHaveBeenCalledWith("my-secret-token");
   });
 
   it("should use the custom maskedPrefix when provided", () => {
-    const onToggle = vi.fn();
-    render(
-      <SecretValue
-        value="sk_test_abc123"
-        isVisible={false}
-        onToggle={onToggle}
-        maskedPrefix="sk_"
-      />,
-    );
-
-    expect(screen.getByText(/sk_/)).toBeInTheDocument();
+    render(<SecretValue value="token" isVisible={false} onToggle={vi.fn()} maskedPrefix="***" />);
+    expect(screen.getByText(/^\*\*\*/)).toBeInTheDocument();
   });
 
-  it("should render a Copy button", () => {
-    const onToggle = vi.fn();
-    render(<SecretValue value="secret" isVisible={false} onToggle={onToggle} />);
-
-    expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+  it("should use the default maskedPrefix when omitted", () => {
+    render(<SecretValue value="token" isVisible={false} onToggle={vi.fn()} />);
+    expect(screen.getByText(/^\u2022\u2022/)).toBeInTheDocument();
   });
 });
