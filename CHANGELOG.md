@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- `docs/authentication.md` — Authentication guide documenting JWT sessions via httpOnly cookies, TOTP-based MFA, API keys, password reset, token refresh, and recovery code flows (`docs/authentication.md`)
+- `docs/todo.md` — Project roadmap moved from root into docs directory (`docs/todo.md`)
 - Python SDK package under `packages/sdk-py/` with `SecrynClient` HTTP client wrapping `requests.Session`, proxy sub-objects for all API resource groups (auth, MFA, users, API keys, projects, invites, members, secrets), `SecrynApiError` exception class with structured error fields, and 92-test pytest suite covering all proxy methods, HTTP error codes, and edge cases (`packages/sdk-py/secryn/client.py`, `packages/sdk-py/secryn/errors.py`, `packages/sdk-py/secryn/tests/test_client.py`)
 - TypeScript SDK package under `packages/sdk-ts/` with `SecrynClient` using native `fetch`, internal `CookieJar` for Node.js cookie persistence across requests, namespaced proxy sub-objects, `SecrynApiError` exception class, and debug-gated logger (`packages/sdk-ts/src/client.ts`, `packages/sdk-ts/src/types.ts`, `packages/sdk-ts/src/logger.ts`)
 - `packages/shared/src/utils/logger.ts` — Shared Winston logger utility with daily-rotate-file transport, ANSI-coloured console output per log level, `exitOnError: false` graceful degradation, and structured `audit()` method for security-relevant events (`packages/shared/src/utils/logger.ts`)
@@ -48,6 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Repository and homepage URLs to Python SDK and CLI `pyproject.toml` files for PyPI metadata (`packages/sdk-py/pyproject.toml`, `packages/cli/pyproject.toml`)
 
 ### Changed
+- SDK packages bumped to 1.0.1 — Python SDK (`pyproject.toml`) and TypeScript SDK (`package.json`) (`packages/sdk-py/pyproject.toml`, `packages/sdk-ts/package.json`)
+- Python SDK: cleaned up unused imports (`Dict` from `client.py`, `Optional` from `errors.py`) and removed dead variable in test suite (`packages/sdk-py/`)
 - Extracted `winston` and `winston-daily-rotate-file` from API dependencies to `@repo/shared` dependencies; added `export * from "./src/utils/logger.js"` to shared barrel exports (`apps/api/package.json`, `packages/shared/package.json`, `packages/shared/index.ts`)
 - Fixed PostgreSQL volume mount path in `docker-compose.yml` from `/var/lib/postgresql/data` to `/var/lib/postgresql` (`docker-compose.yml`)
 - `.gitignore` — Excluded `*` glob under `.vscode/` while unignoring specific `apps/api/.vscode/settings.json` and `apps/web/.vscode/settings.json` for per-app VS Code configuration (`.gitignore`)
@@ -83,10 +87,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Renamed root workspace name from `secryn` to `secryn-monorepo` and marked as `private: true` to prevent accidental npm publish and avoid workspace name collision with SDK package (`package.json`)
 
 ### Fixed
+- CLI: `main()` now uses `e.exit_code` instead of `e.code` for Click exception handling (`packages/cli/secryn_cli/cli.py`)
+- CLI: Cookie type annotations improved from `Optional[dict]` to `Optional[list[dict[str, Any]]]` (`packages/cli/secryn_cli/config.py`)
+- CLI: Version bumped to 0.1.1 (`packages/cli/pyproject.toml`, `packages/cli/secryn_cli/`)
+- Web: Removed client-side `.toUpperCase()` on API key permissions in create/update handlers — server enforces casing (`apps/web/src/features/api-keys/ApiKeysPage.tsx`)
+- API: Suppressed error logging in test environment (`NODE_ENV=test`) to reduce noise during test runs (`apps/api/src/core/errors/errorHandler.ts`)
 - Resolved React version mismatch in web test suite by aligning `react` with `react-dom` to 19.2.7 (`apps/web/package.json`, `pnpm-lock.yaml`)
 - CI workflow fixes: `publish-sdk-py.yaml` and `publish-cli.yaml` now read version from `pyproject.toml` via grep/sed instead of Python import (avoids `ModuleNotFoundError`); `sdk-ts-ci.yaml` and `publish-sdk-ts.yaml` use `working-directory` instead of `pnpm --filter` for reliable workspace builds; `sdk-py-ci.yaml` missing `pytest` step added to run the 92-test SDK suite (`.github/workflows/`)
 
 ### Removed
+- `todo.md` (root) — Project roadmap consolidated into `docs/todo.md`
 - `.vscode/settings.json` (root) — VS Code workspace settings consolidated into per-app directories (`apps/api/.vscode/settings.json`)
 - `apps/api/src/core/logger/index.ts` — Winston logger module moved to `@repo/shared` as `packages/shared/src/utils/logger.ts`; all API modules now import logger from shared package (`apps/api/src/core/logger/index.ts`)
 

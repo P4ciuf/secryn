@@ -104,7 +104,7 @@
 
 - [x] API reference _(Swagger UI at /docs, OpenAPI 3.1.0)_
 - [x] Quick start guide _(README.md Getting Started)_
-- [ ] Authentication guide
+- [x] Authentication guide
 
 ---
 
