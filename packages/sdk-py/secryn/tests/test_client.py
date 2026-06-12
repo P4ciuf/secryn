@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
 import pytest
-import requests
 from pytest_mock import MockerFixture
 
 from secryn.client import (
@@ -878,7 +877,6 @@ class TestInvitesProxy:
         result = client.invites.create("proj-1")
         assert result["slug"] == "invite-def"
         # body is None when email is not provided (empty dict is falsy)
-        call_args = mock_session.request.call_args[0]
         call_kwargs = mock_session.request.call_args[1]
         assert call_kwargs.get("json") is None
 

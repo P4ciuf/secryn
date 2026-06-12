@@ -4,7 +4,7 @@ Supports both cookie-based authentication (after login) and API-key
 authentication for programmatic access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from urllib.parse import urljoin
 
 import requests

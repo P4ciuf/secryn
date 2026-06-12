@@ -1,6 +1,6 @@
 """Error types for the Secryn Python SDK."""
 
-from typing import Any, Optional
+from typing import Any
 
 
 class SecrynApiError(Exception):
