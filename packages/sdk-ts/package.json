@@ -1,6 +1,6 @@
 {
   "name": "secryn",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Secryn TypeScript SDK — manage secrets, projects, and API keys programmatically",
   "author": "Secryn",
   "license": "Apache-2.0",

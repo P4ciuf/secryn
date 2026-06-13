@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- `.github/workflows/deploy.yaml` — Automatic deploy workflow triggered on push to `main` or manual dispatch; SSHs into VPS, pulls latest changes, rebuilds with `docker compose up --build -d`, and prunes old Docker images (`.github/workflows/deploy.yaml`)
+- HTTPS support with SSL: nginx configured with HTTP→HTTPS redirect on port 80, TLSv1.2/1.3 SSL server block on port 443 with `secryn.xyz` server name and certificate chain; docker-compose maps port 443 and mounts `./ssl` volume as read-only (`apps/web/nginx.conf`, `docker-compose.yml`)
 - `docs/authentication.md` — Authentication guide documenting JWT sessions via httpOnly cookies, TOTP-based MFA, API keys, password reset, token refresh, and recovery code flows (`docs/authentication.md`)
 - `docs/todo.md` — Project roadmap moved from root into docs directory (`docs/todo.md`)
 - Python SDK package under `packages/sdk-py/` with `SecrynClient` HTTP client wrapping `requests.Session`, proxy sub-objects for all API resource groups (auth, MFA, users, API keys, projects, invites, members, secrets), `SecrynApiError` exception class with structured error fields, and 92-test pytest suite covering all proxy methods, HTTP error codes, and edge cases (`packages/sdk-py/secryn/client.py`, `packages/sdk-py/secryn/errors.py`, `packages/sdk-py/secryn/tests/test_client.py`)
@@ -50,6 +52,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Repository and homepage URLs to Python SDK and CLI `pyproject.toml` files for PyPI metadata (`packages/sdk-py/pyproject.toml`, `packages/cli/pyproject.toml`)
 
 ### Changed
+- SDK versions bumped to 1.0.2 — Python SDK (`packages/sdk-py/pyproject.toml`) and TypeScript SDK (`packages/sdk-ts/package.json`)
+- SDK default base URL updated from `http://localhost:3000` / `https://api.secryn.xyz` to `https://secryn.xyz` across Python SDK client default, Python SDK README, TypeScript SDK client default, TypeScript SDK README, and CLI `--api-url` help text (`packages/sdk-py/secryn/client.py`, `packages/sdk-py/README.md`, `packages/sdk-ts/src/client.ts`, `packages/sdk-ts/README.md`, `packages/cli/secryn_cli/cli.py`)
+- `ApiKeysPage` create handler: client-side `.toUpperCase()` on permissions re-added with explicit `ApiKeyPermission` type cast to ensure server receives uppercase permission values (`apps/web/src/features/api-keys/ApiKeysPage.tsx`)
 - SDK packages bumped to 1.0.1 — Python SDK (`pyproject.toml`) and TypeScript SDK (`package.json`) (`packages/sdk-py/pyproject.toml`, `packages/sdk-ts/package.json`)
 - Python SDK: cleaned up unused imports (`Dict` from `client.py`, `Optional` from `errors.py`) and removed dead variable in test suite (`packages/sdk-py/`)
 - Extracted `winston` and `winston-daily-rotate-file` from API dependencies to `@repo/shared` dependencies; added `export * from "./src/utils/logger.js"` to shared barrel exports (`apps/api/package.json`, `packages/shared/package.json`, `packages/shared/index.ts`)
@@ -87,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Renamed root workspace name from `secryn` to `secryn-monorepo` and marked as `private: true` to prevent accidental npm publish and avoid workspace name collision with SDK package (`package.json`)
 
 ### Fixed
+- Deploy workflow: replaced `git pull origin main` with `git fetch origin main` + `git reset --hard origin/main` to prevent merge conflicts during automated VPS deployment (`.github/workflows/deploy.yaml`)
 - CLI: `main()` now uses `e.exit_code` instead of `e.code` for Click exception handling (`packages/cli/secryn_cli/cli.py`)
 - CLI: Cookie type annotations improved from `Optional[dict]` to `Optional[list[dict[str, Any]]]` (`packages/cli/secryn_cli/config.py`)
 - CLI: Version bumped to 0.1.1 (`packages/cli/pyproject.toml`, `packages/cli/secryn_cli/`)

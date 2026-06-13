@@ -21,14 +21,14 @@ Requires Python 3.10+.
 from secryn import SecrynClient
 
 # Connect to your Secryn instance
-client = SecrynClient(base_url="https://api.secryn.xyz/api/v1")
+client = SecrynClient(base_url="https://secryn.xyz/api/v1")
 
 # Cookie-based auth
 client.auth.login("user@example.com", "password")
 
 # OR API-key-based auth
 client = SecrynClient(
-    base_url="https://api.secryn.xyz/api/v1",
+    base_url="https://secryn.xyz/api/v1",
     api_key="sc_...",
 )
 ```
@@ -138,11 +138,11 @@ except SecrynApiError as e:
 
 ## Configuration
 
-| Param        | Default                        | Description                              |
-| ------------ | ------------------------------ | ---------------------------------------- |
-| `base_url`   | `http://localhost:3000/api/v1` | API base URL with `/api/v1` prefix       |
-| `api_key`    | `None`                         | Optional API key for programmatic access |
-| `user_agent` | `secryn-sdk-python/1.0.0`      | Custom User-Agent header                 |
+| Param        | Default                     | Description                              |
+| ------------ | --------------------------- | ---------------------------------------- |
+| `base_url`   | `https://secryn.xyz/api/v1` | API base URL with `/api/v1` prefix       |
+| `api_key`    | `None`                      | Optional API key for programmatic access |
+| `user_agent` | `secryn-sdk-python/1.0.0`   | Custom User-Agent header                 |
 
 ## License
 

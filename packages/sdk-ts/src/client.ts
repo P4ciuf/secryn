@@ -136,11 +136,11 @@ export class SecrynClient {
   /**
    * @param options - Optional configuration.
    * @param options.baseUrl - Base URL including the ``/api/v1`` prefix.
-   *   Defaults to ``http://localhost:3000/api/v1``.
+   *   Defaults to ``https://secryn.xyz/api/v1``.
    * @param options.apiKey - Optional API key for programmatic access.
    */
   constructor(options: ClientOptions = {}) {
-    this.baseUrl = options.baseUrl ?? "http://localhost:3000/api/v1";
+    this.baseUrl = options.baseUrl ?? "https://secryn.xyz/api/v1";
     this.apiKey = options.apiKey;
   }
 

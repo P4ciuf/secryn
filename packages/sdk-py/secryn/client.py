@@ -396,7 +396,7 @@ class SecrynClient(_RequestMixin):
 
     def __init__(
         self,
-        base_url: str = "http://localhost:3000/api/v1",
+        base_url: str = "https://secryn.xyz/api/v1",
         api_key: Optional[str] = None,
         user_agent: str = "secryn-sdk-python/1.0.0",
     ) -> None:

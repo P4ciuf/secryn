@@ -116,7 +116,7 @@ def mask_value(value: str) -> str:
 @click.option(
     "--api-url",
     envvar="SECRYN_API_URL",
-    help="API base URL (default: http://localhost:3000/api/v1)",
+    help="API base URL (default: https://secryn.xyz/api/v1)",
 )
 @click.pass_context
 def cli(ctx: click.Context, api_url: Optional[str]) -> None:

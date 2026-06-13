@@ -23,7 +23,7 @@ import { SecrynClient } from "secryn";
 
 // Connect to your Secryn instance
 const client = new SecrynClient({
-  baseUrl: "https://api.secryn.xyz/api/v1",
+  baseUrl: "https://secryn.xyz/api/v1",
 });
 
 // Cookie-based auth
@@ -31,8 +31,8 @@ await client.auth.login("user@example.com", "password");
 
 // OR API-key-based auth
 const client = new SecrynClient({
-  baseUrl: "https://api.secryn.xyz/api/v1",
-  apiKey: "sc_...",
+  baseUrl: "https://secryn.xyz/api/v1",
+  apiKey: "...",
 });
 ```
 
@@ -144,10 +144,10 @@ try {
 
 ## Configuration
 
-| Option    | Default                        | Description                              |
-| --------- | ------------------------------ | ---------------------------------------- |
-| `baseUrl` | `http://localhost:3000/api/v1` | API base URL with `/api/v1` prefix       |
-| `apiKey`  | `undefined`                    | Optional API key for programmatic access |
+| Option    | Default                     | Description                              |
+| --------- | --------------------------- | ---------------------------------------- |
+| `baseUrl` | `https://secryn.xyz/api/v1` | API base URL with `/api/v1` prefix       |
+| `apiKey`  | `undefined`                 | Optional API key for programmatic access |
 
 ## License
 
