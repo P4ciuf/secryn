@@ -52,7 +52,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Repository and homepage URLs to Python SDK and CLI `pyproject.toml` files for PyPI metadata (`packages/sdk-py/pyproject.toml`, `packages/cli/pyproject.toml`)
 
 ### Changed
-- SDK versions bumped to 1.0.2 — Python SDK (`packages/sdk-py/pyproject.toml`) and TypeScript SDK (`packages/sdk-ts/package.json`)
+- SDK versions bumped: Python SDK to 1.0.2 (`packages/sdk-py/pyproject.toml`), TypeScript SDK from 1.0.2 to 1.0.3 (`packages/sdk-ts/package.json`)
+- SDK tsconfig inlined: removed `extends: "../../tsconfig.base.json"` and duplicated all compilerOptions directly for standalone npm packaging — `target`, `strict`, `skipLibCheck`, `esModuleInterop`, `forceConsistentCasingInFileNames`, `resolveJsonModule`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `isolatedModules` (`packages/sdk-ts/tsconfig.json`)
 - SDK default base URL updated from `http://localhost:3000` / `https://api.secryn.xyz` to `https://secryn.xyz` across Python SDK client default, Python SDK README, TypeScript SDK client default, TypeScript SDK README, and CLI `--api-url` help text (`packages/sdk-py/secryn/client.py`, `packages/sdk-py/README.md`, `packages/sdk-ts/src/client.ts`, `packages/sdk-ts/README.md`, `packages/cli/secryn_cli/cli.py`)
 - `ApiKeysPage` create handler: client-side `.toUpperCase()` on permissions re-added with explicit `ApiKeyPermission` type cast to ensure server receives uppercase permission values (`apps/web/src/features/api-keys/ApiKeysPage.tsx`)
 - SDK packages bumped to 1.0.1 — Python SDK (`pyproject.toml`) and TypeScript SDK (`package.json`) (`packages/sdk-py/pyproject.toml`, `packages/sdk-ts/package.json`)
