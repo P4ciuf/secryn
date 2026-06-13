@@ -39,4 +39,4 @@ jobs:
         run: pnpm build
       - name: Publish to npm
         working-directory: packages/sdk-ts
-        run: pnpm publish --no-git-checks
+        run: npm publish --access public
