@@ -47,7 +47,10 @@ jobs:
       - name: Publish to npm
         working-directory: packages/sdk-ts
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          pnpm publish --no-git-checks --provenance=false
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           pnpm publish --no-git-checks
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
