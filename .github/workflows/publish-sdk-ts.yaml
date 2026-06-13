@@ -1,18 +1,15 @@
 name: Publish TypeScript SDK to npm
-
 on:
   push:
     tags:
       - "ts-v*"
   workflow_dispatch:
-
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,6 +46,8 @@ jobs:
 
       - name: Publish to npm
         working-directory: packages/sdk-ts
-        run: pnpm publish --no-git-checks
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          pnpm publish --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
