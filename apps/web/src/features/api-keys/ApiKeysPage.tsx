@@ -5,7 +5,7 @@ import { ApiKeyRow } from "../../features/api-keys/components/ApiKeyRow";
 import { CreateApiKeyModal } from "../../features/api-keys/components/CreateApiKeyModal";
 import { EditApiKeyModal } from "../../features/api-keys/components/EditApiKeyModal";
 import { api } from "../../lib/api";
-import type { ApiKey, CreateApiKeyInput, UpdateApiKeyInput } from "@repo/shared";
+import type { ApiKey, ApiKeyPermission, CreateApiKeyInput, UpdateApiKeyInput } from "@repo/shared";
 
 /**
  * API Keys management page.
@@ -70,6 +70,7 @@ export default function ApiKeysPage() {
     try {
       const created = await api.post<ApiKey, CreateApiKeyInput>("/api-keys", {
         ...input,
+        permissions: input.permissions.map((p) => p.toUpperCase()) as ApiKeyPermission[],
       });
       setApiKeys((prev) => [...prev, created]);
       setShowCreateModal(false);
