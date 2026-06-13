@@ -1,9 +1,11 @@
 name: Publish TypeScript SDK to npm
+
 on:
   push:
     tags:
       - "ts-v*"
   workflow_dispatch:
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -51,6 +53,6 @@ jobs:
           pnpm publish --no-git-checks --provenance=false
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          pnpm publish --no-git-checks
+            pnpm publish --no-git-checks
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
