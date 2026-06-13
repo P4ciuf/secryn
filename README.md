@@ -3,7 +3,7 @@
 > A secure, developer-focused secrets management platform. Store, encrypt, and access API keys,
 > tokens, and environment variables safely through a dashboard, CLI, and API.
 >
-> **Production**: [secryn.xyz](https://secryn.xyz) — **API**: [api.secryn.xyz](https://api.secryn.xyz)
+> **Production**: [secryn.xyz](https://secryn.xyz) — **API**: [secryn.xyz/api](https://secryn.xyz/api/v1/health)
 
 ## Overview
 

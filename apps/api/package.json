@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.0.1",
+  "version": "1.0.3",
   "description": "API service for Secryn",
   "main": "dist/src/main.js",
   "scripts": {
