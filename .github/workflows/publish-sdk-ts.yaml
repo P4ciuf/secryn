@@ -39,5 +39,7 @@ jobs:
         working-directory: packages/sdk-ts
         run: pnpm build
       - name: Publish to npm
-        working-directory: packages/sdk-ts
-        run: npm publish --access public
+  working-directory: packages/sdk-ts
+  run: npm publish --access public
+  env:
+    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
