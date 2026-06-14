@@ -4,4 +4,4 @@ from .client import SecrynClient
 from .errors import SecrynApiError
 
 __all__ = ["SecrynClient", "SecrynApiError"]
-__version__ = "1.0.0"
+__version__ = "1.0.2"
