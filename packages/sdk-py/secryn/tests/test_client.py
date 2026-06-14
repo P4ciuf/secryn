@@ -173,7 +173,7 @@ class TestSecrynApiError:
 class TestSecrynClient:
     def test_default_base_url(self, mock_session: MagicMock) -> None:
         client = SecrynClient()
-        assert client.base_url == "http://localhost:3000/api/v1"
+        assert client.base_url == "https://secryn.xyz/api/v1"
 
     def test_custom_base_url(self, mock_session: MagicMock) -> None:
         client = SecrynClient(base_url="https://api.example.com/v2")

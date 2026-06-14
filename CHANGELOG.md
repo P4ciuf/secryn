@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Fixed
+- Python SDK test `test_default_base_url` updated to expect `https://secryn.xyz/api/v1` matching the production base URL (`packages/sdk-py/secryn/tests/test_client.py`)
+- Web `ApiKeysPage` test assertion updated to expect uppercase `["READ", "WRITE"]` permissions matching the re-added `.toUpperCase()` client-side normalization (`apps/web/src/features/api-keys/__tests__/ApiKeysPage.test.tsx`)
+
 ## 2026-06-14
 
 ### Changed
@@ -14,6 +18,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - SDK tsconfig inlined: removed `extends: "../../tsconfig.base.json"` and duplicated all compilerOptions directly for standalone npm packaging — `target`, `strict`, `skipLibCheck`, `esModuleInterop`, `forceConsistentCasingInFileNames`, `resolveJsonModule`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `isolatedModules` (`packages/sdk-ts/tsconfig.json`)
 - SDK default base URL updated from `http://localhost:3000` / `https://api.secryn.xyz` to `https://secryn.xyz` across Python SDK client default, Python SDK README, TypeScript SDK client default, TypeScript SDK README, and CLI `--api-url` help text (`packages/sdk-py/secryn/client.py`, `packages/sdk-py/README.md`, `packages/sdk-ts/src/client.ts`, `packages/sdk-ts/README.md`, `packages/cli/secryn_cli/cli.py`)
 - `ApiKeysPage` create handler: client-side `.toUpperCase()` on permissions re-added with explicit `ApiKeyPermission` type cast to ensure server receives uppercase permission values (`apps/web/src/features/api-keys/ApiKeysPage.tsx`)
+- API key decryption: strip `sc_` prefix before AES-256-GCM decryption, re-prepend `sc_` after decrypting for correct display (`apps/api/src/core/apiKeys/service.ts`)
+- Web `ApiKeyRow`: use `SecretValue` `maskedPrefix="sc_"` prop to show the `sc_` prefix in the masked API key display (`apps/web/src/features/api-keys/components/ApiKeyRow.tsx`)
+- TS SDK README: use `sc_` prefix in API key code example (`packages/sdk-ts/README.md`)
+- Version constants in Python source files synced: SDK `__version__` from 1.0.0 to 1.0.2, CLI `__version__` from 0.1.1 to 0.1.2 (`packages/sdk-py/secryn/__init__.py`, `packages/cli/secryn_cli/__init__.py`, `packages/cli/secryn_cli/__main__.py`)
+- API package version bumped to 1.0.4 (`apps/api/package.json`)
+
+### Fixed
+- `publish-sdk-ts.yaml`: fixed npm publish command from `pnpm publish --no-git-checks` to `npm publish --access public` with OIDC authentication for correct npm registry publishing (`.github/workflows/publish-sdk-ts.yaml`)
 
 ## 2026-06-13
 

@@ -245,7 +245,7 @@ describe("ApiKeysPage", () => {
       await waitFor(() => {
         expect(mockApi.post).toHaveBeenCalledWith("/api-keys", {
           name: "My New Key",
-          permissions: ["read", "write"],
+          permissions: ["READ", "WRITE"],
         });
       });
     });
