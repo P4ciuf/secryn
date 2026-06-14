@@ -39,7 +39,12 @@ export function ApiKeyRow({
         </div>
       </td>
       <td className="px-6 py-4">
-        <SecretValue value={apiKey.key} isVisible={isVisible} onToggle={onToggleVisibility} />
+        <SecretValue
+          value={apiKey.key}
+          isVisible={isVisible}
+          onToggle={onToggleVisibility}
+          maskedPrefix="sc_"
+        />
       </td>
       <td className="px-6 py-4">
         <div className="flex gap-2">

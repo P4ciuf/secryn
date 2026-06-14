@@ -32,7 +32,7 @@ await client.auth.login("user@example.com", "password");
 // OR API-key-based auth
 const client = new SecrynClient({
   baseUrl: "https://secryn.xyz/api/v1",
-  apiKey: "...",
+  apiKey: "sc_...",
 });
 ```
 

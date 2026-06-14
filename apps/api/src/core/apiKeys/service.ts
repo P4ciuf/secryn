@@ -107,8 +107,8 @@ export class ApiKeyService {
     const apiKey = await this.repository.findApiKey(where);
     if (!apiKey) return null;
     this.hasAccessOrThrow(apiKey);
-    const cryptoUtils = new CryptoUtils(apiKey.key);
-    apiKey.key = await cryptoUtils.decrypt();
+    const cryptoUtils = new CryptoUtils(apiKey.key.replace("sc_", ""));
+    apiKey.key = "sc_" + (await cryptoUtils.decrypt());
     return this.normalizeApiKey(apiKey);
   }
 
