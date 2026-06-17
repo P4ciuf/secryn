@@ -7,9 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Added
+- Next.js App Router application under `app/` replacing the separate `apps/api` (Fastify) and `apps/web` (Vite+React) with a unified full-stack framework — Prisma ORM, AES-256-GCM encryption, JWT cookie auth, MFA TOTP, API keys, password reset, project/secret CRUD, Tailwind CSS v4, and landing page (`app/src/`)
+- Next.js patterns to `.gitignore`: `.next/`, `/out/`, `next-env.d.ts` (`.gitignore`)
+
+### Changed
+- `package.json` scripts consolidated: removed `dev:api`, `dev:web`, `test:api`, `test:web`; added single `dev` targeting `app` workspace; db scripts (`generate`, `push`, `migrate`, `studio`) retargeted from `api` to `app` (`package.json`)
+- `pnpm-workspace.yaml` workspace packages updated from `apps/*` to `app`; added `sharp` to allowed builds for Next.js image optimization (`pnpm-workspace.yaml`)
+
 ### Fixed
 - Python SDK test `test_default_base_url` updated to expect `https://secryn.xyz/api/v1` matching the production base URL (`packages/sdk-py/secryn/tests/test_client.py`)
 - Web `ApiKeysPage` test assertion updated to expect uppercase `["READ", "WRITE"]` permissions matching the re-added `.toUpperCase()` client-side normalization (`apps/web/src/features/api-keys/__tests__/ApiKeysPage.test.tsx`)
+
+### Removed
+- `apps/api/` — Fastify backend application migrated into Next.js App Router API routes; all routes, services, repositories, Prisma schema, migrations, email templates, type declarations, utilities, and test suites deleted from the old location (~130 files)
+- `apps/web/` — Vite+React frontend application migrated into Next.js App Router pages and components; all components, pages, hooks, layouts, styles, data modules, and test suites deleted from the old location (~250 files)
 
 ## 2026-06-14
 
