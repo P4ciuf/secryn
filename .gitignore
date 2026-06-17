@@ -45,3 +45,8 @@ Thumbs.db
 
 # Docker
 .docker/
+
+# Next
+.next/
+/out/
+next-env.d.ts
