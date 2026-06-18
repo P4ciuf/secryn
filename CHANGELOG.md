@@ -7,17 +7,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+## 2026-06-18
+
 ### Added
 - Next.js App Router application under `app/` replacing the separate `apps/api` (Fastify) and `apps/web` (Vite+React) with a unified full-stack framework — Prisma ORM, AES-256-GCM encryption, JWT cookie auth, MFA TOTP, API keys, password reset, project/secret CRUD, Tailwind CSS v4, and landing page (`app/src/`)
 - Next.js patterns to `.gitignore`: `.next/`, `/out/`, `next-env.d.ts` (`.gitignore`)
+- Comprehensive JSDoc documentation across 62 files: all 30 route handlers (method, path, auth requirements, error codes), 12 page components, 6 service classes (AuthService, UserService, ApiKeyService, ProjectService, JwtService, CryptoUtils), 2 repository classes, 5 utility modules, 3 UI components (PageHeader, Modal, EmptyState), type exports, Next.js middleware, and API client (`app/src/`)
+- 164 vitest tests across 41 test files covering all 30 API route handlers (auth, MFA, api-keys, projects, secrets, invites, users, health) with mocked dependencies and all 11 dashboard/auth page components with mocked API client (`app/src/**/__test__/`)
+- `vitest` (v4.1.7), `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, and `jsdom` dev dependencies for frontend/backend test suites (`app/package.json`)
+- `vitest.config.ts` with `@/` and `@repo/shared` path alias resolution matching the Next.js/tsconfig setup; `vitest.setup.ts` for jest-dom matchers (`app/vitest.config.ts`, `app/vitest.setup.ts`)
+- Dockerfile documentation header describing the multi-stage build intent (`app/Dockerfile`)
 
 ### Changed
 - `package.json` scripts consolidated: removed `dev:api`, `dev:web`, `test:api`, `test:web`; added single `dev` targeting `app` workspace; db scripts (`generate`, `push`, `migrate`, `studio`) retargeted from `api` to `app` (`package.json`)
 - `pnpm-workspace.yaml` workspace packages updated from `apps/*` to `app`; added `sharp` to allowed builds for Next.js image optimization (`pnpm-workspace.yaml`)
+- Dockerfile CMD changed from `pnpm prisma:push` to `npx prisma db push` for production runtime compatibility; added `COPY app/src ./app/src` for source inclusion (`app/Dockerfile`)
+- `docker-compose.yml`: renamed containers (`db` → `secryn_db`, `redis` → `secryn_redis`, `api` → `secryn_app`); consolidated separate `api` and `web` services into a single `app` Next.js service on port 3000 (`docker-compose.yml`)
+- `app/tsconfig.json`: fixed `@repo/shared` path alias from `index.ts` to directory reference for proper workspace resolution (`app/tsconfig.json`)
 
 ### Fixed
 - Python SDK test `test_default_base_url` updated to expect `https://secryn.xyz/api/v1` matching the production base URL (`packages/sdk-py/secryn/tests/test_client.py`)
 - Web `ApiKeysPage` test assertion updated to expect uppercase `["READ", "WRITE"]` permissions matching the re-added `.toUpperCase()` client-side normalization (`apps/web/src/features/api-keys/__tests__/ApiKeysPage.test.tsx`)
+- Dashboard sidebar: Overview navigation button no longer stays in active state on sub-pages — `isActive()` now uses exact-match for the dashboard root path (`app/src/app/dashboard/layout.tsx`)
+- `ApiKeyService` constructor: parameter type changed from `User | null` to `User` (non-nullable) to reflect that the service is always scoped to an authenticated user (`app/src/services/apiKey.ts`)
+- `AuthService.authenticateRequest()`: removed unreferenced `ApiKey` entity type import to satisfy unused-variable TypeScript checking (`app/src/services/auth.ts`)
+- `Secret` entity: `createdAt`/`updatedAt` type changed from `Date` to `string` in Prisma type definitions to match JSON serialization in API responses (`app/src/repositories/project.ts`)
+- `Secret` repository: `findManySecrets` parameter from `ProjectWhereUniqueInput` to `SecretWhereInput` for correct type usage (`app/src/services/project.ts`)
+- `@prisma/client` import: `Secret` type reference removed in favor of inline `where` type for dead-code elimination (`app/src/services/project.ts`)
 
 ### Removed
 - `apps/api/` — Fastify backend application migrated into Next.js App Router API routes; all routes, services, repositories, Prisma schema, migrations, email templates, type declarations, utilities, and test suites deleted from the old location (~130 files)
