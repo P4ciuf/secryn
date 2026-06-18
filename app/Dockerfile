@@ -18,7 +18,6 @@ COPY app/package.json app/package.json
 COPY app/tsconfig.json app/tsconfig.json
 COPY app/next.config.ts ./app/next.config.ts
 COPY app/postcss.config.mjs ./app/postcss.config.mjs
-COPY app/next-env.d.ts ./app/next-env.d.ts
 COPY app/prisma.config.ts ./app/prisma.config.ts
 COPY app/prisma ./app/prisma
 COPY app/src ./app/src
