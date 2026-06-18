@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api";
 /**
  * Registration page with client-side password-length and match validation
  * before submitting. On success the user is logged in and redirected to the
- * dashboard.
+ * dashboard. This page is noindexed.
  */
 export default function RegisterPage() {
   const router = useRouter();
@@ -39,10 +39,10 @@ export default function RegisterPage() {
     try {
       await apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password, username: username || undefined }),
+        body: JSON.stringify({ email, password, username: username || undefined }), // omit empty username
       });
       router.push(ROUTES.dashboard.path);
-      router.refresh();
+      router.refresh(); // re-fetch RSC payload to pick up the new auth cookie
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {

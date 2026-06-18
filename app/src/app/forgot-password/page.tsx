@@ -9,7 +9,7 @@ import { apiFetch } from "@/lib/api";
 /**
  * Forgot-password page. Submits the user's email to receive a password-reset
  * link. The UI shows a success state regardless of whether the email exists,
- * to prevent user enumeration.
+ * to prevent user enumeration. This page is noindexed.
  */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

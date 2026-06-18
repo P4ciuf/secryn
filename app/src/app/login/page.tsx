@@ -10,6 +10,10 @@ import { apiFetch } from "@/lib/api";
 /**
  * Login page with two-step flow: credentials first, then MFA challenge if
  * enabled. Supports both TOTP codes and recovery codes.
+ *
+ * Page-level metadata is exported from a separate `generateMetadata` export in
+ * the layout segment or via the root layout's template. This page is noindexed
+ * to prevent search engines from indexing authentication pages.
  */
 export default function LoginPage() {
   const router = useRouter();
@@ -45,7 +49,7 @@ export default function LoginPage() {
         setMfaRequired(true);
       } else {
         router.push(ROUTES.dashboard.path);
-        router.refresh();
+        router.refresh(); // re-fetch RSC payload to pick up the new auth cookie
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -72,7 +76,7 @@ export default function LoginPage() {
         });
       }
       router.push(ROUTES.dashboard.path);
-      router.refresh();
+      router.refresh(); // re-fetch RSC payload to pick up the new auth cookie
     } catch (err) {
       setMfaError(err instanceof Error ? err.message : "MFA verification failed");
     } finally {
@@ -172,7 +176,7 @@ export default function LoginPage() {
                   maxLength={6}
                   pattern="[0-9]{6}"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} // accept digits only
                   className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-center text-2xl tracking-[0.5em] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="000000"
                   autoFocus
