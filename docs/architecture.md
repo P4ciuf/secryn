@@ -123,7 +123,7 @@ Redis (ioredis) → Rate limiting, brute-force counters
 
 ## Encryption (AES-256-GCM)
 
-```
+```text
 ENCRYPTION_KEY (env)
     │
     ▼ scrypt(N=16384, r=8, p=1, keylen=32, salt="Secryn::AES256GCM::v1")

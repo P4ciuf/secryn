@@ -11,9 +11,9 @@ Secryn provides a self-hosted service for teams to manage application secrets �
 database passwords, environment variables, and tokens — with encryption at rest, role-based
 access control, and a modern React dashboard.
 
-Built as a pnpm monorepo with a Fastify REST API and a React + Vite frontend. All data is
-encrypted server-side before persistence. The API exposes programmatic access so you can
-integrate secret retrieval into CI/CD pipelines and deployment workflows.
+Built as a pnpm monorepo with a Next.js App Router application. All data is encrypted
+server-side before persistence. The API exposes programmatic access so you can integrate
+secret retrieval into CI/CD pipelines and deployment workflows.
 
 ## Features
 
@@ -34,15 +34,17 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
   anti-enumeration protection (always returns success).
 - **REST API** — Full OpenAPI 3.1.0 spec with Swagger UI at `/docs`. Route prefix `/api/v1`.
   Cookie-based auth for web sessions and API key header auth for programmatic access.
-- **Web Dashboard** — Built with React 19, React Router 7, Tailwind CSS v4, shadcn/ui, and
+- **Web Dashboard** — Built with Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, and
   Radix UI primitives. Dark mode support via `next-themes`.
-- **Security-first** — Helmet, CORS with explicit allowlist, rate limiting, bcrypt password
-  hashing, JWT with httpOnly cookies, AES-256-GCM secret encryption, brute-force login
-  protection via Redis, and Prisma with prepared statements via `@prisma/adapter-pg`.
+- **Security-first** — Security response headers (X-Frame-Options, X-Content-Type-Options,
+  Referrer-Policy), CORS with explicit allowlist, rate limiting, bcrypt password hashing,
+  JWT with httpOnly cookies, AES-256-GCM secret encryption, brute-force login protection
+  via Redis, and Prisma with prepared statements via `@prisma/adapter-pg`.
 - **Audit Logging** — Security-relevant events (login success/failure, MFA changes, secret
   CRUD, password changes) logged at info level for SIEM/log aggregation.
-- **Dockerized** — Production-ready multi-stage Dockerfiles for API (Node.js) and Web (Nginx),
-  plus a `docker-compose.yml` for local development with PostgreSQL 18 and Redis 7.
+- **Dockerized** — Production-ready multi-stage Dockerfile for the Next.js app, plus nginx
+  reverse proxy with SSL termination and a `docker-compose.yml` for local development with
+  PostgreSQL 18 and Redis 7.
 - **CLI Tool** — Command-line interface for managing secrets, projects, and API keys directly
   from the terminal. Supports login, CRUD operations, `.env` export, and JSON output.
 - **SDKs** — Python (`secryn`) and TypeScript (`secryn`) client libraries with
@@ -50,22 +52,22 @@ integrate secret retrieval into CI/CD pipelines and deployment workflows.
 
 ## Tech Stack
 
-| Layer            | Technology                          |
-| ---------------- | ----------------------------------- |
-| Language         | TypeScript 5+                       |
-| Runtime          | Node.js 22+                         |
-| Package Manager  | pnpm 11.5                           |
-| API Framework    | Fastify 5                           |
-| ORM              | Prisma 7 + PostgreSQL 18            |
-| Cache / Session  | Redis 7 (ioredis)                   |
-| Email            | Resend                              |
-| Frontend         | React 19 + Vite 8 + Tailwind CSS v4 |
-| UI Components    | shadcn/ui + Radix UI primitives     |
-| Testing          | Vitest 4 + Testing Library          |
-| Linting          | ESLint 10 + Prettier 3              |
-| CLI              | Python 3.10+ + Click + Requests     |
-| CI/CD            | GitHub Actions                      |
-| Containerization | Docker + Docker Compose             |
+| Layer            | Technology                      |
+| ---------------- | ------------------------------- |
+| Language         | TypeScript 5+                   |
+| Runtime          | Node.js 22+                     |
+| Package Manager  | pnpm 11.5                       |
+| Framework        | Next.js 16 (App Router)         |
+| ORM              | Prisma 7 + PostgreSQL 18        |
+| Cache / Session  | Redis 7 (ioredis)               |
+| Email            | Resend                          |
+| Frontend         | React 19 + Tailwind CSS v4      |
+| UI Components    | shadcn/ui + Radix UI primitives |
+| Testing          | Vitest 4 + Testing Library      |
+| Linting          | ESLint 10 + Prettier 3          |
+| CLI              | Python 3.10+ + Click + Requests |
+| CI/CD            | GitHub Actions                  |
+| Containerization | Docker + Docker Compose         |
 
 ## Prerequisites
 
@@ -97,9 +99,8 @@ docker compose up -d db redis
 pnpm db:generate
 pnpm db:push
 
-# 6. Start both API and Web in development mode
-pnpm dev:api   # http://localhost:3000
-pnpm dev:web   # http://localhost:5173
+# 6. Start the Next.js development server
+pnpm dev       # http://localhost:3000
 ```
 
 To run the full stack with Docker:
@@ -219,13 +220,13 @@ sc version                  # Versione della CLI
 
 **Opzioni globali**
 
-| Opzione                | Descrizione                                                                                       |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `--api-url <url>`      | Override API base URL (default: `http://localhost:3000` in dev, `https://api.secryn.xyz` in prod) |
-| `SECRYN_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente                                                |
-| `SECRYN_HOME` (env)    | Directory di configurazione alternativa                                                           |
-| `--json`               | Output in formato JSON (dove supportato)                                                          |
-| `--force`, `-f`        | Salta le conferme per i comandi distruttivi                                                       |
+| Opzione                | Descrizione                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `--api-url <url>`      | Override API base URL (default: `http://localhost:3000` in dev, `https://secryn.xyz` in prod) |
+| `SECRYN_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente                                            |
+| `SECRYN_HOME` (env)    | Directory di configurazione alternativa                                                       |
+| `--json`               | Output in formato JSON (dove supportato)                                                      |
+| `--force`, `-f`        | Salta le conferme per i comandi distruttivi                                                   |
 
 ### Configurazione
 
@@ -240,9 +241,8 @@ La CLI salva configurazione e cookie in `~/.config/secryn/`:
 
 After starting the services, access:
 
-- **Web Dashboard** at [http://localhost:5173](http://localhost:5173) (dev) or [https://secryn.xyz](https://secryn.xyz) (prod)
-- **API** at [http://localhost:3000/api/v1](http://localhost:3000/api/v1) (dev) or [https://api.secryn.xyz/api/v1](https://api.secryn.xyz/api/v1) (prod)
-- **Swagger UI** at [http://localhost:3000/docs](http://localhost:3000/docs) (dev)
+- **Web Dashboard** at [http://localhost:3000](http://localhost:3000) (dev) or [https://secryn.xyz](https://secryn.xyz) (prod)
+- **API** at [http://localhost:3000/api/v1](http://localhost:3000/api/v1) (dev) or [https://secryn.xyz/api/v1](https://secryn.xyz/api/v1) (prod)
 
 ### API Endpoints
 
@@ -356,48 +356,46 @@ All environment variables are defined in `.env.example`. Copy it to `.env` and f
 ```text
 secryn/
 ├── .github/
-│   └── workflows/              # CI/CD pipelines (lint, test, Docker build)
-├── apps/
-│   ├── api/                    # Fastify REST API
-│   │   ├── prisma/             # Database schema (models, enums, migrations)
-│   │   └── src/
-│   │       ├── core/           # Auth plugin, DB client, API keys, error handling, logger
-│   │       ├── lib/            # Fastify app singleton
-│   │       ├── modules/        # Business logic (project, user services and repositories)
-│   │       ├── routes/         # HTTP route handlers with __tests__ co-location
-│   │       ├── types/          # Fastify augmentation, route types
-│   │       └── utils/          # Env access, crypto, email, Redis, dynamic route loader
-│   └── web/                    # React SPA frontend
-│       └── src/
-│           ├── components/     # common/ (EmptyState, Modal, PageHeader, SecretValue),
-│           │                   # landing/ (Hero, Features, CTA, Navbar, Footer),
-│           │                   # ui/ (48 shadcn/ui primitives)
-│           ├── data/           # Mock data for development and tests
-│           ├── features/       # api-docs, api-keys, auth, dashboard, projects,
-│           │                   # settings, webhooks (pages + components + tests)
-│           ├── hooks/          # useClipboard, useMobile, useToggleVisibility
-│           ├── layouts/        # DashboardLayout with sidebar navigation
-│           ├── lib/            # Typed API client with auto-refresh and error handling
-│           ├── pages/          # Landing and NotFound page components
-│           ├── routes/         # React Router v7 configuration and path constants
-│           ├── styles/         # Tailwind CSS v4 entry + design tokens
-│           └── types/          # Shared TypeScript interfaces for all entities
+│   └── workflows/              # CI/CD pipelines (lint, test, Docker build, deploy)
+├── app/                        # Next.js App Router (full-stack)
+│   ├── prisma/                 # Database schema (models, enums, migrations)
+│   ├── public/                 # Static assets (logo, manifest)
+│   └── src/
+│       ├── app/                # App Router pages and API routes
+│       │   ├── api/            # Route handlers (auth, MFA, api-keys, projects, secrets, users)
+│       │   ├── dashboard/      # Dashboard pages (projects, api-keys, settings, webhooks)
+│       │   ├── login/          # Login page
+│       │   ├── register/       # Register page
+│       │   ├── forgot-password/ # Password reset request
+│       │   └── reset-password/ # Password reset with token
+│       ├── components/         # common/ (EmptyState, Modal, PageHeader, SecretValue),
+│       │                       # landing/ (Hero, Features, CTA, Navbar, Footer),
+│       │                       # ui/ (shadcn/ui primitives, Breadcrumbs)
+│       ├── data/               # Mock data for development and tests
+│       ├── db/                 # Prisma client singleton
+│       ├── lib/                # Typed API client with auto-refresh and error handling
+│       ├── repositories/       # Data-access layer (user, project, apiKey)
+│       ├── services/           # Business logic (auth, user, project, apiKey, crypto)
+│       ├── types/              # Shared TypeScript interfaces for all entities
+│       └── utils/              # Env access, crypto, email, Redis
+├── nginx/                      # Nginx reverse proxy
+│   └── Dockerfile              # nginx:alpine container with custom config
+├── nginx.conf                  # HTTP→HTTPS redirect + SSL termination + proxy to app
 ├── packages/
-│   ├── cli/                     # Python CLI tool (sc)
-│   │   ├── secryn_cli/          # CLI source (click commands, API client, config)
-│   │   ├── pyproject.toml       # Python project metadata and dependencies
-│   │   ├── Makefile             # Build and install targets
-│   │   └── install.sh           # One-line installer script
-│   ├── sdk-py/                  # Python SDK (secryn)
-│   │   ├── secryn/              # SecrynClient, errors
+│   ├── cli/                    # Python CLI tool (sc)
+│   │   ├── secryn_cli/         # CLI source (click commands, API client, config)
+│   │   ├── pyproject.toml      # Python project metadata and dependencies
+│   │   └── install.sh          # One-line installer script
+│   ├── sdk-py/                 # Python SDK (secryn)
+│   │   ├── secryn/             # SecrynClient, errors
 │   │   ├── pyproject.toml
 │   │   └── tests/
-│   ├── sdk-ts/                  # TypeScript SDK (secryn)
-│   │   ├── src/                 # SecrynClient, CookieJar, logger
+│   ├── sdk-ts/                 # TypeScript SDK (secryn)
+│   │   ├── src/                # SecrynClient, CookieJar, logger
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   └── shared/                  # @repo/shared — types, DTOs, logger, and enums for API and web
-├── docker-compose.yml          # Local dev stack: PostgreSQL, Redis, API, Web
+│   └── shared/                 # @repo/shared — types, DTOs, logger, and enums for app and SDKs
+├── docker-compose.yml          # Production stack: PostgreSQL, Redis, App, Nginx
 ├── eslint.config.mjs           # ESLint flat config (TS, JSON, Markdown, CSS)
 ├── pnpm-workspace.yaml         # pnpm monorepo workspace definition
 ├── tsconfig.base.json          # Shared TypeScript compiler options
@@ -409,24 +407,26 @@ secryn/
 
 All scripts run from the repository root via pnpm.
 
-| Script               | Description                                        |
-| -------------------- | -------------------------------------------------- |
-| `pnpm build`         | Build all workspace packages                       |
-| `pnpm lint`          | Run ESLint across the entire monorepo              |
-| `pnpm format`        | Format all files with Prettier                     |
-| `pnpm format:check`  | Check formatting without writing changes           |
-| `pnpm typecheck`     | Run `tsc --noEmit` on all packages                 |
-| `pnpm test`          | Run all Vitest test suites                         |
-| `pnpm test:coverage` | Run tests with coverage report                     |
-| `pnpm dev:api`       | Start API in watch mode (port 3000)                |
-| `pnpm dev:web`       | Start Vite dev server for the frontend (port 5173) |
-| `pnpm db:generate`   | Generate Prisma client from schema                 |
-| `pnpm db:push`       | Push Prisma schema to the database                 |
-| `pnpm db:migrate`    | Create and apply a new database migration          |
-| `pnpm db:studio`     | Launch Prisma Studio GUI                           |
-| `pnpm docker:up`     | Build and start all Docker Compose services        |
-| `pnpm docker:down`   | Stop and remove Docker Compose services            |
-| `pnpm docker:reset`  | Stop services and remove volumes (resets DB)       |
+| Script               | Description                                   |
+| -------------------- | --------------------------------------------- |
+| `pnpm build`         | Build all workspace packages                  |
+| `pnpm lint`          | Run ESLint across the entire monorepo         |
+| `pnpm format`        | Format all files with Prettier                |
+| `pnpm format:check`  | Check formatting without writing changes      |
+| `pnpm typecheck`     | Run `tsc --noEmit` on all packages            |
+| `pnpm test`          | Run all Vitest test suites                    |
+| `pnpm test:coverage` | Run tests with coverage report                |
+| `pnpm dev`           | Start Next.js dev server (port 3000)          |
+| `pnpm db:generate`   | Generate Prisma client from schema            |
+| `pnpm db:push`       | Push Prisma schema to the database            |
+| `pnpm db:migrate`    | Create and apply a new database migration     |
+| `pnpm db:studio`     | Launch Prisma Studio GUI                      |
+| `pnpm docker:build`  | Build Docker images without starting services |
+| `pnpm docker:up`     | Build and start all Docker Compose services   |
+| `pnpm docker:dev`    | Start services in detached mode               |
+| `pnpm docker:down`   | Stop and remove Docker Compose services       |
+| `pnpm docker:reset`  | Stop services and remove volumes (resets DB)  |
+| `pnpm docker:logs`   | Tail logs from all services                   |
 
 ## License
 
