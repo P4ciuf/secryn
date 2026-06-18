@@ -17,6 +17,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `vitest` (v4.1.7), `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, and `jsdom` dev dependencies for frontend/backend test suites (`app/package.json`)
 - `vitest.config.ts` with `@/` and `@repo/shared` path alias resolution matching the Next.js/tsconfig setup; `vitest.setup.ts` for jest-dom matchers (`app/vitest.config.ts`, `app/vitest.setup.ts`)
 - Dockerfile documentation header describing the multi-stage build intent (`app/Dockerfile`)
+- SEO infrastructure: `robots.ts` generator blocking AI-training crawlers (GPTBot, Claude, PerplexityBot) while allowing Google-Extended for AI search features; `sitemap.ts` with public route entries (landing, login, register) (`app/src/app/robots.ts`, `app/src/app/sitemap.ts`)
+- Per-route layout files for auth pages (login, register, forgot-password, reset-password) with `robots: noindex,nofollow` metadata to prevent search engines from indexing authentication pages (`app/src/app/*/layout.tsx`)
+- Static assets: `logo.png` and `manifest.webmanifest` for PWA manifest and favicon/icon references in root metadata (`app/public/`)
+- `Breadcrumbs` UI component with accessible `<nav>`, `aria-label="Breadcrumb"`, separator rendering, link-vs-plain-text logic for the current (last) page, and JSON-LD `BreadcrumbList` structured data for search engine breadcrumb enrichment (`app/src/components/ui/breadcrumbs.tsx`)
+- Breadcrumbs integrated into dashboard, api-keys, projects, secrets, and settings pages with contextual breadcrumb trails (Dashboard, Dashboard > Projects > Project Name, etc.)
+- Test suite for `Breadcrumbs` covering empty state, single item, multi-item links, three-level hierarchy, and JSON-LD schema validation (`app/src/components/ui/__test__/breadcrumbs.test.tsx`)
+- Test suite for the root landing page covering nav, hero, sections, CTA, footer, and metadata export (`app/src/app/__test__/page.test.tsx`)
 
 ### Changed
 - `package.json` scripts consolidated: removed `dev:api`, `dev:web`, `test:api`, `test:web`; added single `dev` targeting `app` workspace; db scripts (`generate`, `push`, `migrate`, `studio`) retargeted from `api` to `app` (`package.json`)
@@ -24,6 +31,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dockerfile CMD changed from `pnpm prisma:push` to `npx prisma db push` for production runtime compatibility; added `COPY app/src ./app/src` for source inclusion (`app/Dockerfile`)
 - `docker-compose.yml`: renamed containers (`db` → `secryn_db`, `redis` → `secryn_redis`, `api` → `secryn_app`); consolidated separate `api` and `web` services into a single `app` Next.js service on port 3000 (`docker-compose.yml`)
 - `app/tsconfig.json`: fixed `@repo/shared` path alias from `index.ts` to directory reference for proper workspace resolution (`app/tsconfig.json`)
+- Root layout (`layout.tsx`): enhanced with OpenGraph metadata, Twitter card, manifest link, icon references, and JSON-LD structured data for Organization, WebSite, and SoftwareApplication entities to improve Knowledge Graph and social-sharing previews (`app/src/app/layout.tsx`)
+- Landing page (`page.tsx`): added page-level SEO metadata export (canonical URL, OpenGraph card) (`app/src/app/page.tsx`)
+- `next.config.ts`: added security response headers (X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, X-DNS-Prefetch-Control), API-layer `X-Robots-Tag: noindex,nofollow` and `Cache-Control: no-store`, static asset long-lived caching (`Cache-Control: public, max-age=31536000, immutable`), gzip compression, and experimental tree-shaking optimization for lucide-react and framer-motion (`app/next.config.ts`)
+- Dashboard page tests updated to mock the new `Breadcrumbs` component across 5 test files: dashboard, api-keys, projects, secrets, and settings (`app/src/app/dashboard/**/__test__/page.test.tsx`)
+- Auth pages: inline comments added documenting `router.refresh()` for RSC payload re-fetch after login/registration, OTP digit-stripping in MFA flow, `username || undefined` fallback to omit empty fields, and noindex behavior in page JSDoc headers (`app/src/app/forgot-password/page.tsx`, `app/src/app/login/page.tsx`, `app/src/app/register/page.tsx`, `app/src/app/reset-password/[token]/page.tsx`)
+- JSDoc documentation added to private interfaces (`ApiKeyData`, `Project`, `Secret`, `ProjectInfo`, `UserProfile`, `DashboardData`, `ProjectSummary`, `ApiKeySummary`) and exported `BreadcrumbItem` across page and component files
 
 ### Fixed
 - Python SDK test `test_default_base_url` updated to expect `https://secryn.xyz/api/v1` matching the production base URL (`packages/sdk-py/secryn/tests/test_client.py`)
@@ -34,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Secret` entity: `createdAt`/`updatedAt` type changed from `Date` to `string` in Prisma type definitions to match JSON serialization in API responses (`app/src/repositories/project.ts`)
 - `Secret` repository: `findManySecrets` parameter from `ProjectWhereUniqueInput` to `SecretWhereInput` for correct type usage (`app/src/services/project.ts`)
 - `@prisma/client` import: `Secret` type reference removed in favor of inline `where` type for dead-code elimination (`app/src/services/project.ts`)
+- Settings page test: ambiguous `findByText("Settings")` replaced with `findByRole("heading", { name: "Settings", level: 1 })` to handle the duplicate "Settings" text introduced by the new Breadcrumbs component (`app/src/app/dashboard/settings/__test__/page.test.tsx`)
 
 ### Removed
 - `apps/api/` — Fastify backend application migrated into Next.js App Router API routes; all routes, services, repositories, Prisma schema, migrations, email templates, type declarations, utilities, and test suites deleted from the old location (~130 files)

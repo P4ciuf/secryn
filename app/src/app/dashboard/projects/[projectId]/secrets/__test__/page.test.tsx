@@ -24,6 +24,18 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard/projects/proj-1/secrets",
 }));
 
+vi.mock("@/components/ui/breadcrumbs", () => ({
+  default: ({ items }: { items: Array<{ label: string; href?: string }> }) => (
+    <nav aria-label="Breadcrumb">
+      <ol>
+        {items.map((item, i) => (
+          <li key={i}>{item.label}</li>
+        ))}
+      </ol>
+    </nav>
+  ),
+}));
+
 vi.mock("@/data/routes", () => ({
   ROUTES: {
     dashboard: { path: "/dashboard", children: { projects: "projects" } },

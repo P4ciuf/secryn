@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api";
 /**
  * Password-reset page reached via the link in the forgot-password email.
  * Extracts the token from the URL, validates the new password client-side,
- * and submits to the reset endpoint.
+ * and submits to the reset endpoint. This page is noindexed.
  */
 export default function ResetPasswordPage() {
   const params = useParams<{ token: string }>();

@@ -21,6 +21,18 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard/settings",
 }));
 
+vi.mock("@/components/ui/breadcrumbs", () => ({
+  default: ({ items }: { items: Array<{ label: string; href?: string }> }) => (
+    <nav aria-label="Breadcrumb">
+      <ol>
+        {items.map((item, i) => (
+          <li key={i}>{item.label}</li>
+        ))}
+      </ol>
+    </nav>
+  ),
+}));
+
 vi.mock("@/data/routes", () => ({
   ROUTES: {
     dashboard: { path: "/dashboard", children: { settings: "settings" } },
@@ -50,7 +62,7 @@ describe("SettingsPage", () => {
 
     render(<SettingsPage />);
 
-    await screen.findByText("Settings");
+    await screen.findByRole("heading", { name: "Settings", level: 1 });
     expect(screen.getByDisplayValue("testuser")).toBeInTheDocument();
     expect(screen.getByDisplayValue("test@test.com")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();

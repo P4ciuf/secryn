@@ -5,17 +5,21 @@ import Link from "next/link";
 import { FolderKanban, Key, Shield, ArrowRight } from "lucide-react";
 import { ROUTES } from "@/data/routes";
 import { apiFetch } from "@/lib/api";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
+/** Response shape for the /users/me endpoint consumed by the dashboard. */
 interface DashboardData {
   user: { email: string; username: string };
 }
 
+/** Lightweight project record used for the dashboard summary cards. */
 interface ProjectSummary {
   id: string;
   name: string;
   slug: string;
 }
 
+/** Lightweight API-key record used for the dashboard summary cards. */
 interface ApiKeySummary {
   id: string;
   keyName: string;
@@ -54,6 +58,7 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-5xl">
+      <Breadcrumbs items={[{ label: "Dashboard" }]} />
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1">
           Welcome{user ? `, ${user.username || user.email}` : ""}
@@ -118,19 +123,23 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div className="space-y-3">
-                {projects.slice(0, 5).map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`${ROUTES.dashboard.path}/${ROUTES.dashboard.children.projects}/${p.id}/secrets`}
-                    className="flex items-center justify-between p-4 bg-slate-800/30 rounded-lg border border-slate-700 hover:border-blue-500/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FolderKanban className="w-5 h-5 text-blue-400" />
-                      <span className="font-medium">{p.name}</span>
-                    </div>
-                    <span className="text-xs text-slate-500">{p.slug}</span>
-                  </Link>
-                ))}
+                {projects.slice(0, 5).map(
+                  (
+                    p, // show at most 5 recent projects
+                  ) => (
+                    <Link
+                      key={p.id}
+                      href={`${ROUTES.dashboard.path}/${ROUTES.dashboard.children.projects}/${p.id}/secrets`}
+                      className="flex items-center justify-between p-4 bg-slate-800/30 rounded-lg border border-slate-700 hover:border-blue-500/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FolderKanban className="w-5 h-5 text-blue-400" />
+                        <span className="font-medium">{p.name}</span>
+                      </div>
+                      <span className="text-xs text-slate-500">{p.slug}</span>
+                    </Link>
+                  ),
+                )}
               </div>
             </div>
           )}
