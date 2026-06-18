@@ -11,8 +11,4 @@ allowBuilds:
   prisma: true
   sharp: true
 
-overrides:
-  "@hono/node-server": ">=1.19.13"
 
-minimumReleaseAgeExclude:
-  - react-hook-form@7.78.0
