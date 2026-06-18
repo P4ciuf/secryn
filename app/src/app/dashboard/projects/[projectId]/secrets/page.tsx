@@ -19,7 +19,9 @@ import { apiFetch, apiFetchText, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/emptyState";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
+/** A single secret key-value pair with optional notes, scoped to a project. */
 interface Secret {
   id: string;
   name: string;
@@ -30,6 +32,7 @@ interface Secret {
   updatedAt: string;
 }
 
+/** Minimal project record returned alongside secrets for breadcrumb / header display. */
 interface ProjectInfo {
   id: string;
   name: string;
@@ -96,7 +99,7 @@ export default function SecretsPage() {
         next.delete(id);
         return next;
       });
-    }, 30000);
+    }, 30000); // re-hide the value after 30 seconds
   }
 
   async function copyToClipboard(text: string, id: string) {
@@ -158,6 +161,7 @@ export default function SecretsPage() {
   async function handleExport() {
     try {
       const content = await apiFetchText(`/projects/${projectId}/secrets/export`);
+      // Trigger a browser download by creating a temporary Blob URL.
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -179,6 +183,13 @@ export default function SecretsPage() {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-5xl">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          { label: project?.name ?? "Secrets" },
+        ]}
+      />
       <Link
         href={`${ROUTES.dashboard.path}/${ROUTES.dashboard.children.projects}`}
         className="inline-flex items-center gap-1 text-slate-400 hover:text-white text-sm mb-6 transition-colors"

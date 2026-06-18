@@ -4,7 +4,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/pageHeader";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
+/** User profile shape returned by /users/me, consumed by the settings page. */
 interface UserProfile {
   id: string;
   email: string;
@@ -17,7 +19,7 @@ interface UserProfile {
  * (setup/enable/disable/regenerate recovery codes), and delete account.
  */
 export default function SettingsPage() {
-  const [_user, setUser] = useState<UserProfile | null>(null);
+  const [_user, setUser] = useState<UserProfile | null>(null); // stored for updates but not read directly
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -198,6 +200,8 @@ export default function SettingsPage() {
       return;
     try {
       await apiFetch("/users/me", { method: "DELETE" });
+      // Use a full-page navigation — after account deletion the auth
+      // cookie is cleared and the client-side router can't proceed.
       window.location.href = "/login";
     } catch (err) {
       setMessage({
@@ -221,6 +225,7 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-3xl">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]} />
       <PageHeader title="Settings" description="Manage your account and security" />
 
       {message && (
@@ -359,7 +364,7 @@ export default function SettingsPage() {
                   required
                   maxLength={6}
                   value={mfaToken}
-                  onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ""))} // accept digits only
                   className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="000000"
                 />

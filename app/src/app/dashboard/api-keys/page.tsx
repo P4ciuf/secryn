@@ -6,7 +6,13 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/emptyState";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
+/**
+ * Shape of an API key returned by the backend.
+ * @property key - The raw secret value; only returned on creation, otherwise redacted.
+ * @property permissions - Granular access scopes granted to this key (e.g. "read", "write").
+ */
 interface ApiKeyData {
   id: string;
   keyName: string;
@@ -57,7 +63,7 @@ export default function ApiKeysPage() {
   function togglePerm(perm: string) {
     setCreatePerms((prev) => {
       if (prev.includes(perm)) {
-        if (prev.length === 1) return prev;
+        if (prev.length === 1) return prev; // require at least one permission
         return prev.filter((p) => p !== perm);
       }
       return [...prev, perm];
@@ -126,11 +132,12 @@ export default function ApiKeysPage() {
     setShowCreate(false);
     setCreatedKey(null);
     setKeyCopied(false);
-    loadKeys();
+    loadKeys(); // refresh list after a key was created
   }
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-5xl">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "API Keys" }]} />
       <PageHeader
         title="API Keys"
         description="Manage API keys for programmatic access"

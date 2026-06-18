@@ -8,7 +8,9 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/emptyState";
+import Breadcrumbs from "@/components/ui/breadcrumbs";
 
+/** A project record as returned by the /projects endpoint. */
 interface Project {
   id: string;
   name: string;
@@ -82,6 +84,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-5xl">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects" }]} />
       <PageHeader
         title="Projects"
         description="Manage your project workspaces"
