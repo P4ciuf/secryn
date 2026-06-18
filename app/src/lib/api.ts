@@ -56,10 +56,7 @@ async function refreshToken(): Promise<boolean> {
  * @returns The parsed JSON body.
  * @throws {ApiError} On non-2xx responses (after retry) or failed refresh.
  */
-export async function apiFetch<T = unknown>(
-  url: string,
-  options: RequestInit = {},
-): Promise<T> {
+export async function apiFetch<T = unknown>(url: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${url}`, {
     ...options,
     credentials: "include",
@@ -125,10 +122,7 @@ export async function apiFetch<T = unknown>(
  * @returns The response body as plain text.
  * @throws {ApiError} On non-2xx responses.
  */
-export async function apiFetchText(
-  url: string,
-  options: RequestInit = {},
-): Promise<string> {
+export async function apiFetchText(url: string, options: RequestInit = {}): Promise<string> {
   const res = await fetch(`${BASE}${url}`, {
     ...options,
     credentials: "include",

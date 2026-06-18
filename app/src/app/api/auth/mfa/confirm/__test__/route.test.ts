@@ -54,9 +54,7 @@ describe("POST /api/auth/mfa/confirm", () => {
   it("returns 200 and sets auth cookie on successful MFA confirmation", async () => {
     mockConfirmMFA.mockResolvedValue("valid-jwt-token");
 
-    const res = await POST(
-      buildRequest({ token: "temp-token", mfaToken: "123456" }),
-    );
+    const res = await POST(buildRequest({ token: "temp-token", mfaToken: "123456" }));
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -66,13 +64,9 @@ describe("POST /api/auth/mfa/confirm", () => {
   });
 
   it("returns 401 when MFA confirmation fails", async () => {
-    mockConfirmMFA.mockRejectedValue(
-      new ApiError("Invalid MFA code", 401, "UNAUTHORIZED"),
-    );
+    mockConfirmMFA.mockRejectedValue(new ApiError("Invalid MFA code", 401, "UNAUTHORIZED"));
 
-    const res = await POST(
-      buildRequest({ token: "temp-token", mfaToken: "wrong" }),
-    );
+    const res = await POST(buildRequest({ token: "temp-token", mfaToken: "wrong" }));
     const body = await res.json();
 
     expect(res.status).toBe(401);

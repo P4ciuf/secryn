@@ -5,8 +5,6 @@ import ApiDocsPage from "../page";
 describe("ApiDocsPage", () => {
   it("renders the heading 'API Documentation'", () => {
     render(<ApiDocsPage />);
-    expect(
-      screen.getByRole("heading", { name: "API Documentation" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "API Documentation" })).toBeInTheDocument();
   });
 });

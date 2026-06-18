@@ -52,7 +52,10 @@ describe("POST /api/auth/reset-password", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockResetPassword).toHaveBeenCalledWith({ token: "reset-token-abc", password: "newpass123" });
+    expect(mockResetPassword).toHaveBeenCalledWith({
+      token: "reset-token-abc",
+      password: "newpass123",
+    });
   });
 
   it("returns 500 on internal error", async () => {

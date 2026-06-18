@@ -54,9 +54,7 @@ describe("POST /api/auth/mfa/recovery", () => {
   it("returns 200 and sets auth cookie on successful recovery", async () => {
     mockRecoverMFA.mockResolvedValue("valid-jwt-token");
 
-    const res = await POST(
-      buildRequest({ code: "recovery-code", mfaToken: "mfa-token" }),
-    );
+    const res = await POST(buildRequest({ code: "recovery-code", mfaToken: "mfa-token" }));
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -66,13 +64,9 @@ describe("POST /api/auth/mfa/recovery", () => {
   });
 
   it("returns 401 when recovery code is invalid", async () => {
-    mockRecoverMFA.mockRejectedValue(
-      new ApiError("Invalid recovery code", 401, "UNAUTHORIZED"),
-    );
+    mockRecoverMFA.mockRejectedValue(new ApiError("Invalid recovery code", 401, "UNAUTHORIZED"));
 
-    const res = await POST(
-      buildRequest({ code: "bad-code", mfaToken: "mfa-token" }),
-    );
+    const res = await POST(buildRequest({ code: "bad-code", mfaToken: "mfa-token" }));
     const body = await res.json();
 
     expect(res.status).toBe(401);

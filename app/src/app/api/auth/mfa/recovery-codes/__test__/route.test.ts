@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "../route";
 
-const { mockGetAuthenticatedUser, mockGetRecoveryCodePlaceholders } =
-  vi.hoisted(() => ({
-    mockGetAuthenticatedUser: vi.fn(),
-    mockGetRecoveryCodePlaceholders: vi.fn(),
-  }));
+const { mockGetAuthenticatedUser, mockGetRecoveryCodePlaceholders } = vi.hoisted(() => ({
+  mockGetAuthenticatedUser: vi.fn(),
+  mockGetRecoveryCodePlaceholders: vi.fn(),
+}));
 
 vi.mock("@/utils/authGuard", () => ({
   getAuthenticatedUser: mockGetAuthenticatedUser,

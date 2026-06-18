@@ -68,8 +68,5 @@
     "*.{css,json,md,yaml,yml}": [
       "pnpm exec prettier --write"
     ]
-  },
-  "dependencies": {
-    "@fastify/jwt": "^10.1.0"
   }
 }

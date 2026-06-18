@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "../route";
 
-const { mockGetAuthenticatedUser, mockRegenerateRecoveryCodes } = vi.hoisted(
-  () => ({
-    mockGetAuthenticatedUser: vi.fn(),
-    mockRegenerateRecoveryCodes: vi.fn(),
-  }),
-);
+const { mockGetAuthenticatedUser, mockRegenerateRecoveryCodes } = vi.hoisted(() => ({
+  mockGetAuthenticatedUser: vi.fn(),
+  mockRegenerateRecoveryCodes: vi.fn(),
+}));
 
 vi.mock("@/utils/authGuard", () => ({
   getAuthenticatedUser: mockGetAuthenticatedUser,
@@ -24,12 +22,9 @@ vi.mock("@/services/user", () => ({
 const mockUser = { id: "user-1", email: "a@b.com", username: "test" };
 
 function buildRequest(): Request {
-  return new Request(
-    "http://localhost/api/auth/mfa/recovery-codes/regenerate",
-    {
-      method: "POST",
-    },
-  );
+  return new Request("http://localhost/api/auth/mfa/recovery-codes/regenerate", {
+    method: "POST",
+  });
 }
 
 beforeEach(() => {

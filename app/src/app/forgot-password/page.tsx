@@ -56,8 +56,8 @@ export default function ForgotPasswordPage() {
             <div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <Mail className="w-12 h-12 text-blue-400 mx-auto mb-4" />
               <p className="text-blue-300 text-sm">
-                If an account with that email exists, we&apos;ve sent a password reset
-                link. It expires in 1 hour.
+                If an account with that email exists, we&apos;ve sent a password reset link. It
+                expires in 1 hour.
               </p>
             </div>
             <Link

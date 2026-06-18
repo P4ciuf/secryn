@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "../route";
 
-const { mockGetAuthenticatedUser, mockGenerateTOTPSecret, mockGenerateQRCode } =
-  vi.hoisted(() => ({
-    mockGetAuthenticatedUser: vi.fn(),
-    mockGenerateTOTPSecret: vi.fn(),
-    mockGenerateQRCode: vi.fn(),
-  }));
+const { mockGetAuthenticatedUser, mockGenerateTOTPSecret, mockGenerateQRCode } = vi.hoisted(() => ({
+  mockGetAuthenticatedUser: vi.fn(),
+  mockGenerateTOTPSecret: vi.fn(),
+  mockGenerateQRCode: vi.fn(),
+}));
 
 vi.mock("@/utils/authGuard", () => ({
   getAuthenticatedUser: mockGetAuthenticatedUser,
@@ -61,8 +60,6 @@ describe("GET /api/auth/mfa/setup", () => {
     expect(body.secret).toBe("SECRET123");
     expect(body.otpauthUrl).toBe("otpauth://totp/Secryn:test?secret=SECRET123");
     expect(body.qrCode).toBe("data:image/png;base64,...");
-    expect(mockGenerateQRCode).toHaveBeenCalledWith(
-      "otpauth://totp/Secryn:test?secret=SECRET123",
-    );
+    expect(mockGenerateQRCode).toHaveBeenCalledWith("otpauth://totp/Secryn:test?secret=SECRET123");
   });
 });

@@ -95,9 +95,9 @@ describe("ApiKeysPage", () => {
 
     await screen.findByText("Production Key");
 
-    const trashButtons = screen.getAllByRole("button").filter((btn) =>
-      btn.innerHTML.includes("trash"),
-    );
+    const trashButtons = screen
+      .getAllByRole("button")
+      .filter((btn) => btn.innerHTML.includes("trash"));
 
     if (trashButtons.length > 0) {
       const user = userEvent.setup();

@@ -28,8 +28,22 @@ vi.mock("@/data/routes", () => ({
 }));
 
 const mockProjects = [
-  { id: "p1", name: "Project Alpha", slug: "alpha", description: "First project", ownerId: "u1", createdAt: "2025-01-01" },
-  { id: "p2", name: "Project Beta", slug: "beta", description: "", ownerId: "u1", createdAt: "2025-02-01" },
+  {
+    id: "p1",
+    name: "Project Alpha",
+    slug: "alpha",
+    description: "First project",
+    ownerId: "u1",
+    createdAt: "2025-01-01",
+  },
+  {
+    id: "p2",
+    name: "Project Beta",
+    slug: "beta",
+    description: "",
+    ownerId: "u1",
+    createdAt: "2025-02-01",
+  },
 ];
 
 describe("ProjectsPage", () => {

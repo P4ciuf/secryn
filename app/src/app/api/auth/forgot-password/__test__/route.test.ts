@@ -37,7 +37,9 @@ describe("POST /api/auth/forgot-password", () => {
   });
 
   it("returns 200 on success (anti-enumeration)", async () => {
-    mockForgotPassword.mockResolvedValue({ message: "If the email exists, a reset link has been sent." });
+    mockForgotPassword.mockResolvedValue({
+      message: "If the email exists, a reset link has been sent.",
+    });
 
     const res = await POST(buildRequest({ email: "user@example.com" }));
     const body = await res.json();

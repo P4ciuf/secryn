@@ -180,7 +180,10 @@ export default function LoginPage() {
               </div>
             ) : (
               <div>
-                <label htmlFor="recovery" className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label
+                  htmlFor="recovery"
+                  className="block text-sm font-medium text-slate-300 mb-1.5"
+                >
                   Recovery code
                 </label>
                 <input

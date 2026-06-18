@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, POST } from "../route";
 import { ApiError } from "@/errors/apiError";
 
-const {
-  mockGetAuthenticatedUser,
-  mockGetUserApiKeys,
-  mockGenerateApiKey,
-} = vi.hoisted(() => ({
+const { mockGetAuthenticatedUser, mockGetUserApiKeys, mockGenerateApiKey } = vi.hoisted(() => ({
   mockGetAuthenticatedUser: vi.fn(),
   mockGetUserApiKeys: vi.fn(),
   mockGenerateApiKey: vi.fn(),
@@ -49,9 +45,7 @@ function buildRequest(init?: {
   return new Request("http://localhost/api/api-keys", {
     method: init?.method ?? "GET",
     body: hasBody ? JSON.stringify(init.body) : undefined,
-    headers: hasBody
-      ? { "Content-Type": "application/json", ...init?.headers }
-      : undefined,
+    headers: hasBody ? { "Content-Type": "application/json", ...init?.headers } : undefined,
   });
 }
 

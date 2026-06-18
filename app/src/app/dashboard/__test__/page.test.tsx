@@ -34,9 +34,18 @@ describe("DashboardPage", () => {
 
   it("renders 'Welcome {username}' and data counts", async () => {
     mockApiFetch.mockImplementation((url: string) => {
-      if (url === "/users/me") return Promise.resolve({ success: true, user: { email: "t@t.com", username: "Alice" } });
-      if (url === "/projects") return Promise.resolve({ success: true, projects: [{ id: "1", name: "P1", slug: "p1" }] });
-      if (url === "/api-keys") return Promise.resolve({ success: true, apiKeys: [{ id: "k1", keyName: "Key1" }, { id: "k2", keyName: "Key2" }] });
+      if (url === "/users/me")
+        return Promise.resolve({ success: true, user: { email: "t@t.com", username: "Alice" } });
+      if (url === "/projects")
+        return Promise.resolve({ success: true, projects: [{ id: "1", name: "P1", slug: "p1" }] });
+      if (url === "/api-keys")
+        return Promise.resolve({
+          success: true,
+          apiKeys: [
+            { id: "k1", keyName: "Key1" },
+            { id: "k2", keyName: "Key2" },
+          ],
+        });
       return Promise.resolve({});
     });
 

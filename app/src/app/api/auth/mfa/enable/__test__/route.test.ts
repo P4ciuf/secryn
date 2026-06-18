@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "../route";
 import { ApiError } from "@/errors/apiError";
 
-const { mockGetAuthenticatedUser, mockVerifyTOTP, mockEnableMFA } =
-  vi.hoisted(() => ({
-    mockGetAuthenticatedUser: vi.fn(),
-    mockVerifyTOTP: vi.fn(),
-    mockEnableMFA: vi.fn(),
-  }));
+const { mockGetAuthenticatedUser, mockVerifyTOTP, mockEnableMFA } = vi.hoisted(() => ({
+  mockGetAuthenticatedUser: vi.fn(),
+  mockVerifyTOTP: vi.fn(),
+  mockEnableMFA: vi.fn(),
+}));
 
 vi.mock("@/utils/authGuard", () => ({
   getAuthenticatedUser: mockGetAuthenticatedUser,
@@ -41,9 +40,7 @@ describe("POST /api/auth/mfa/enable", () => {
   it("returns 401 when user is not authenticated", async () => {
     mockGetAuthenticatedUser.mockResolvedValue(null);
 
-    const res = await POST(
-      buildRequest({ token: "123456", secret: "SECRET123" }),
-    );
+    const res = await POST(buildRequest({ token: "123456", secret: "SECRET123" }));
     const body = await res.json();
 
     expect(res.status).toBe(401);
@@ -76,9 +73,7 @@ describe("POST /api/auth/mfa/enable", () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
     mockVerifyTOTP.mockResolvedValue(false);
 
-    const res = await POST(
-      buildRequest({ token: "wrong", secret: "SECRET123" }),
-    );
+    const res = await POST(buildRequest({ token: "wrong", secret: "SECRET123" }));
     const body = await res.json();
 
     expect(res.status).toBe(401);
@@ -92,9 +87,7 @@ describe("POST /api/auth/mfa/enable", () => {
     mockVerifyTOTP.mockResolvedValue(true);
     mockEnableMFA.mockResolvedValue(["code-1", "code-2", "code-3"]);
 
-    const res = await POST(
-      buildRequest({ token: "123456", secret: "SECRET123" }),
-    );
+    const res = await POST(buildRequest({ token: "123456", secret: "SECRET123" }));
     const body = await res.json();
 
     expect(res.status).toBe(200);

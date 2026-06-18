@@ -59,7 +59,10 @@ describe("GET /api/projects", () => {
 
   it("returns 200 with projects list", async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-    mockGetUserProjects.mockResolvedValue([createMockProject("proj-1"), createMockProject("proj-2")]);
+    mockGetUserProjects.mockResolvedValue([
+      createMockProject("proj-1"),
+      createMockProject("proj-2"),
+    ]);
 
     const response = await GET(new Request("http://localhost/api/projects"));
     const body = await response.json();

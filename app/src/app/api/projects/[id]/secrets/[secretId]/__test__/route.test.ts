@@ -123,7 +123,9 @@ describe("PUT /api/projects/:id/secrets/:secretId", () => {
 
   it("returns 200 on successful update", async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-    mockUpdateSecret.mockResolvedValue(createMockSecret({ name: "UPDATED_KEY", value: "new-value" }));
+    mockUpdateSecret.mockResolvedValue(
+      createMockSecret({ name: "UPDATED_KEY", value: "new-value" }),
+    );
 
     const response = await PUT(
       new Request("http://localhost/api/projects/proj-1/secrets/sec-1", {

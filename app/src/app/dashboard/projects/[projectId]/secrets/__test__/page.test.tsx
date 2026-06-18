@@ -31,8 +31,24 @@ vi.mock("@/data/routes", () => ({
 }));
 
 const mockSecrets = [
-  { id: "s1", name: "DATABASE_URL", value: "postgres://localhost", notes: "Main database", projectId: "proj-1", createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-  { id: "s2", name: "API_KEY", value: "secret-key-123", notes: "", projectId: "proj-1", createdAt: "2025-01-01", updatedAt: "2025-01-01" },
+  {
+    id: "s1",
+    name: "DATABASE_URL",
+    value: "postgres://localhost",
+    notes: "Main database",
+    projectId: "proj-1",
+    createdAt: "2025-01-01",
+    updatedAt: "2025-01-01",
+  },
+  {
+    id: "s2",
+    name: "API_KEY",
+    value: "secret-key-123",
+    notes: "",
+    projectId: "proj-1",
+    createdAt: "2025-01-01",
+    updatedAt: "2025-01-01",
+  },
 ];
 
 const mockProject = { id: "proj-1", name: "My Project" };
@@ -51,8 +67,10 @@ describe("SecretsPage", () => {
 
   it("renders secrets list", async () => {
     mockApiFetch.mockImplementation((url: string) => {
-      if (url === "/projects/proj-1") return Promise.resolve({ success: true, project: mockProject });
-      if (url === "/projects/proj-1/secrets") return Promise.resolve({ success: true, secrets: mockSecrets });
+      if (url === "/projects/proj-1")
+        return Promise.resolve({ success: true, project: mockProject });
+      if (url === "/projects/proj-1/secrets")
+        return Promise.resolve({ success: true, secrets: mockSecrets });
       return Promise.resolve({});
     });
 
@@ -65,8 +83,10 @@ describe("SecretsPage", () => {
 
   it("shows create modal", async () => {
     mockApiFetch.mockImplementation((url: string) => {
-      if (url === "/projects/proj-1") return Promise.resolve({ success: true, project: mockProject });
-      if (url === "/projects/proj-1/secrets") return Promise.resolve({ success: true, secrets: mockSecrets });
+      if (url === "/projects/proj-1")
+        return Promise.resolve({ success: true, project: mockProject });
+      if (url === "/projects/proj-1/secrets")
+        return Promise.resolve({ success: true, secrets: mockSecrets });
       return Promise.resolve({});
     });
 
@@ -82,8 +102,10 @@ describe("SecretsPage", () => {
 
   it("shows edit modal", async () => {
     mockApiFetch.mockImplementation((url: string) => {
-      if (url === "/projects/proj-1") return Promise.resolve({ success: true, project: mockProject });
-      if (url === "/projects/proj-1/secrets") return Promise.resolve({ success: true, secrets: mockSecrets });
+      if (url === "/projects/proj-1")
+        return Promise.resolve({ success: true, project: mockProject });
+      if (url === "/projects/proj-1/secrets")
+        return Promise.resolve({ success: true, secrets: mockSecrets });
       return Promise.resolve({});
     });
 
@@ -98,8 +120,10 @@ describe("SecretsPage", () => {
 
   it("renders empty state", async () => {
     mockApiFetch.mockImplementation((url: string) => {
-      if (url === "/projects/proj-1") return Promise.resolve({ success: true, project: mockProject });
-      if (url === "/projects/proj-1/secrets") return Promise.resolve({ success: true, secrets: [] });
+      if (url === "/projects/proj-1")
+        return Promise.resolve({ success: true, project: mockProject });
+      if (url === "/projects/proj-1/secrets")
+        return Promise.resolve({ success: true, secrets: [] });
       return Promise.resolve({});
     });
 

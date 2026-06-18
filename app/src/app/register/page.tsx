@@ -111,7 +111,10 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-slate-300 mb-1.5"
+            >
               Confirm password
             </label>
             <input

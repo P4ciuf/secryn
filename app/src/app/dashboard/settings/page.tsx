@@ -109,12 +109,17 @@ export default function SettingsPage() {
   async function handleMfaSetup() {
     setMfaLoading(true);
     try {
-      const res = await apiFetch<{ success: boolean; secret: string; qrCode: string }>("/auth/mfa/setup");
+      const res = await apiFetch<{ success: boolean; secret: string; qrCode: string }>(
+        "/auth/mfa/setup",
+      );
       setMfaSecret(res.secret);
       setQrCode(res.qrCode);
       setShowMfaSetup(true);
     } catch (err) {
-      setMessage({ type: "error", text: err instanceof ApiError ? err.message : "MFA setup failed" });
+      setMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "MFA setup failed",
+      });
     } finally {
       setMfaLoading(false);
     }
@@ -124,17 +129,23 @@ export default function SettingsPage() {
     e.preventDefault();
     setMfaLoading(true);
     try {
-      const res = await apiFetch<{ success: boolean; recoveryCodes: string[] }>("/auth/mfa/enable", {
-        method: "POST",
-        body: JSON.stringify({ token: mfaToken, secret: mfaSecret }),
-      });
+      const res = await apiFetch<{ success: boolean; recoveryCodes: string[] }>(
+        "/auth/mfa/enable",
+        {
+          method: "POST",
+          body: JSON.stringify({ token: mfaToken, secret: mfaSecret }),
+        },
+      );
       setRecoveryCodes(res.recoveryCodes ?? []);
       setShowRecoveryCodes(true);
       setShowMfaSetup(false);
       setMfaEnabled(true);
       setMfaToken("");
     } catch (err) {
-      setMessage({ type: "error", text: err instanceof ApiError ? err.message : "MFA enable failed" });
+      setMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "MFA enable failed",
+      });
     } finally {
       setMfaLoading(false);
     }
@@ -148,7 +159,10 @@ export default function SettingsPage() {
       setMfaEnabled(false);
       setMessage({ type: "success", text: "MFA disabled." });
     } catch (err) {
-      setMessage({ type: "error", text: err instanceof ApiError ? err.message : "MFA disable failed" });
+      setMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "MFA disable failed",
+      });
     } finally {
       setMfaLoading(false);
     }
@@ -165,7 +179,10 @@ export default function SettingsPage() {
       setRecoveryCodes(res.recoveryCodes ?? []);
       setShowRecoveryCodes(true);
     } catch (err) {
-      setMessage({ type: "error", text: err instanceof ApiError ? err.message : "Regeneration failed" });
+      setMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "Regeneration failed",
+      });
     } finally {
       setMfaLoading(false);
     }
@@ -173,12 +190,20 @@ export default function SettingsPage() {
 
   async function handleDeleteAccount() {
     if (!confirm("Delete your account? This action cannot be undone.")) return;
-    if (!confirm("Are you absolutely sure? All projects, secrets, and API keys will be permanently deleted.")) return;
+    if (
+      !confirm(
+        "Are you absolutely sure? All projects, secrets, and API keys will be permanently deleted.",
+      )
+    )
+      return;
     try {
       await apiFetch("/users/me", { method: "DELETE" });
       window.location.href = "/login";
     } catch (err) {
-      setMessage({ type: "error", text: err instanceof ApiError ? err.message : "Deletion failed" });
+      setMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "Deletion failed",
+      });
     }
   }
 
@@ -246,7 +271,9 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold mb-4">Change Password</h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Current password</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              Current password
+            </label>
             <input
               type="password"
               required
@@ -266,7 +293,9 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Confirm new password</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              Confirm new password
+            </label>
             <input
               type="password"
               required
@@ -322,7 +351,9 @@ export default function SettingsPage() {
             </div>
             <form onSubmit={handleMfaEnable} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Verification code</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Verification code
+                </label>
                 <input
                   type="text"
                   required
@@ -352,7 +383,10 @@ export default function SettingsPage() {
             </p>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {recoveryCodes.map((code, i) => (
-                <code key={i} className="bg-slate-900 px-3 py-1.5 rounded text-xs text-slate-300 font-mono">
+                <code
+                  key={i}
+                  className="bg-slate-900 px-3 py-1.5 rounded text-xs text-slate-300 font-mono"
+                >
                   {code}
                 </code>
               ))}

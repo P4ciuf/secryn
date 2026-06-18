@@ -105,7 +105,10 @@ export default function ProjectsPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-slate-800/30 rounded-lg p-5 border border-slate-700 animate-pulse">
+            <div
+              key={i}
+              className="bg-slate-800/30 rounded-lg p-5 border border-slate-700 animate-pulse"
+            >
               <div className="h-4 bg-slate-700 rounded w-40 mb-2" />
               <div className="h-3 bg-slate-700 rounded w-60" />
             </div>
