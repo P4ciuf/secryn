@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "../db/prisma.js";
+import { prisma } from "../db/prisma";
 
 /**
  * Project entity with all top-level relations included (owner, members, invites, secrets).

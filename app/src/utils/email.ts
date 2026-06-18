@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { EnvUtils } from "./env.js";
+import { EnvUtils } from "./env";
 import { logger } from "@repo/shared";
 
 /**

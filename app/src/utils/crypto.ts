@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { EnvUtils } from "./env.js";
+import { EnvUtils } from "./env";
 
 // Fixed salt enables deterministic key derivation: the same ENCRYPTION_KEY
 // always produces the same 32-byte AES key, which is required for decrypting
@@ -65,7 +65,8 @@ export class CryptoUtils {
    * @throws {Error} When the encrypted value is malformed (missing colon separators)
    */
   async decrypt(): Promise<string> {
-    const [ivHex, tagHex, encryptedHex] = this.value.split(":");
+    const validValue = this.value.replace("sc_", "");
+    const [ivHex, tagHex, encryptedHex] = validValue.split(":");
     if (!ivHex || !tagHex || !encryptedHex) throw new Error("Invalid encrypted value");
 
     const decipher = crypto.createDecipheriv(
@@ -81,6 +82,8 @@ export class CryptoUtils {
       decipher.final(),
     ]);
 
-    return decrypted.toString("utf8");
+    return this.value.startsWith("sc_")
+      ? `sc_${decrypted.toString("utf8")}`
+      : decrypted.toString("utf8");
   }
 }

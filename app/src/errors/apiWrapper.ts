@@ -3,9 +3,6 @@ import { logger } from "@repo/shared";
 import { ApiError } from "./apiError";
 import type { ErrorResponse } from "@/types/error";
 
-type RouteHandler = (req: Request, context?: unknown) => Promise<Response>;
-
-/** Builds a standardized {@link ErrorResponse} payload, conditionally including details. */
 function standardErrorResponse(props: {
   name: string;
   message: string;
@@ -22,27 +19,31 @@ function standardErrorResponse(props: {
 }
 
 /**
- * Wraps a Next.js route handler with centralized error handling.
+ * Higher-order function that wraps a Next.js Route Handler to provide
+ * centralized error handling. Catches synchronous and asynchronous errors,
+ * converts them to a standardized JSON error response, and logs the error
+ * (skipped in the `test` environment).
  *
- * Catches thrown errors and maps them to a structured JSON response:
- * - {@link ApiError} instances use their own status code and error code.
- * - Objects with a `validation` property are treated as 400 validation errors.
- * - Objects with a numeric `statusCode` (e.g. rate-limit errors) are forwarded as-is.
- * - Everything else becomes a generic 500 Internal Server Error.
+ * Recognized error types:
+ * - `ApiError` — used directly with its status code and code.
+ * - Object with `validation` property — treated as a 400 Bad Request.
+ * - Object with numeric `statusCode` — treated as a rate-limiting error (429).
+ * - Anything else — treated as a generic 500 Internal Server Error.
  *
- * @param handler - The route handler to wrap.
- * @returns A function with the same signature that catches and formats errors.
+ * @param handler - The raw route handler (GET, POST, etc.) to wrap.
+ * @returns A new handler with the same signature that delegates to `handler`
+ *          inside a try/catch block.
  */
-export function withErrorHandler(handler: RouteHandler) {
-  return async (req: Request, context?: unknown): Promise<Response> => {
+export function withErrorHandler(
+  handler: (request: Request, context?: unknown) => Promise<Response>,
+): (request: Request, context?: unknown) => Promise<Response> {
+  return async (req, context) => {
     try {
       return await handler(req, context);
     } catch (error: unknown) {
-      // Suppress error logging during tests to keep output clean
       if (process.env.NODE_ENV !== "test") {
         logger.error(
-          "New Error detected:",
-          JSON.stringify(error, Object.getOwnPropertyNames(error)),
+          `New Error detected: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`,
         );
       }
 
@@ -68,7 +69,6 @@ export function withErrorHandler(handler: RouteHandler) {
         typeof (error as { statusCode: unknown }).statusCode === "number"
       ) {
         const err = error as { statusCode: number; message?: string };
-
         errorResponse = standardErrorResponse({
           name: "TOO_MANY_REQUESTS",
           message: err.message ?? "Request error",

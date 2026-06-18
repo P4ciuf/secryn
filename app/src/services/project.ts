@@ -1,15 +1,19 @@
 import { ProjectMemberPermission, type Prisma } from "@prisma/client";
-import { AppError } from "../../core/errors/appError.js";
-import { UserService } from "../user/service.js";
-import { projectRepository, type FullProject } from "./repository.js";
-import { EmailUtils } from "../../utils/email.js";
-import { EnvUtils } from "../../utils/env.js";
-import { PolicyProject } from "./policy.js";
-import { generateInvitationExpiryDate, generateSlugFromName, ownsProject } from "./helper.js";
-import type { FullUser } from "../user/repository.js";
+import { ApiError } from "../errors/apiError";
+import { UserService } from "./user";
+import { projectRepository, type FullProject } from "../repositories/project";
+import { EmailUtils } from "../utils/email";
+import { EnvUtils } from "../utils/env";
+import {
+  PolicyProject,
+  generateInvitationExpiryDate,
+  generateSlugFromName,
+  ownsProject,
+} from "../utils/project";
+import type { FullUser } from "../repositories/user";
 import { readFileSync } from "node:fs";
 import { logger } from "@repo/shared";
-import { CryptoUtils } from "../../utils/crypto.js";
+import { CryptoUtils } from "../utils/crypto";
 
 /**
  * Business-logic layer for project operations.
@@ -39,7 +43,7 @@ export class ProjectService {
    * @async
    * @param userId - The authenticated user's ID
    * @returns A ProjectService instance bound to the resolved user
-   * @throws {AppError} ResourceNotFound — when the user does not exist
+   * @throws {ApiError} ResourceNotFound — when the user does not exist
    */
   static async Instance(userId: string): Promise<ProjectService> {
     const userService = await UserService.Instance(userId);
@@ -62,14 +66,14 @@ export class ProjectService {
 
   /**
    * Checks whether a project matching the given criteria already exists.
-   * Throws {@link AppError.BadRequest} if a match is found — no return value on success.
+   * Throws {@link ApiError.BadRequest} if a match is found — no return value on success.
    *
    * @param where - Search criteria to check for an existing project
-   * @throws {AppError} BadRequest — when a matching project already exists
+   * @throws {ApiError} BadRequest — when a matching project already exists
    */
   private async alreadyExistsProject(where: Prisma.ProjectWhereInput) {
     const project = await this.repository.findProject(where);
-    if (project) throw AppError.BadRequest("Project already exists");
+    if (project) throw ApiError.BadRequest("Project already exists");
   }
 
   /**
@@ -81,7 +85,7 @@ export class ProjectService {
    * @param name - The display name of the project
    * @param desc - The project description (can be empty)
    * @returns The newly created project, including owner, members, invites, and secrets
-   * @throws {AppError} BadRequest — when a project with the same name or slug already exists
+   * @throws {ApiError} BadRequest — when a project with the same name or slug already exists
    */
   async createProject(name: string, desc: string) {
     const slug = generateSlugFromName(name);
@@ -111,8 +115,8 @@ export class ProjectService {
    *
    * @async
    * @param where - Unique identifier for the project to delete
-   * @throws {AppError} NotFound — when the project does not exist
-   * @throws {AppError} Forbidden — when the current user is not the project owner
+   * @throws {ApiError} NotFound — when the project does not exist
+   * @throws {ApiError} Forbidden — when the current user is not the project owner
    */
   async deleteProject(where: Prisma.ProjectWhereUniqueInput): Promise<void> {
     const project = await this.getProjectOrThrow(where);
@@ -133,9 +137,9 @@ export class ProjectService {
    * @param data.name - When provided and different from the current name, regenerates the slug
    * @param data.description - When omitted, the existing description is preserved
    * @returns The updated project with the new name, slug, and description
-   * @throws {AppError} NotFound — when the project does not exist
-   * @throws {AppError} Forbidden — when the current user is not the project owner
-   * @throws {AppError} BadRequest — when the new name or derived slug conflicts with an existing project
+   * @throws {ApiError} NotFound — when the project does not exist
+   * @throws {ApiError} Forbidden — when the current user is not the project owner
+   * @throws {ApiError} BadRequest — when the new name or derived slug conflicts with an existing project
    */
   async updateProject(
     where: Prisma.ProjectWhereUniqueInput,
@@ -165,8 +169,8 @@ export class ProjectService {
    * @param where - Unique identifier for the project to transfer
    * @param toUserId - ID of the existing member who will become the new owner
    * @returns The updated project reflecting the new owner
-   * @throws {AppError} NotFound — when the project or target member does not exist
-   * @throws {AppError} Forbidden — when the current user is not the current project owner
+   * @throws {ApiError} NotFound — when the project or target member does not exist
+   * @throws {ApiError} Forbidden — when the current user is not the current project owner
    */
   async transferOwnerProject(where: Prisma.ProjectWhereUniqueInput, toUserId: string) {
     const project = await this.getProjectOrThrow(where);
@@ -218,11 +222,11 @@ export class ProjectService {
    * @async
    * @param where - Unique identifier for the project
    * @returns The full project including owner, members, invites, and secrets
-   * @throws {AppError} ResourceNotFound — when the project does not exist
+   * @throws {ApiError} ResourceNotFound — when the project does not exist
    */
   async getProjectOrThrow(where: Prisma.ProjectWhereUniqueInput): Promise<FullProject> {
     const project = await this.repository.findProject(where);
-    if (!project) throw AppError.ResourceNotFound("Project");
+    if (!project) throw ApiError.ResourceNotFound("Project");
     return project;
   }
 
@@ -255,15 +259,15 @@ export class ProjectService {
    * @async
    * @param toEmail - Email of the registered user to invite
    * @param projectId - ID of the project the user is being invited to
-   * @throws {AppError} ResourceNotFound — when the invitee or the inviter's membership is not found
-   * @throws {AppError} Forbidden — when the inviter lacks the required permission
-   * @throws {AppError} BadRequest — when the invited user is already a project member
+   * @throws {ApiError} ResourceNotFound — when the invitee or the inviter's membership is not found
+   * @throws {ApiError} Forbidden — when the inviter lacks the required permission
+   * @throws {ApiError} BadRequest — when the invited user is already a project member
    */
   async createInvite(toEmail: string, projectId: string) {
     const toUser = await this.userService.getUser({ email: toEmail });
 
     if (!toUser) {
-      throw AppError.ResourceNotFound("User not found");
+      throw ApiError.ResourceNotFound("User not found");
     }
 
     const project = await this.getProjectOrThrow({ id: projectId });
@@ -279,14 +283,14 @@ export class ProjectService {
 
     if (!fromMemberPermission) throw Error("Member permission not found");
     if (!this.policy.hasPermission(fromMemberPermission, ProjectMemberPermission.CREATE_INVITES)) {
-      throw AppError.Forbidden("You don't have permission to create invites");
+      throw ApiError.Forbidden("You don't have permission to create invites");
     }
 
     const existsUserMember = await this.getMember({
       user: { id: toUser.id },
       project: { id: project.id },
     });
-    if (existsUserMember) throw AppError.BadRequest("User is already a member of this project");
+    if (existsUserMember) throw ApiError.BadRequest("User is already a member of this project");
 
     const expiresAt = generateInvitationExpiryDate();
 
@@ -296,7 +300,10 @@ export class ProjectService {
       expiresAt,
     });
 
-    const template = readFileSync(`${import.meta.dirname}/email/projectInvitation.html`, "utf-8");
+    const template = readFileSync(
+      `${process.cwd()}/app/src/template/projectInvitation.html`,
+      "utf-8",
+    );
 
     // HTML-escape the invitee email to prevent content injection into the
     // email body (the email address is interpolated into the HTML template).
@@ -308,7 +315,7 @@ export class ProjectService {
 
     const emailHTMLContent = template
       .replace("{{EMAIL}}", escapeHtml(toUser.email))
-      .replace("{{INVITE_URL}}", `${EnvUtils.envVariables().appUrl}/join/${invite.slug}`)
+      .replace("{{INVITE_URL}}", `${EnvUtils.variables.appUrl}/join/${invite.slug}`)
       .replace("{{YEAR}}", String(new Date().getFullYear()));
 
     await new EmailUtils().sendEmail(toUser.email, "Invitation to join project", emailHTMLContent);
@@ -331,11 +338,11 @@ export class ProjectService {
    *
    * @param where - Prisma filter for the project member
    * @returns The matching ProjectMember record
-   * @throws {AppError} ResourceNotFound — when no member matches the criteria
+   * @throws {ApiError} ResourceNotFound — when no member matches the criteria
    */
   async getMemberOrThrow(where: Prisma.ProjectMemberWhereInput) {
     const member = await this.getMember(where);
-    if (!member) throw AppError.ResourceNotFound("Member");
+    if (!member) throw ApiError.ResourceNotFound("Member");
     return member;
   }
 
@@ -344,11 +351,11 @@ export class ProjectService {
    *
    * @param where - Prisma unique input identifying the invite
    * @returns The matching ProjectInvite record
-   * @throws {AppError} ResourceNotFound — when no invite matches
+   * @throws {ApiError} ResourceNotFound — when no invite matches
    */
   async getInviteOrThrow(where: Prisma.ProjectInviteWhereUniqueInput) {
     const invite = await this.repository.findProjectInvite(where);
-    if (!invite) throw AppError.ResourceNotFound("Invite");
+    if (!invite) throw ApiError.ResourceNotFound("Invite");
     return invite;
   }
 
@@ -358,19 +365,19 @@ export class ProjectService {
    *
    * @async
    * @param slug - The unique invitation slug from the invite link
-   * @throws {AppError} ResourceNotFound — when the invite does not exist
-   * @throws {AppError} BadRequest — when the invite has expired or the user is already a member
+   * @throws {ApiError} ResourceNotFound — when the invite does not exist
+   * @throws {ApiError} BadRequest — when the invite has expired or the user is already a member
    */
   async acceptInvite(slug: string): Promise<void> {
     const invite = await this.getInviteOrThrow({ slug });
 
-    if (invite.expiresAt < new Date()) throw AppError.BadRequest("Invite has expired");
+    if (invite.expiresAt < new Date()) throw ApiError.BadRequest("Invite has expired");
 
     const existsUserMember = await this.getMember({
       user: { id: this.user.id },
       project: { id: invite.projectId },
     });
-    if (existsUserMember) throw AppError.BadRequest("User is already a member of this project");
+    if (existsUserMember) throw ApiError.BadRequest("User is already a member of this project");
 
     await this.repository.createMember({
       user: { connect: { id: this.user.id } },
@@ -389,11 +396,11 @@ export class ProjectService {
    * @async
    * @param memberId - ID of the project member to remove
    * @param projectId - ID of the project the member belongs to
-   * @throws {AppError} ResourceNotFound — when the project, the target member,
+   * @throws {ApiError} ResourceNotFound — when the project, the target member,
    *   or the member's permission assignment does not exist
-   * @throws {AppError} Forbidden — when the member being removed does not hold
+   * @throws {ApiError} Forbidden — when the member being removed does not hold
    *   ALL or REMOVE_MEMBERS permission
-   * @throws {AppError} BadRequest — when attempting to remove the authenticated user
+   * @throws {ApiError} BadRequest — when attempting to remove the authenticated user
    */
   async removeMemberToProject(memberId: string, projectId: string): Promise<void> {
     const project = await this.getProjectOrThrow({ id: projectId });
@@ -404,10 +411,10 @@ export class ProjectService {
     });
 
     if (!this.policy.hasPermission(memberPermission, ProjectMemberPermission.REMOVE_MEMBERS)) {
-      throw AppError.Forbidden("You don't have permission to remove members");
+      throw ApiError.Forbidden("You don't have permission to remove members");
     }
 
-    if (member.userId === this.user.id) throw AppError.BadRequest("You cannot remove yourself");
+    if (member.userId === this.user.id) throw ApiError.BadRequest("You cannot remove yourself");
 
     await this.repository.deleteProjectMember({ id: member.id, projectId: project.id });
   }
@@ -420,9 +427,9 @@ export class ProjectService {
    * @param memberId - ID of the project member receiving the permissions
    * @param projectId - Project in which the permissions are granted
    * @param permissions - Set of `ProjectMemberPermission` values to assign
-   * @throws {AppError} ResourceNotFound — when the member, the caller's membership,
+   * @throws {ApiError} ResourceNotFound — when the member, the caller's membership,
    *   or the permission assignment is not found
-   * @throws {AppError} Forbidden — when the caller lacks MANAGE_MEMBERS or ALL permission
+   * @throws {ApiError} Forbidden — when the caller lacks MANAGE_MEMBERS or ALL permission
    */
   async addPermissionsToMember(
     memberId: string,
@@ -440,7 +447,7 @@ export class ProjectService {
     });
 
     if (!this.policy.hasPermission(adminPermission, ProjectMemberPermission.MANAGE_MEMBERS)) {
-      throw AppError.Forbidden("You don't have permission to add permissions");
+      throw ApiError.Forbidden("You don't have permission to add permissions");
     }
 
     for (const permission of permissions) {
@@ -460,9 +467,9 @@ export class ProjectService {
    * @param memberId - ID of the project member whose permissions are being revoked
    * @param projectId - Project the member belongs to
    * @param permissions - Set of `ProjectMemberPermission` values to revoke
-   * @throws {AppError} ResourceNotFound — when the member, the caller's membership,
+   * @throws {ApiError} ResourceNotFound — when the member, the caller's membership,
    *   or the permission assignment is not found
-   * @throws {AppError} Forbidden — when the caller lacks MANAGE_MEMBERS or ALL permission
+   * @throws {ApiError} Forbidden — when the caller lacks MANAGE_MEMBERS or ALL permission
    */
   async removePermissionsFromMember(
     memberId: string,
@@ -480,7 +487,7 @@ export class ProjectService {
     });
 
     if (!this.policy.hasPermission(adminPermission, ProjectMemberPermission.MANAGE_MEMBERS)) {
-      throw AppError.Forbidden("You don't have permission to remove permissions");
+      throw ApiError.Forbidden("You don't have permission to remove permissions");
     }
 
     for (const permission of permissions) {
@@ -506,11 +513,11 @@ export class ProjectService {
    *
    * @param where - Prisma filter for permission assignments
    * @returns The first matching ProjectMemberPermissionAssignment record
-   * @throws {AppError} ResourceNotFound — when no assignment matches the criteria
+   * @throws {ApiError} ResourceNotFound — when no assignment matches the criteria
    */
   async getPermissionAssignmentOrThrow(where: Prisma.ProjectMemberPermissionAssignmentWhereInput) {
     const permissionAssignment = await this.getPermissionAssignment(where);
-    if (!permissionAssignment) throw AppError.ResourceNotFound("Permission assignment");
+    if (!permissionAssignment) throw ApiError.ResourceNotFound("Permission assignment");
     return permissionAssignment;
   }
 
@@ -526,8 +533,8 @@ export class ProjectService {
    * @param projectId - ID of the project to create the secret in
    * @param data - Name, value, and optional notes for the secret
    * @returns The created secret record (value is stored encrypted)
-   * @throws {AppError} ResourceNotFound — when the project, member, or permission assignment does not exist
-   * @throws {AppError} Forbidden — when the caller lacks CREATE_SECRETS or ALL permission
+   * @throws {ApiError} ResourceNotFound — when the project, member, or permission assignment does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks CREATE_SECRETS or ALL permission
    */
   async createSecret(
     projectId: string,
@@ -542,7 +549,7 @@ export class ProjectService {
       projectMember: { id: member.id },
     });
     if (!this.policy.hasPermission(permission, ProjectMemberPermission.CREATE_SECRETS)) {
-      throw AppError.Forbidden("You don't have permission to create secrets");
+      throw ApiError.Forbidden("You don't have permission to create secrets");
     }
 
     const plainValue = data.value;
@@ -578,8 +585,8 @@ export class ProjectService {
    *
    * @async
    * @param id - Unique identifier of the secret to delete
-   * @throws {AppError} ResourceNotFound — when the secret, member, or permission assignment does not exist
-   * @throws {AppError} Forbidden — when the caller lacks DELETE_SECRETS or ALL permission
+   * @throws {ApiError} ResourceNotFound — when the secret, member, or permission assignment does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks DELETE_SECRETS or ALL permission
    */
   async deleteSecret(id: string) {
     const secret = await this.getSecretOrThrow(id);
@@ -591,7 +598,7 @@ export class ProjectService {
       projectMember: { id: member.id },
     });
     if (!this.policy.hasPermission(permission, ProjectMemberPermission.DELETE_SECRETS)) {
-      throw AppError.Forbidden("You don't have permission to delete secrets");
+      throw ApiError.Forbidden("You don't have permission to delete secrets");
     }
 
     logger.audit("SECRET_DELETED", this.user.email, `secret:${id}`, {
@@ -615,8 +622,8 @@ export class ProjectService {
    * @param id - Unique identifier of the secret to update
    * @param data - Partial fields to update ({@code name?}, {@code notes?}, {@code value?})
    * @returns The updated secret record (value is stored encrypted)
-   * @throws {AppError} ResourceNotFound — when the member, permission assignment, or secret does not exist
-   * @throws {AppError} Forbidden — when the caller lacks UPDATE_SECRETS or ALL permission
+   * @throws {ApiError} ResourceNotFound — when the member, permission assignment, or secret does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks UPDATE_SECRETS or ALL permission
    */
   async updateSecret(id: string, data: Pick<Prisma.SecretUpdateInput, "name" | "notes" | "value">) {
     const existingSecret = await this.getSecretOrThrow(id);
@@ -628,7 +635,7 @@ export class ProjectService {
       projectMember: { id: member.id },
     });
     if (!this.policy.hasPermission(permission, ProjectMemberPermission.UPDATE_SECRETS)) {
-      throw AppError.Forbidden("You don't have permission to update secrets");
+      throw ApiError.Forbidden("You don't have permission to update secrets");
     }
 
     const secretValue = data.value ?? existingSecret.value;
@@ -663,8 +670,8 @@ export class ProjectService {
    * @async
    * @param id - Unique identifier of the secret
    * @returns The secret with its value decrypted, or {@code null} if not found
-   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
-   * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
+   * @throws {ApiError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
    */
   async getSecret(id: string) {
     const cryptedSecret = await this.repository.findSecret({ id });
@@ -678,7 +685,7 @@ export class ProjectService {
       projectMember: { id: member.id },
     });
     if (!this.policy.hasPermission(permission, ProjectMemberPermission.READ_SECRETS)) {
-      throw AppError.Forbidden("You don't have permission to read secrets");
+      throw ApiError.Forbidden("You don't have permission to read secrets");
     }
 
     const crypter = new CryptoUtils(cryptedSecret.value);
@@ -702,12 +709,12 @@ export class ProjectService {
    * @async
    * @param id - Unique identifier of the secret
    * @returns The secret with its value decrypted
-   * @throws {AppError} ResourceNotFound — when the secret does not exist
-   * @throws {AppError} Forbidden — when the caller lacks the required permission
+   * @throws {ApiError} ResourceNotFound — when the secret does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks the required permission
    */
   async getSecretOrThrow(id: string) {
     const secret = await this.getSecret(id);
-    if (!secret) throw AppError.ResourceNotFound("Secret");
+    if (!secret) throw ApiError.ResourceNotFound("Secret");
     return secret;
   }
 
@@ -722,8 +729,8 @@ export class ProjectService {
    * @async
    * @param projectId - ID of the project whose secrets are being exported
    * @returns A dotenv-formatted string suitable for writing to a {@code .env} file
-   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
-   * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
+   * @throws {ApiError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
    */
   async exportProjectSecrets(projectId: string): Promise<string> {
     const secrets = await this.getProjectSecrets(projectId);
@@ -760,8 +767,8 @@ export class ProjectService {
    * @async
    * @param projectId - ID of the project whose secrets are being listed
    * @returns An array of secrets with decrypted values
-   * @throws {AppError} ResourceNotFound — when the member or permission assignment does not exist
-   * @throws {AppError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
+   * @throws {ApiError} ResourceNotFound — when the member or permission assignment does not exist
+   * @throws {ApiError} Forbidden — when the caller lacks READ_SECRETS or ALL permission
    */
   async getProjectSecrets(projectId: string) {
     const prefix = "[Service.getProjectSecrets]";
@@ -774,7 +781,7 @@ export class ProjectService {
       projectMember: { id: member.id },
     });
     if (!this.policy.hasPermission(permission, ProjectMemberPermission.READ_SECRETS)) {
-      throw AppError.Forbidden("You don't have permission to read secrets");
+      throw ApiError.Forbidden("You don't have permission to read secrets");
     }
 
     const encryptedSecrets = await this.repository.findManySecrets({ project: { id: projectId } });

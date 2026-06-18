@@ -1,4 +1,4 @@
-import { AppError } from "../errors/appError.js";
+import { ApiError } from "../errors/apiError";
 
 /**
  * Converts a project name to a URL-safe slug by replacing whitespace with
@@ -13,14 +13,14 @@ export function generateSlugFromName(name: string): string {
 
 /**
  * Ensures the given user is the project owner.
- * Silently returns if the user is the owner; throws {@link AppError.Forbidden} otherwise.
+ * Silently returns if the user is the owner; throws {@link ApiError.Forbidden} otherwise.
  *
  * @param userId - The authenticated user performing the operation
  * @param projectOwnerId - The ID of the project's current owner
- * @throws {AppError} with HTTP 403 if userId does not match the project owner
+ * @throws {ApiError} with HTTP 403 if userId does not match the project owner
  */
 export const ownsProject = (userId: string, projectOwnerId: string) => {
-  if (!PolicyProject.isProjectOwner(userId, projectOwnerId)) throw AppError.Forbidden();
+  if (!PolicyProject.isProjectOwner(userId, projectOwnerId)) throw ApiError.Forbidden();
 };
 
 /**

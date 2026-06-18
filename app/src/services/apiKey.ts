@@ -8,7 +8,7 @@ import { UserService } from "./user";
 import { randomBytes } from "node:crypto";
 import { CryptoUtils } from "../utils/crypto";
 import type { ApiKey, ApiKeyPermission, CreateApiKeyInput } from "@repo/shared";
-import { AppError } from "../errors/appError";
+import { ApiError } from "../errors/apiError";
 
 /**
  * Business-logic layer for API key lifecycle management.
@@ -37,7 +37,7 @@ export class ApiKeyService {
    *
    * @param userId - The authenticated user's ID
    * @returns An {@link ApiKeyService} bound to the resolved user
-   * @throws {AppError} ResourceNotFound when the user does not exist
+   * @throws {ApiError} ResourceNotFound when the user does not exist
    */
   static async Instance(userId: string): Promise<ApiKeyService> {
     const userService = await UserService.Instance(userId);
@@ -52,11 +52,11 @@ export class ApiKeyService {
    *
    * @param cryptedKey - The encrypted key string (as stored in the database)
    * @returns An {@link ApiKeyService} scoped to the key's owner
-   * @throws {AppError} Unauthorized when the key does not exist
+   * @throws {ApiError} Unauthorized when the key does not exist
    */
   static async SystemInstance(cryptedKey: string): Promise<ApiKeyService> {
     const apiKey = await apiKeyRepository.findApiKey({ key: cryptedKey });
-    if (!apiKey) throw AppError.Unauthorized("Api key not found");
+    if (!apiKey) throw ApiError.Unauthorized("Api key not found");
     return this.Instance(apiKey.userId);
   }
 
@@ -153,10 +153,10 @@ export class ApiKeyService {
     return await this.getApiKey({ key });
   }
 
-  /** Like {@link getApiKey} but throws {@link AppError.ResourceNotFound} when the key is absent. */
+  /** Like {@link getApiKey} but throws {@link ApiError.ResourceNotFound} when the key is absent. */
   async getApiKeyOrThrow(where: Prisma.ApiKeyWhereInput) {
     const apiKey = await this.getApiKey(where);
-    if (!apiKey) throw AppError.ResourceNotFound("Api Key");
+    if (!apiKey) throw ApiError.ResourceNotFound("Api Key");
     return apiKey;
   }
 

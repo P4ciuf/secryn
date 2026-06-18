@@ -1,22 +1,29 @@
 import dotenv from "dotenv";
-// Load .env at import time so every consumer sees the variables without manual setup
 dotenv.config({ path: ".env" });
 
+interface EnvVariables {
+  readonly port: string;
+  readonly nodeEnv: string;
+  readonly databaseUrl: string;
+  readonly postgresUser: string;
+  readonly postgresPassword: string;
+  readonly postgresDb: string;
+  readonly email: string;
+  readonly resendApiKey: string;
+  readonly encryptionKey: string;
+  readonly jwtSecret: string;
+  readonly appUrl: string;
+  readonly redisUrl: string;
+  readonly corsOrigins: string | undefined;
+}
+
 /**
- * Centralized environment variable access with validation.
- * Every public getter validates that the required variable exists,
- * so callers never need to check for undefined values.
+ * Centralized environment variable access with lazy validation.
  *
- * @since 1.0.0
+ * Variables are validated only when first accessed, not at module load time.
+ * This prevents runtime errors during Next.js build where env vars are absent.
  */
 export class EnvUtils {
-  /**
-   * Reads a single env var and throws if it is missing.
-   *
-   * @param key - Name of the environment variable
-   * @returns The variable value (guaranteed non-empty)
-   * @throws {Error} If the variable is not set or is empty
-   */
   private static getKey(key: string): string {
     const value = process.env[key];
     if (!value) {
@@ -26,20 +33,30 @@ export class EnvUtils {
   }
 
   /**
-   * Validates that every returned env variable is defined.
-   * Recursively walks the raw object so nested values are also checked.
-   *
-   * @throws {Error} With a list of all missing or invalid keys
+   * Validates that all required environment variables are present. Throws
+   * with a list of missing keys. Useful for health checks and startup guards.
    */
   static checkEnv(): void {
     const missing: string[] = [];
-    const env = this.envVariables_raw();
+    const env: Record<string, unknown> = {
+      port: process.env["PORT"],
+      nodeEnv: process.env["NODE_ENV"],
+      databaseUrl: process.env["DATABASE_URL"],
+      postgresUser: process.env["POSTGRES_USER"],
+      postgresPassword: process.env["POSTGRES_PASSWORD"],
+      postgresDb: process.env["POSTGRES_DB"],
+      email: process.env["EMAIL"],
+      resendApiKey: process.env["RESEND_API_KEY"],
+      encryptionKey: process.env["ENCRYPTION_KEY"],
+      jwtSecret: process.env["JWT_SECRET"],
+      appUrl: process.env["APP_URL"],
+      redisUrl: process.env["REDIS_URL"],
+      corsOrigins: process.env["CORS_ORIGINS"],
+    };
 
-    // Walk the plain object recursively so nested groups are validated too
     const check = (obj: Record<string, unknown>, prefix?: string): void => {
       for (const [key, value] of Object.entries(obj)) {
         const fullKey = prefix ? `${prefix}.${key}` : key;
-
         if (value === undefined || value === null || (typeof value === "number" && isNaN(value))) {
           missing.push(fullKey);
         } else if (typeof value === "object" && !Array.isArray(value)) {
@@ -55,55 +72,57 @@ export class EnvUtils {
     }
   }
 
-  /**
-   * Returns every known env variable **without** validation.
-   * Useful only internally when you need to inspect the raw state
-   * without triggering errors.
-   *
-   * @returns A flat record of all expected env-variable names and their current values
-   */
-  private static envVariables_raw(): Record<string, unknown> {
-    return {
-      port: process.env["PORT"],
-      nodeEnv: process.env["NODE_ENV"],
-      databaseUrl: process.env["DATABASE_URL"],
-      postgresUser: process.env["POSTGRES_USER"],
-      postgresPassword: process.env["POSTGRES_PASSWORD"],
-      postgresDb: process.env["POSTGRES_DB"],
-      email: process.env["EMAIL"],
-      resendApiKey: process.env["RESEND_API_KEY"],
-      encryptionKey: process.env["ENCRYPTION_KEY"],
-      jwtSecret: process.env["JWT_SECRET"],
-      appUrl: process.env["APP_URL"],
-      redisUrl: process.env["REDIS_URL"],
-      // corsOrigins is optional — when omitted, CORS falls back to APP_URL
-      corsOrigins: process.env["CORS_ORIGINS"],
-    };
-  }
+  private static _cache: EnvVariables | undefined;
 
   /**
-   * Returns all validated environment variables.
-   * Calls `checkEnv()` first as a side effect — if validation fails
-   * the error propagates before any value is returned.
-   *
-   * @returns All required env vars with guaranteed non-empty string values
-   * @throws {Error} If any required variable is missing (delegated from `checkEnv`)
+   * Lazy-initialized, frozen object that validates each variable via a
+   * getter only on first access. Using accessors instead of direct values
+   * prevents errors at module load time (e.g. during Next.js build).
    */
-  static variables = {
-    port: this.getKey("PORT"),
-    nodeEnv: this.getKey("NODE_ENV"),
-    databaseUrl: this.getKey("DATABASE_URL"),
-    postgresUser: this.getKey("POSTGRES_USER"),
-    postgresPassword: this.getKey("POSTGRES_PASSWORD"),
-    postgresDb: this.getKey("POSTGRES_DB"),
-    email: this.getKey("EMAIL"),
-    resendApiKey: this.getKey("RESEND_API_KEY"),
-    encryptionKey: this.getKey("ENCRYPTION_KEY"),
-    jwtSecret: this.getKey("JWT_SECRET"),
-    appUrl: this.getKey("APP_URL"),
-    redisUrl: this.getKey("REDIS_URL"),
-    // corsOrigins is intentionally optional — not validated via getKey().
-    // When undefined, the CORS plugin in main.ts falls back to APP_URL.
-    corsOrigins: process.env["CORS_ORIGINS"],
-  } as const;
+  static get variables(): EnvVariables {
+    if (!this._cache) {
+      this._cache = Object.freeze({
+        get port() {
+          return EnvUtils.getKey("PORT");
+        },
+        get nodeEnv() {
+          return EnvUtils.getKey("NODE_ENV");
+        },
+        get databaseUrl() {
+          return EnvUtils.getKey("DATABASE_URL");
+        },
+        get postgresUser() {
+          return EnvUtils.getKey("POSTGRES_USER");
+        },
+        get postgresPassword() {
+          return EnvUtils.getKey("POSTGRES_PASSWORD");
+        },
+        get postgresDb() {
+          return EnvUtils.getKey("POSTGRES_DB");
+        },
+        get email() {
+          return EnvUtils.getKey("EMAIL");
+        },
+        get resendApiKey() {
+          return EnvUtils.getKey("RESEND_API_KEY");
+        },
+        get encryptionKey() {
+          return EnvUtils.getKey("ENCRYPTION_KEY");
+        },
+        get jwtSecret() {
+          return EnvUtils.getKey("JWT_SECRET");
+        },
+        get appUrl() {
+          return EnvUtils.getKey("APP_URL");
+        },
+        get redisUrl() {
+          return EnvUtils.getKey("REDIS_URL");
+        },
+        get corsOrigins() {
+          return process.env["CORS_ORIGINS"];
+        },
+      }) as EnvVariables;
+    }
+    return this._cache;
+  }
 }
