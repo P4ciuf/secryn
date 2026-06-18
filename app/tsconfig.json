@@ -21,7 +21,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@repo/shared": ["../packages/shared/index.ts"]
+      "@repo/shared": ["../packages/shared"]
     }
   },
   "include": [

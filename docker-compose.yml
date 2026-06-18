@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:18-alpine
-    container_name: db
+    container_name: secryn_db
     restart: unless-stopped
     env_file: .env
     environment:
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: secryn_redis
     restart: unless-stopped
     volumes:
       - secryn_redis:/data
@@ -32,41 +32,21 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
+  app:
     build:
       context: ./
-      dockerfile: apps/api/Dockerfile
-    container_name: api
+      dockerfile: app/Dockerfile
+    container_name: secryn_app
     restart: unless-stopped
     env_file: .env
+    ports:
+      - "3000:3000"
     networks:
       - secryn-net
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  web:
-    build:
-      context: ./
-      dockerfile: apps/web/Dockerfile
-    container_name: web
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./ssl:/etc/nginx/ssl:ro
-    networks:
-      - secryn-net
-    depends_on:
-      api:
         condition: service_healthy
 
 networks:
