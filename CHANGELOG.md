@@ -7,6 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [Unreleased]
 
+### Added
+- nginx reverse proxy service in `docker-compose.yml` with ports 80/443, `./ssl` volume mount, and `secryn_nginx` container (`docker-compose.yml`)
+- `nginx.conf` — HTTP→HTTPS redirect on port 80, TLSv1.2/1.3 SSL server block on port 443 proxying to Next.js app on port 3000 with forwarded headers and WebSocket upgrade support (`nginx.conf`)
+- `nginx/Dockerfile` — nginx:alpine container copying the custom nginx configuration (`nginx/Dockerfile`)
+
+### Changed
+- `.gitignore` — Added `ssl/` directory exclusion to prevent committing TLS certificates (`.gitignore`)
+- `docker-compose.yml` — Replaced direct app port exposure (`3000:3000`) with nginx reverse proxy on ports 80 and 443; app service is now internal to the Docker network (`docker-compose.yml`)
+- `.env` — Updated `APP_URL` and `CORS_ORIGINS` from `http://localhost:5173` to `https://secryn.xyz`; set `NODE_ENV` to `production` (`.env`)
+
+### Fixed
+- Cloudflare Error 521 (Web Server Down) — origin server was not listening on port 443 after the Next.js rewrite removed nginx SSL termination; restored nginx as a reverse proxy handling HTTPS and proxying to the Next.js app on port 3000 (`docker-compose.yml`, `nginx.conf`, `nginx/Dockerfile`)
+
 ## 2026-06-18
 
 ### Added
