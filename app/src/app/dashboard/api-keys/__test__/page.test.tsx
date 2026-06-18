@@ -101,7 +101,7 @@ describe("ApiKeysPage", () => {
 
     if (trashButtons.length > 0) {
       const user = userEvent.setup();
-      await user.click(trashButtons[0]);
+      await user.click(trashButtons[0] as Element);
       expect(confirmSpy).toHaveBeenCalled();
       await waitFor(() => {
         expect(mockApiFetch).toHaveBeenCalledWith(
