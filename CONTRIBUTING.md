@@ -1,7 +1,7 @@
 # Contributing to Secryn
 
-Thank you for considering a contribution. Secryn is a pnpm monorepo with a Fastify API and
-a React frontend. This document covers everything you need to start contributing.
+Thank you for considering a contribution. Secryn is a pnpm monorepo with a Next.js App Router
+full-stack application. This document covers everything you need to start contributing.
 
 ## Code of Conduct
 
@@ -37,16 +37,15 @@ pnpm install
 cp .env.example .env
 # Edit .env with valid values (all variables must be set — see README Configuration)
 
-# Start PostgreSQL
-docker compose up -d db
+# Start PostgreSQL and Redis
+docker compose up -d db redis
 
 # Generate Prisma client and push schema
 pnpm db:generate
 pnpm db:push
 
-# Start development servers
-pnpm dev:api   # API at http://localhost:3000
-pnpm dev:web   # Web at http://localhost:5173
+# Start development server
+pnpm dev       # http://localhost:3000
 ```
 
 ## Branching Strategy
@@ -87,8 +86,8 @@ message must follow this format:
 
 ### Scopes
 
-Use the package name when the change is package-specific: `api`, `web`. Use a more specific
-scope when appropriate: `prisma`, `auth`, `project`, `docker`.
+Use the package name when the change is package-specific: `app`, `cli`, `sdk-py`, `sdk-ts`.
+Use a more specific scope when appropriate: `prisma`, `auth`, `project`, `docker`, `infra`.
 
 ### Examples
 
@@ -145,14 +144,8 @@ refactor(api): extract JWT logic into auth service
 Tests use Vitest. Test files are co-located with their source modules under `__tests__/`.
 
 ```bash
-# Run all test suites (both API and Web)
+# Run all test suites
 pnpm test
-
-# Run only API tests
-pnpm test:api
-
-# Run only Web tests
-pnpm test:web
 
 # Run tests in watch mode (useful during development)
 pnpm test:watch

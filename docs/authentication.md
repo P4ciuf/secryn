@@ -20,7 +20,7 @@ Secryn uses a multi-layered authentication system built on **JWT sessions via ht
 
 ## User Model
 
-The `User` entity (Prisma schema at `apps/api/prisma/models/user.prisma`):
+The `User` entity (Prisma schema at `app/prisma/models/user.prisma`):
 
 | Field            | Type      | Description                                        |
 |------------------|-----------|----------------------------------------------------|
@@ -302,7 +302,7 @@ Silently extends the session without re-authentication. The existing cookie must
 - **Rate limit:** 30 requests per hour.
 - **Response:** `{ "ok": true }` with a new `auth-token` cookie.
 
-The frontend API client (`apps/web/src/lib/api.ts`) automatically intercepts **401 responses** and attempts a token refresh before retrying the original request. Concurrent refreshes are deduplicated to avoid thundering-herd problems.
+The frontend API client (`app/src/lib/api.ts`) automatically intercepts **401 responses** and attempts a token refresh before retrying the original request. Concurrent refreshes are deduplicated to avoid thundering-herd problems.
 
 ### Logout
 
@@ -380,23 +380,13 @@ api-key: sc_a1b2c3d4e5f67890...
 
 ## Authentication Middleware
 
-The `authenticate` preHandler hook (`apps/api/src/core/auth/plugin.ts`) is registered globally on the Fastify instance:
+Authentication is handled by `AuthService` (`app/src/services/auth.ts`) via a Next.js middleware that verifies JWT cookies on protected API routes.
 
-```typescript
-fastify.decorate("authenticate", authenticate);
-```
-
-Routes that require authentication declare it via:
-
-```typescript
-{ preHandler: [fastify.authenticate] }
-```
-
-On success, the request is decorated with either:
+On success, the request context provides either:
 - `req.user` — `LoggedUser` (from JWT cookie), or
 - `req.apiKey` — `ApiKey` (from `api-key` header, only on `/secrets` routes).
 
-Either is available to downstream handlers and services via `AuthService.Instance(req)`.
+Either is available to downstream handlers and services via `AuthService.Instance()`.
 
 ---
 
@@ -414,7 +404,7 @@ Either is available to downstream handlers and services via `AuthService.Instanc
 | API key encryption             | AES-256-GCM with scrypt key derivation                 |
 | Rate limiting                  | Per-endpoint Redis counters (configurable per route)   |
 | Audit logging                  | Winston-based, all security events at info level       |
-| HTTP security headers          | Helmet                                                  |
+| HTTP security headers          | X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
 | CORS                           | Explicit origin allowlist                              |
 
 ---
@@ -445,16 +435,16 @@ All endpoints are prefixed with `/api/v1`. Request/response schemas are document
 
 ## Frontend Integration
 
-### Web App (React)
+### Web App (Next.js)
 
-The frontend (`apps/web/`) uses a typed `fetch`-based API client at `apps/web/src/lib/api.ts` that:
+The frontend (`app/`) uses a typed `fetch`-based API client at `app/src/lib/api.ts` that:
 
 - Sends all requests with `credentials: "include"` so cookies are transmitted automatically.
 - Intercepts **401 errors** and silently calls `POST /auth/refresh`.
 - Deduplicates concurrent refresh calls.
 - Redirects to `/login` if the session is truly expired.
 
-Auth pages are in `apps/web/src/features/auth/`:
+Auth pages are in `app/src/app/`:
 
 | Page                   | Path                                 |
 |------------------------|--------------------------------------|

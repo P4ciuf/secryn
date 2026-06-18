@@ -12,7 +12,7 @@
 
 ## Backend Foundation
 
-- [x] Fastify + TypeScript setup
+- [x] Next.js + TypeScript setup
 - [x] PostgreSQL integration
 - [x] Prisma ORM configuration
 - [x] Project architecture (routes, services, plugins)
@@ -50,10 +50,10 @@
 ## API Security
 
 - [x] Request validation _(schema validation on auth + project routes)_
-- [x] Rate limiting _(`@fastify/rate-limit`, 50 req/min)_
+- [x] Rate limiting _(`rate limiting on all endpoints`)_
 - [x] Brute-force protection
 - [x] Secure JWT strategy _(httpOnly cookies + bcrypt)_
-- [x] CORS hardening _(`@fastify/cors`, credentials)_
+- [x] CORS hardening _(`explicit origin allowlist, credentials`)_
 
 ## Security Review
 
@@ -130,8 +130,7 @@
 ## Infrastructure
 
 - [ ] Production database
-- [ ] Backend deployment
-- [ ] Frontend deployment
+- [ ] Production deployment
 - [x] Monitoring and logging _(Winston with daily rotate file)_
 - [ ] Backup strategy
 
