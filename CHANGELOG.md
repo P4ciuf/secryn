@@ -8,17 +8,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
-- nginx reverse proxy service in `docker-compose.yml` with ports 80/443, `./ssl` volume mount, and `secryn_nginx` container (`docker-compose.yml`)
-- `nginx.conf` — HTTP→HTTPS redirect on port 80, TLSv1.2/1.3 SSL server block on port 443 proxying to Next.js app on port 3000 with forwarded headers and WebSocket upgrade support (`nginx.conf`)
-- `nginx/Dockerfile` — nginx:alpine container copying the custom nginx configuration (`nginx/Dockerfile`)
+- NextAuth.js v5 configuration (`app/src/auth.ts`) with credentials provider, JWT session strategy (cookie named `jwt`), and callbacks that enrich the token with user payload (id, email, username) for downstream route handlers
+- `[...nextauth]` catch-all route handler (`app/src/app/api/auth/[...nextauth]/route.ts`) delegating GET/POST to NextAuth
+- `getSessionOrThrow` utility (`app/src/utils/session.ts`) resolving the authenticated user from a NextAuth session and throwing `401` when absent — replaces the old `getAuthenticatedUser` guard
+- `serverActionHandler` wrapper (`app/src/utils/serverAction.ts`) catching errors from Server Actions and returning a typed `ServerActionResult` discriminated union — handles Zod validation errors, NextAuth `AuthError` unwrapping, and Next.js redirect digest preservation
+- `ServerActionResult<T>` discriminated union type (`app/src/types/serverAction.ts`) for success/error outcomes from Server Actions
+- `loginDataSchema` Zod schema (`app/src/schemas/user.ts`) validating email + password (min 8 chars) for the credentials provider
+- `loginAction`, `registerAction`, `logoutAction` Server Actions (`app/src/app/(auth)/actions.ts`) wrapping NextAuth's `signIn`/`signOut` with `serverActionHandler`
+- Proxy middleware (`app/src/proxy.ts`) redirecting unauthenticated users away from protected page/API routes and authenticated users away from auth pages — uses NextAuth session check via `auth()`
+- Generalized cookie utilities: `setCookie`, `getCookie`, `getCookieOrThrow`, `clearCookie` (`app/src/utils/cookie.ts`) replacing the old `setAuthCookie` — accepts arbitrary cookie names and `SerializeOptions`
+- Auth pages reorganized into `(auth)/` route group with per-route layout metadata (`robots: noindex,nofollow`) for login, register, forgot-password, and reset-password pages
+- Test suite for `[...nextauth]` route handler (4 tests) covering GET/POST delegation and error propagation
+- Test suite for login page (5 tests) covering form render, login failure, redirect on success, links, and Enter submission
+- Test suite for settings page (10 tests) covering loading skeleton, profile CRUD, password change validation, account deletion, and load-failure fallback
+- Documentation comments added to 10 previously undocumented exports across route handlers, services, utilities, and type definitions
 
 ### Changed
-- `.gitignore` — Added `ssl/` directory exclusion to prevent committing TLS certificates (`.gitignore`)
-- `docker-compose.yml` — Replaced direct app port exposure (`3000:3000`) with nginx reverse proxy on ports 80 and 443; app service is now internal to the Docker network (`docker-compose.yml`)
-- `.env` — Updated `APP_URL` and `CORS_ORIGINS` from `http://localhost:5173` to `https://secryn.xyz`; set `NODE_ENV` to `production` (`.env`)
+- All 16 API route handlers (`app/src/app/api/**/route.ts`) migrated from `getAuthenticatedUser(request)` + `ApiError.Unauthorized()` to `getSessionOrThrow(await auth())` with `as string` type casts on `user.id`
+- `ProjectService`: all `this.user.id` accesses typed with `as string` throughout create/delete/update/transfer/member/permissions/secret methods
+- `UserService`: simplified class description and constructor, removed `UserRepository` type import, removed all MFA lifecycle methods (setupMFA, enableMFA, disableMFA, verifyTOTP, consumeRecoveryCode, getRecoveryCodes, regenerateRecoveryCodes, sendBackupCodeEmail, activeMFA) and their helper imports (otplib, qrcode)
+- `UserRepository`: removed `mfaRecoveryCodes` eager-load from `FullUser` type — now includes only `bans`
+- `cookie.ts`: renamed `setAuthCookie` to `setCookie` (generalized to any cookie name/value with `SerializeOptions`), split `clearCookie` from it, added `getCookie` and `getCookieOrThrow`
+- `redis.ts`: removed commented-out MFA email backup code functions (`storeEmailBackupCode`, `consumeEmailBackupCode`)
+- `users/me/route.ts`: DELETE handler now calls `clearCookie("jwt")` using the generalized utility instead of the old `clearAuthCookie`
+- Dashboard layout: logout uses `logoutAction()` Server Action instead of direct `apiFetch`; imports updated to `@/app/(auth)/actions`
+- Settings page: integrated `Breadcrumbs` and `PageHeader` components; added `UserProfile` interface for typed API responses
+- `packages/shared/src/dtos/auth.ts`: removed 6 MFA-specific DTO interfaces (LoginMFAResponse, MFAConfirmBody, MFARecoveryBody, MFASetupResponse, MFAEnableBody, MFAStatusResponse, MFARecoveryCodesResponse) and RegisterBody
+- `packages/shared/index.ts`: barrel exports updated to remove MFA types
+- `packages/shared/src/utils/logger.ts`: reworded `audit` method description to remove MFA reference
+- Python SDK (`packages/sdk-py/secryn/client.py`): removed `_MFAProxy` class (setup, enable, disable, confirm, recovery, status, recoveryCodes, regenerateCodes, sendBackupCode) and its instance wiring from `SecrynClient`
+- TypeScript SDK (`packages/sdk-ts/src/client.ts`): removed MFA-specific type imports and MFA auth methods; simplified `auth.login` return type to `{ ok: boolean }`
+- TypeScript SDK types (`packages/sdk-ts/src/types.ts`): removed 8 MFA-related interfaces (LoginMFAResponse through MFARecoveryCodesResponse)
+- Python SDK README and TypeScript SDK README updated
+- Prisma enum documentation: added inline comments distinguishing `MANAGE_MEMBERS` from `REMOVE_MEMBERS` permissions
+- `docker-compose.yml`: env_file paths updated from `.env` to `./app/.env`
 
 ### Fixed
-- Cloudflare Error 521 (Web Server Down) — origin server was not listening on port 443 after the Next.js rewrite removed nginx SSL termination; restored nginx as a reverse proxy handling HTTPS and proxying to the Next.js app on port 3000 (`docker-compose.yml`, `nginx.conf`, `nginx/Dockerfile`)
+- Settings page test: ambiguous `findByText("Settings")` replaced with `findByRole("heading")` to handle duplicate "Settings" text from Breadcrumbs and PageHeader
+
+### Removed
+- All 9 MFA API route handlers and their test suites (setup, enable, disable, confirm, recovery, status, recovery-codes, regenerate-codes, send-backup-code) under `app/src/app/api/auth/mfa/`
+- Legacy auth route handlers and their test suites: login, register, logout, refresh under `app/src/app/api/auth/`
+- Legacy `getAuthenticatedUser` auth guard utility (`app/src/utils/authGuard.ts`)
+- Legacy JWT service (`app/src/services/jwt.ts`)
+- Legacy middleware (`app/src/middleware.ts`) — replaced by `app/src/proxy.ts` with NextAuth session checks
+- Old auth pages and their test suites at flat routes: login, register, forgot-password, reset-password under `app/src/app/`
+- `_MFAProxy` class from Python SDK (9 proxy methods dropped)
+- MFA DTO interfaces from `@repo/shared` and `@secryn/sdk-ts`
+- Prisma migration `20260625000000_drop_mfa_columns_and_table` dropping `mfaSecret` column from User and the `MFARecoveryCode` table
 
 ## 2026-06-18
 
@@ -37,6 +74,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Breadcrumbs integrated into dashboard, api-keys, projects, secrets, and settings pages with contextual breadcrumb trails (Dashboard, Dashboard > Projects > Project Name, etc.)
 - Test suite for `Breadcrumbs` covering empty state, single item, multi-item links, three-level hierarchy, and JSON-LD schema validation (`app/src/components/ui/__test__/breadcrumbs.test.tsx`)
 - Test suite for the root landing page covering nav, hero, sections, CTA, footer, and metadata export (`app/src/app/__test__/page.test.tsx`)
+- nginx reverse proxy service in `docker-compose.yml` with ports 80/443, `./ssl` volume mount, and `secryn_nginx` container (`docker-compose.yml`)
+- `nginx.conf` — HTTP→HTTPS redirect on port 80, TLSv1.2/1.3 SSL server block on port 443 proxying to Next.js app on port 3000 with forwarded headers and WebSocket upgrade support (`nginx.conf`)
+- `nginx/Dockerfile` — nginx:alpine container copying the custom nginx configuration (`nginx/Dockerfile`)
 
 ### Changed
 - `package.json` scripts consolidated: removed `dev:api`, `dev:web`, `test:api`, `test:web`; added single `dev` targeting `app` workspace; db scripts (`generate`, `push`, `migrate`, `studio`) retargeted from `api` to `app` (`package.json`)
@@ -50,6 +90,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard page tests updated to mock the new `Breadcrumbs` component across 5 test files: dashboard, api-keys, projects, secrets, and settings (`app/src/app/dashboard/**/__test__/page.test.tsx`)
 - Auth pages: inline comments added documenting `router.refresh()` for RSC payload re-fetch after login/registration, OTP digit-stripping in MFA flow, `username || undefined` fallback to omit empty fields, and noindex behavior in page JSDoc headers (`app/src/app/forgot-password/page.tsx`, `app/src/app/login/page.tsx`, `app/src/app/register/page.tsx`, `app/src/app/reset-password/[token]/page.tsx`)
 - JSDoc documentation added to private interfaces (`ApiKeyData`, `Project`, `Secret`, `ProjectInfo`, `UserProfile`, `DashboardData`, `ProjectSummary`, `ApiKeySummary`) and exported `BreadcrumbItem` across page and component files
+- `.gitignore` — Added `ssl/` directory exclusion to prevent committing TLS certificates (`.gitignore`)
+- `docker-compose.yml` — Replaced direct app port exposure (`3000:3000`) with nginx reverse proxy on ports 80 and 443; app service is now internal to the Docker network (`docker-compose.yml`)
+- `.env` — Updated `APP_URL` and `CORS_ORIGINS` from `http://localhost:5173` to `https://secryn.xyz`; set `NODE_ENV` to `production` (`.env`)
 
 ### Fixed
 - Python SDK test `test_default_base_url` updated to expect `https://secryn.xyz/api/v1` matching the production base URL (`packages/sdk-py/secryn/tests/test_client.py`)
@@ -61,6 +104,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Secret` repository: `findManySecrets` parameter from `ProjectWhereUniqueInput` to `SecretWhereInput` for correct type usage (`app/src/services/project.ts`)
 - `@prisma/client` import: `Secret` type reference removed in favor of inline `where` type for dead-code elimination (`app/src/services/project.ts`)
 - Settings page test: ambiguous `findByText("Settings")` replaced with `findByRole("heading", { name: "Settings", level: 1 })` to handle the duplicate "Settings" text introduced by the new Breadcrumbs component (`app/src/app/dashboard/settings/__test__/page.test.tsx`)
+- Cloudflare Error 521 (Web Server Down) — origin server was not listening on port 443 after the Next.js rewrite removed nginx SSL termination; restored nginx as a reverse proxy handling HTTPS and proxying to the Next.js app on port 3000 (`docker-compose.yml`, `nginx.conf`, `nginx/Dockerfile`)
 
 ### Removed
 - `apps/api/` — Fastify backend application migrated into Next.js App Router API routes; all routes, services, repositories, Prisma schema, migrations, email templates, type declarations, utilities, and test suites deleted from the old location (~130 files)

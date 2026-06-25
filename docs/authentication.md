@@ -1,260 +1,179 @@
 # Authentication Guide
 
-Secryn uses a multi-layered authentication system built on **JWT sessions via httpOnly cookies**, with optional **TOTP-based MFA** and **API key** support for programmatic access.
+Secryn uses **NextAuth.js v5** with a credentials provider for user authentication, backed by **JWT sessions via httpOnly cookies**, plus **API key** support for programmatic access.
 
 ---
 
 ## Overview
 
-| Mechanism          | Transport                          | Use Case                         |
-|---------------------|------------------------------------|----------------------------------|
-| Email + Password    | `POST /auth/register`, `POST /auth/login` | Account creation & login         |
-| JWT (httpOnly cookie) | Cookie: `auth-token`              | Web session (30 min expiry)      |
-| TOTP MFA            | `POST /auth/mfa/confirm`           | Second factor during login       |
-| Recovery Codes      | `POST /auth/mfa/recovery`          | Bypass MFA when device lost      |
-| Password Reset      | `POST /auth/forgot-password` → `POST /auth/reset-password` | Self-service recovery |
-| API Key             | Header: `api-key`                  | Programmatic access to `/secrets` |
-| Token Refresh       | `POST /auth/refresh`               | Silent session extension         |
+| Mechanism            | Transport                 | Use Case                               |
+|----------------------|---------------------------|----------------------------------------|
+| Email + Password     | NextAuth credentials      | Account creation & login               |
+| JWT (httpOnly cookie)| Cookie: `jwt`             | Web session (NextAuth-managed expiry)  |
+| Password Reset       | `POST /auth/forgot-password` → `POST /auth/reset-password` | Self-service recovery |
+| API Key              | Header: `api-key`         | Programmatic access                    |
+| Token Refresh        | `POST /auth/refresh`      | Silent session extension               |
 
 ---
 
 ## User Model
 
-The `User` entity (Prisma schema at `apps/api/prisma/models/user.prisma`):
+The `User` entity (Prisma schema at `app/prisma/models/user.prisma`):
 
-| Field            | Type      | Description                                        |
-|------------------|-----------|----------------------------------------------------|
-| `id`             | UUID      | Primary key                                        |
-| `email`          | String    | Unique login identifier                            |
-| `username`       | String    | Display name (auto-generated if omitted)           |
-| `password`       | String    | bcrypt hash (cost factor 12)                       |
-| `role`           | Enum      | `USER` or `ADMIN`                                  |
-| `isVerified`     | Boolean   | Email verification flag                            |
-| `isMFAEnabled`   | Boolean   | Whether TOTP is active                             |
-| `mfaSecret`      | String?   | Base32 TOTP secret (null if MFA disabled)          |
-| `createdAt`      | DateTime  | Account creation timestamp                         |
-| `updatedAt`      | DateTime  | Last modification timestamp                        |
+| Field        | Type     | Description                              |
+|------------- |----------|------------------------------------------|
+| `id`         | UUID     | Primary key                              |
+| `email`      | String   | Unique login identifier                  |
+| `username`   | String   | Display name (auto-generated if omitted) |
+| `password`   | String   | bcrypt hash (cost factor 12)             |
+| `role`       | Enum     | `USER` or `ADMIN`                        |
+| `isVerified` | Boolean  | Email verification flag                  |
+| `createdAt`  | DateTime | Account creation timestamp               |
+| `updatedAt`  | DateTime | Last modification timestamp              |
+
+---
+
+## NextAuth.js v5 Configuration
+
+Authentication is configured in `app/src/auth.ts` using NextAuth's `Credentials` provider:
+
+- **Session strategy**: JWT (stateless, no database session table)
+- **JWT callback**: Enriches the token with `user.id`, `user.email`, `user.username` so downstream handlers can resolve the caller's identity without a database round-trip
+- **Session callback**: Maps token fields to `session.user`
+- **Cookie name**: `jwt` (not the default `next-auth.session-token`)
+
+```typescript
+// app/src/auth.ts
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  session: { strategy: "jwt" },
+  providers: [
+    Credentials({
+      async authorize(credentials) {
+        // Validates email + password via Zod schema and UserService
+        const { email, password } = await loginDataSchema.parseAsync(credentials);
+        const userService = await UserService.Instance(null);
+        const user = await userService.getUserOrThrow({ email });
+        if (!(await userService.validatePassword(user.id, password))) {
+          throw new Error("Invalid credentials");
+        }
+        return { id: user.id, email: user.email, name: user.username };
+      },
+    }),
+  ],
+  cookies: { sessionToken: { name: "jwt" } },
+});
+```
 
 ---
 
 ## Registration
 
-**Endpoint:** `POST /api/v1/auth/register`
+Registration uses a **Server Action** (`app/src/app/(auth)/actions.ts`) that wraps the legacy `AuthService.register()` via `serverActionHandler`:
 
-Creates a new user account and returns a signed JWT set as an `httpOnly` cookie.
-
-### Request
-
-```json
-{
-  "email": "user@example.com",
-  "password": "secret1234",
-  "username": "alice"
-}
+```typescript
+// Server Action
+export const registerAction = serverActionHandler(
+  async (data: { email: string; password: string; username?: string }) => {
+    const authService = await AuthService.Instance(null);
+    await authService.register(data);
+    await signIn("credentials", { email: data.email, password: data.password, redirectTo: "/dashboard" });
+  },
+);
 ```
 
-- `email` — **required**. Must be a valid email address.
-- `password` — **required**. Minimum 8 characters.
-- `username` — *optional*. Display name; a random hex string is auto-generated when omitted.
+**Calling from the client:**
+
+```typescript
+const result = await registerAction({ email, password, username });
+if (result.success) {
+  // NextAuth signIn handles redirect + session cookie
+} else {
+  // result.error contains the error message
+}
+```
 
 ### Password Hashing
 
 Passwords are hashed with **bcrypt** at **cost factor 12** before storage. The plaintext password is never persisted or logged.
 
-### Rate Limiting
-
-- **2 requests per 30 minutes** per client IP.
-- Prevents automated account creation abuse.
-
-### Response — 200 OK
-
-```json
-{ "ok": true }
-```
-
-The `auth-token` cookie is set automatically with the following attributes:
-
-| Attribute   | Value           |
-|-------------|-----------------|
-| `HttpOnly`  | `true`          |
-| `Secure`    | `true` in production, `false` in development |
-| `SameSite`  | `Strict`        |
-| `Path`      | `/`             |
-| `Max-Age`   | `1800` (30 min) |
-
 ### Error Responses
 
-| Status | Code          | Meaning                                 |
-|--------|---------------|-----------------------------------------|
-| 400    | Bad Request   | Missing `email` or `password` field     |
-| 409    | Conflict      | Already logged in, or email already registered |
-| 500    | Internal      | Server error                            |
+The `serverActionHandler` wrapper catches errors and returns a typed `ServerActionResult<T>` discriminated union with `success: false` and a human-readable `error` string.
 
 ---
 
 ## Login
 
-**Endpoint:** `POST /api/v1/auth/login`
+Login uses a **Server Action** (`app/src/app/(auth)/actions.ts`) wrapping NextAuth's `signIn`:
 
-Authenticates a user with email and password. The behavior depends on whether MFA is enabled on the account.
-
-### Request
-
-```json
-{
-  "email": "user@example.com",
-  "password": "secret1234"
-}
+```typescript
+export const loginAction = serverActionHandler(
+  async (email: string, password: string) => {
+    await signIn("credentials", { email, password, redirectTo: "/dashboard" });
+  },
+);
 ```
 
-### Flow Without MFA
+### Flow
 
-If the account **does not** have MFA enabled, the server returns a standard response and sets the JWT cookie:
-
-```json
-{ "ok": true }
-```
-
-### Flow With MFA (Challenge)
-
-If the account **has** MFA enabled, the server returns an **MFA challenge** instead of setting the cookie:
-
-```json
-{
-  "mfaRequired": true,
-  "mfaToken": "eyJhbGciOiJIUzI1NiIs..."
-}
-```
-
-- `mfaRequired` — Always `true` when MFA is enforced.
-- `mfaToken` — A **short-lived JWT (2-minute expiry)** that must be forwarded to `POST /auth/mfa/confirm` or `POST /auth/mfa/recovery` to complete authentication.
+1. `loginAction(email, password)` is called from the login page
+2. NextAuth invokes the `authorize()` callback in `auth.ts`
+3. `authorize()` validates credentials via Zod schema and `UserService`
+4. On success, NextAuth sets the `jwt` httpOnly cookie and redirects to `/dashboard`
+5. On failure, `serverActionHandler` catches the error and returns `{ success: false, error: "..." }`
 
 ### Brute-Force Protection
 
-Failed logins are tracked per email address in Redis:
+Failed login tracking is handled by NextAuth internally plus Redis rate limiting:
 
 - Counter key: `failed_login:<email>`
-- **3 failed attempts** → the email is **locked for 15 minutes**.
-- Audit events are emitted: `LOGIN_FAILED`, `LOGIN_FAILED_UNKNOWN_EMAIL`, `LOGIN_BRUTE_FORCE_BLOCKED`.
-- On successful login, the counter is cleared.
+- **3 failed attempts** → the email is **locked for 15 minutes**
+- Audit events are emitted: `LOGIN_FAILED`, `LOGIN_FAILED_UNKNOWN_EMAIL`, `LOGIN_BRUTE_FORCE_BLOCKED`
 
 ### Anti-Enumeration
 
-When the email does **not** exist, the server:
-1. Computes a dummy bcrypt comparison (equalising response timing with real attempts).
-2. Increments the same rate-limit counter.
-3. Returns a generic `404 Not Found — "User"`.
-
-This prevents attackers from discovering registered emails through timing side-channels or repeated probing.
-
-### Rate Limiting
-
-- **5 requests per hour** per client IP.
-
-### Error Responses
-
-| Status | Code              | Meaning                              |
-|--------|--------------------|--------------------------------------|
-| 400    | Bad Request        | Missing or invalid fields            |
-| 401    | Unauthorized       | Wrong password or brute-force locked |
-| 404    | Not Found          | Email not registered                 |
-| 409    | Conflict           | User is already logged in            |
-| 500    | Internal           | Server error                         |
+When the email does **not** exist, `AuthService` computes a dummy bcrypt comparison (equalising response timing with real attempts) and increments the same rate-limit counter.
 
 ---
 
-## Multi-Factor Authentication (MFA)
+## Edge Middleware
 
-Secryn implements **TOTP (Time-based One-Time Password)** as specified in RFC 6238, using **SHA-1** as the HMAC algorithm with 30-second time steps.
+Route protection is handled by Next.js Edge Middleware at `app/src/proxy.ts`:
 
-### Setup Flow
-
-1. **Generate secret** — `GET /api/v1/auth/mfa/setup`  
-   Returns a base32-encoded secret, a QR code data URL, and the full `otpauth://` URI.  
-   The secret is stored on the user record but **not yet activated**.
-
-   ```json
-   {
-     "secret": "JBSWY3DPEHPK3PXP",
-     "qrCode": "data:image/png;base64,...",
-     "otpauthUrl": "otpauth://totp/Secryn:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Secryn"
-   }
-   ```
-
-2. **Verify and enable** — `POST /api/v1/auth/mfa/enable`  
-   The user scans the QR code with their authenticator app and submits a 6-digit TOTP code.  
-   If valid, MFA is activated and **10 recovery codes** are generated.
-
-   ```json
-   // Request
-   { "token": "123456" }
-
-   // Response
-   {
-     "ok": true,
-     "recoveryCodes": ["a1b2c3d4e5f0", "6789abcdef01", ...]
-   }
-   ```
-
-### Login with MFA
-
-When MFA is enabled, login returns an MFA challenge. The client must then:
-
-#### Option A: TOTP Code
-
-`POST /api/v1/auth/mfa/confirm`
-
-```json
-{
-  "token": "123456",
-  "mfaToken": "eyJhbGciOiJIUzI1NiIs..."
+```typescript
+export async function middleware(request: NextRequest) {
+  const session = await auth(); // NextAuth session check
+  if (session && matchesPath(pathname, AUTH_ROUTES)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+  if (!session && matchesPath(pathname, PROTECTED_ROUTES)) {
+    // Page routes → redirect to /login
+    // API routes → 401 JSON response
+  }
 }
 ```
 
-- `token` — 6-digit code from the authenticator app.
-- `mfaToken` — The short-lived token from the login response.
+### Protected Paths
 
-On success, sets the full `auth-token` JWT cookie.
+- **Dashboard pages**: `/dashboard`, `/settings`, `/projects`, `/api-keys`, `/webhooks`
+- **API routes**: `/api/projects`, `/api/api-keys`, `/api/secrets`, `/api/users`, `/api/webhooks`
 
-#### Option B: Recovery Code
+### Auth Paths
 
-`POST /api/v1/auth/mfa/recovery`
+- `/login`, `/register`, `/forgot-password` — unauthenticated only; redirect to dashboard if already logged in
 
-```json
-{
-  "code": "a1b2c3d4e5f0",
-  "mfaToken": "eyJhbGciOiJIUzI1NiIs..."
-}
+### Route Handler Guard
+
+Each protected route handler resolves the authenticated user via `getSessionOrThrow`:
+
+```typescript
+export const GET = withErrorHandler(async (_request: Request) => {
+  const user = await getSessionOrThrow(await auth());
+  // user.id, user.email, user.username available
+});
 ```
 
-- Recovery codes are **one-time use** and stored as **HMAC-SHA256 hashes** (never in plaintext).
-- Successfully using a code marks it as consumed.
-
-### Recovery Codes
-
-| Endpoint                                          | Description                                           |
-|---------------------------------------------------|-------------------------------------------------------|
-| `GET /auth/mfa/recovery-codes`                    | List available codes (masked placeholders)            |
-| `POST /auth/mfa/recovery-codes/regenerate`        | Regenerate all 10 codes (invalidates previous set)    |
-| `POST /auth/mfa/send-backup-code`                 | Send a backup code via email                          |
-
-### Disable MFA
-
-`POST /api/v1/auth/mfa/disable`
-
-```json
-{ "password": "currentPassword" }
-```
-
-Requires the current password for confirmation. Invalidates all recovery codes and clears the TOTP secret.
-
-### Check MFA Status
-
-`GET /api/v1/auth/mfa/status`
-
-```json
-{ "enabled": true }
-```
+`getSessionOrThrow` (`app/src/utils/session.ts`) throws `ApiError.Unauthorized()` when the session is absent.
 
 ---
 
@@ -262,53 +181,49 @@ Requires the current password for confirmation. Invalidates all recovery codes a
 
 ### JWT Structure
 
-The JWT is signed with the server's secret (`JWT_SECRET` environment variable) and contains:
+The JWT is managed by NextAuth and contains:
 
 ```json
 {
+  "id": "c1e3f2a4-...",
+  "email": "user@example.com",
+  "name": "alice",
   "user": {
     "id": "c1e3f2a4-...",
     "email": "user@example.com",
     "username": "alice"
-  },
-  "iat": 1718123456,
-  "exp": 1718125256
+  }
 }
 ```
 
-- **Expiry:** 30 minutes from issuance.
-- **Algorithm:** HS256.
-
 ### Cookie Transport
 
-JWTs are transported exclusively via the `auth-token` httpOnly cookie:
+JWTs are transported via the `jwt` httpOnly cookie:
 
-| Attribute       | Production  | Development  |
-|-----------------|-------------|--------------|
-| `httpOnly`      | `true`      | `true`       |
-| `secure`        | `true`      | `false`      |
-| `sameSite`      | `strict`    | `strict`     |
-| `path`          | `/`         | `/`          |
-| `maxAge`        | 1800s       | 1800s        |
-
-The `secure` flag is automatically disabled in `NODE_ENV=development` to allow plain-HTTP transmission.
+| Attribute  | Production | Development |
+|------------|-----------|-------------|
+| `httpOnly` | `true`    | `true`      |
+| `secure`   | `true`    | `false`     |
+| `sameSite` | `lax`     | `lax`       |
+| `path`     | `/`       | `/`         |
 
 ### Token Refresh
 
-`POST /api/v1/auth/refresh`
+`POST /api/auth/refresh`
 
-Silently extends the session without re-authentication. The existing cookie must contain a valid (or recently expired) JWT.
-
-- **Rate limit:** 30 requests per hour.
-- **Response:** `{ "ok": true }` with a new `auth-token` cookie.
-
-The frontend API client (`apps/web/src/lib/api.ts`) automatically intercepts **401 responses** and attempts a token refresh before retrying the original request. Concurrent refreshes are deduplicated to avoid thundering-herd problems.
+Silently extends the session without re-authentication. The frontend API client (`app/src/lib/api.ts`) automatically intercepts **401 responses** and attempts a token refresh before retrying the original request. Concurrent refreshes are deduplicated.
 
 ### Logout
 
-`POST /api/v1/auth/logout`
+Logout uses a **Server Action** (`logoutAction`) wrapping NextAuth's `signOut`:
 
-Clears the `auth-token` cookie by setting it with an empty value and `maxAge: 0`.
+```typescript
+export const logoutAction = serverActionHandler(async () => {
+  await signOut({ redirectTo: "/login" });
+});
+```
+
+The client-side dashboard calls `logoutAction()`, which clears the `jwt` cookie and redirects to `/login`.
 
 ---
 
@@ -322,10 +237,10 @@ Clears the `auth-token` cookie by setting it with an empty value and `maxAge: 0`
 { "email": "user@example.com" }
 ```
 
-- **Always returns `{ "ok": true }`**, regardless of whether the email exists, to prevent user enumeration.
-- If the email is registered, a **cryptographically random 32-byte token** is generated and persisted with a **1-hour expiry**.
-- An email is sent containing a reset link: `https://yourapp.com/reset-password/<token>`.
-- **Rate limit:** 3 requests per 15 minutes per email address.
+- **Always returns `{ "ok": true }`**, regardless of whether the email exists, to prevent user enumeration
+- If the email is registered, a **cryptographically random 32-byte token** is generated and persisted with a **1-hour expiry**
+- An email is sent containing a reset link: `https://secryn.xyz/reset-password/<token>`
+- **Rate limit:** 3 requests per 15 minutes per email address
 
 ### Reset Password
 
@@ -338,10 +253,10 @@ Clears the `auth-token` cookie by setting it with an empty value and `maxAge: 0`
 }
 ```
 
-- Verifies the token exists, has not expired, and has not been used.
-- The new password is hashed with bcrypt (cost 12).
-- The token is marked as **consumed** (single-use).
-- Audit event: `PASSWORD_RESET`.
+- Verifies the token exists, has not expired, and has not been used
+- The new password is hashed with bcrypt (cost 12)
+- The token is marked as **consumed** (single-use)
+- Audit event: `PASSWORD_RESET`
 
 ---
 
@@ -351,10 +266,10 @@ API keys provide programmatic access for CI/CD pipelines, scripts, and SDKs.
 
 ### Key Format
 
-- Keys are prefixed with `sc_` (e.g., `sc_a1b2c3d4e5f67890...`).
-- Stored as **AES-256-GCM** encrypted values (never in plaintext).
-- Each key has **permissions**: `READ` or `WRITE`.
-- Optional **expiration date**.
+- Keys are prefixed with `sc_` (e.g. `sc_a1b2c3d4e5f67890...`)
+- Stored as **AES-256-GCM** encrypted values (never in plaintext)
+- Each key has **permissions**: `READ` or `WRITE`
+- Default **30-day expiration** from creation
 
 ### Authenticating with an API Key
 
@@ -365,103 +280,111 @@ GET /api/v1/projects/abc123/secrets
 api-key: sc_a1b2c3d4e5f67890...
 ```
 
-**API key authentication is only supported on `/secrets` routes.** For all other endpoints, cookie-based JWT auth is required.
-
 ### Key Management
 
-| Endpoint               | Method | Description           |
-|------------------------|--------|-----------------------|
-| `/api-keys`            | GET    | List all API keys     |
-| `/api-keys`            | POST   | Create a new API key  |
-| `/api-keys/:id`        | PATCH  | Update key metadata   |
-| `/api-keys/:id`        | DELETE | Revoke an API key     |
+| Endpoint        | Method | Description       |
+|-----------------|--------|-------------------|
+| `/api-keys`     | GET    | List all API keys |
+| `/api-keys`     | POST   | Create API key    |
+| `/api-keys/:id` | PUT    | Update API key    |
+| `/api-keys/:id` | DELETE | Revoke API key    |
 
 ---
 
-## Authentication Middleware
+## Auth API Endpoints
 
-The `authenticate` preHandler hook (`apps/api/src/core/auth/plugin.ts`) is registered globally on the Fastify instance:
+All endpoints under `/api/v1/auth`. Login/register/logout are handled by NextAuth's `[...nextauth]` catch-all route handler + Server Actions — they are not individual API routes.
 
-```typescript
-fastify.decorate("authenticate", authenticate);
-```
+| Method | Endpoint                 | Auth Required | Description                    |
+|--------|--------------------------|:-------------:|--------------------------------|
+| POST   | `/auth/forgot-password`  | No            | Request password reset link    |
+| POST   | `/auth/reset-password`   | No            | Set new password via token     |
 
-Routes that require authentication declare it via:
+NextAuth catch-all route:
 
-```typescript
-{ preHandler: [fastify.authenticate] }
-```
-
-On success, the request is decorated with either:
-- `req.user` — `LoggedUser` (from JWT cookie), or
-- `req.apiKey` — `ApiKey` (from `api-key` header, only on `/secrets` routes).
-
-Either is available to downstream handlers and services via `AuthService.Instance(req)`.
+| Method | Endpoint              | Description                |
+|--------|-----------------------|----------------------------|
+| GET    | `/auth/csrf`          | CSRF token                 |
+| POST   | `/auth/callback/credentials` | Credentials sign-in  |
+| POST   | `/auth/signout`       | Server-side sign-out       |
+| GET    | `/auth/session`       | Get current session        |
 
 ---
 
 ## Security Features Summary
 
-| Feature                        | Implementation                                         |
-|--------------------------------|--------------------------------------------------------|
-| Password hashing               | bcrypt, cost factor 12                                 |
-| JWT signing                    | HS256, httpOnly + Secure + SameSite:Strict cookies     |
-| TOTP MFA                       | RFC 6238 (SHA-1, 30s step, 6-digit codes)              |
-| Recovery codes                 | HMAC-SHA256 hashed, one-time use, 10 per account       |
-| Brute-force protection         | Redis counters — 3 fails = 15 min lockout per email    |
-| Anti-enumeration               | Dummy bcrypt + rate-limited probing                    |
-| Password reset tokens          | Random 32-byte, single-use, 1-hour expiry              |
-| API key encryption             | AES-256-GCM with scrypt key derivation                 |
-| Rate limiting                  | Per-endpoint Redis counters (configurable per route)   |
-| Audit logging                  | Winston-based, all security events at info level       |
-| HTTP security headers          | Helmet                                                  |
-| CORS                           | Explicit origin allowlist                              |
+| Feature                    | Implementation                                           |
+|----------------------------|----------------------------------------------------------|
+| Password hashing           | bcrypt, cost factor 12                                   |
+| JWT signing                | NextAuth managed, httpOnly + Secure + SameSite cookies   |
+| Brute-force protection     | Redis counters — 3 fails = 15 min lockout per email      |
+| Anti-enumeration           | Dummy bcrypt + rate-limited probing                      |
+| Password reset tokens      | Random 32-byte, single-use, 1-hour expiry                |
+| API key encryption         | AES-256-GCM with scrypt key derivation                   |
+| Rate limiting              | Per-endpoint Redis counters                              |
+| Audit logging              | Winston-based, all security events at info level         |
+| HTTP security headers      | X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
+| CORS                       | Explicit origin allowlist                                |
 
 ---
 
 ## Full API Reference
 
-All endpoints are prefixed with `/api/v1`. Request/response schemas are documented in the OpenAPI 3.1.0 spec available at `/docs` when the API is running.
+All endpoints are prefixed with `/api/v1`.
 
-| Method | Endpoint                                     | Auth Required | Description                        |
-|--------|----------------------------------------------|---------------|------------------------------------|
-| POST   | `/auth/register`                             | No            | Create account                     |
-| POST   | `/auth/login`                                | No            | Authenticate (or MFA challenge)    |
-| POST   | `/auth/logout`                               | Yes           | Clear session                      |
-| POST   | `/auth/refresh`                              | Yes           | Extend session                     |
-| POST   | `/auth/forgot-password`                      | No            | Request password reset link        |
-| POST   | `/auth/reset-password`                       | No            | Set new password via token         |
-| GET    | `/auth/mfa/status`                           | Yes           | Check if MFA enabled               |
-| GET    | `/auth/mfa/setup`                            | Yes           | Generate TOTP secret + QR code     |
-| POST   | `/auth/mfa/enable`                           | Yes           | Activate MFA                       |
-| POST   | `/auth/mfa/disable`                          | Yes           | Deactivate MFA                     |
-| POST   | `/auth/mfa/confirm`                          | No            | Verify TOTP during login           |
-| POST   | `/auth/mfa/recovery`                         | No            | Use backup recovery code           |
-| GET    | `/auth/mfa/recovery-codes`                   | Yes           | List masked recovery codes         |
-| POST   | `/auth/mfa/recovery-codes/regenerate`        | Yes           | Generate new recovery codes        |
-| POST   | `/auth/mfa/send-backup-code`                 | Yes           | Email a backup code                |
+| Method | Endpoint                                     | Auth Required | Description                     |
+|--------|----------------------------------------------|:-------------:|----------------------------------|
+| POST   | `/auth/forgot-password`                      | No            | Request password reset link      |
+| POST   | `/auth/reset-password`                       | No            | Set new password via token       |
+| POST   | `/auth/refresh`                              | Yes           | Extend session (NextAuth route)  |
+| GET    | `/users/me`                                  | Yes           | Get authenticated user profile   |
+| PUT    | `/users/me`                                  | Yes           | Update profile or password       |
+| DELETE | `/users/me`                                  | Yes           | Delete account                   |
+| GET    | `/projects`                                  | Yes           | List user projects               |
+| POST   | `/projects`                                  | Yes           | Create project                   |
+| GET    | `/projects/:id`                              | Yes           | Get project details              |
+| PUT    | `/projects/:id`                              | Yes           | Update project                   |
+| DELETE | `/projects/:id`                              | Yes           | Delete project                   |
+| POST   | `/projects/:id/transfer`                     | Yes           | Transfer ownership               |
+| GET    | `/projects/:id/members`                      | Yes           | List members                     |
+| DELETE | `/projects/:id/members/:memberId`            | Yes           | Remove member                    |
+| POST   | `/projects/:id/members/:memberId/permissions`| Yes           | Add member permissions           |
+| DELETE | `/projects/:id/members/:memberId/permissions`| Yes           | Remove member permissions        |
+| POST   | `/projects/:id/invites`                      | Yes           | Create invite                    |
+| GET    | `/projects/invites/:slug`                    | Yes           | Accept invite                    |
+| GET    | `/projects/:id/secrets`                      | Yes           | List project secrets             |
+| POST   | `/projects/:id/secrets`                      | Yes           | Create secret                    |
+| GET    | `/projects/:id/secrets/:secretId`            | Yes           | Get single secret                |
+| PUT    | `/projects/:id/secrets/:secretId`            | Yes           | Update secret                    |
+| DELETE | `/projects/:id/secrets/:secretId`            | Yes           | Delete secret                    |
+| GET    | `/projects/:id/secrets/export`               | Yes           | Export as .env file              |
+| GET    | `/api-keys`                                  | Yes           | List user's API keys             |
+| POST   | `/api-keys`                                  | Yes           | Create API key                   |
+| PUT    | `/api-keys/:id`                              | Yes           | Update API key                   |
+| DELETE | `/api-keys/:id`                              | Yes           | Delete API key                   |
+| GET    | `/health`                                    | No            | Health check                     |
 
 ---
 
 ## Frontend Integration
 
-### Web App (React)
+### Web App (Next.js)
 
-The frontend (`apps/web/`) uses a typed `fetch`-based API client at `apps/web/src/lib/api.ts` that:
+The frontend (`app/`) uses a typed `fetch`-based API client at `app/src/lib/api.ts` that:
 
-- Sends all requests with `credentials: "include"` so cookies are transmitted automatically.
-- Intercepts **401 errors** and silently calls `POST /auth/refresh`.
-- Deduplicates concurrent refresh calls.
-- Redirects to `/login` if the session is truly expired.
+- Sends all requests with `credentials: "include"` so cookies are transmitted automatically
+- Intercepts **401 errors** and silently calls `POST /auth/refresh`
+- Deduplicates concurrent refresh calls
+- Redirects to `/login` if the session is truly expired
 
-Auth pages are in `apps/web/src/features/auth/`:
+Auth pages are in `app/src/app/(auth)/` (route group with `noindex` metadata):
 
-| Page                   | Path                                 |
-|------------------------|--------------------------------------|
-| Login                  | `/login`                             |
-| Register               | `/register`                          |
-| Forgot Password        | `/forgot-password`                   |
-| Reset Password         | `/reset-password/:token`             |
+| Page            | Path                    |
+|-----------------|-------------------------|
+| Login           | `/login`                |
+| Register        | `/register`             |
+| Forgot Password | `/forgot-password`      |
+| Reset Password  | `/reset-password/:token`|
 
 ### CLI
 
@@ -473,10 +396,6 @@ sc auth login
 
 # Non-interactive
 sc auth login --email user@example.com --password secret1234
-
-# MFA login (prompted after email/password)
-sc auth login
-# Enter TOTP code: 123456
 
 # Check login status
 sc auth whoami
@@ -497,16 +416,13 @@ import { SecrynClient } from "secryn";
 const client = new SecrynClient({ baseUrl: "https://secryn.xyz/api/v1" });
 
 // Login
-await client.auth.login({ email: "user@example.com", password: "secret1234" });
-
-// MFA confirm (if required)
-await client.mfa.confirm({ token: "123456", mfaToken });
+await client.auth.login("user@example.com", "secret1234");
 
 // Refresh token
 await client.auth.refresh();
 
 // Check session
-const authed = await client.auth.isAuthenticated();
+const authed = client.auth.isAuthenticated();
 
 // Logout
 await client.auth.logout();
@@ -532,12 +448,12 @@ client.auth.logout()
 
 ## Environment Variables
 
-| Variable          | Description                                    | Required |
-|-------------------|------------------------------------------------|----------|
-| `JWT_SECRET`      | HS256 signing key for JWT tokens               | Yes      |
-| `REDIS_URL`       | Redis connection string for rate limiting      | Yes      |
-| `NODE_ENV`        | `production` or `development` (affects cookies)| No       |
-| `APP_URL`         | Frontend base URL (used in reset emails)       | Yes      |
-| `RESEND_API_KEY`  | Resend API key for transactional emails        | No*      |
+| Variable         | Description                                   | Required |
+|------------------|-----------------------------------------------|----------|
+| `AUTH_SECRET`    | NextAuth secret for JWT signing + encryption  | Yes      |
+| `REDIS_URL`      | Redis connection string for rate limiting     | Yes      |
+| `NODE_ENV`       | `production` or `development` (affects cookies)| No      |
+| `APP_URL`        | Frontend base URL (used in reset emails)      | Yes      |
+| `RESEND_API_KEY` | Resend API key for transactional emails       | No*      |
 
-\* Required for forgot-password and MFA backup code emails.
+\* Required for forgot-password emails.

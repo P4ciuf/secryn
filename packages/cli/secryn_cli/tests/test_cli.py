@@ -153,7 +153,7 @@ class TestAuthLogin:
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
         """Successful login saves email and prints success message."""
-        mock_client.post.return_value = {"mfaRequired": False}
+        mock_client.post.return_value = {}
 
         result = runner.invoke(
             cli, ["auth", "login", "--email", "user@example.com", "--password", "secret"]
@@ -165,29 +165,11 @@ class TestAuthLogin:
         )
         mock_client.save_config.assert_called_once()
 
-    def test_login_with_mfa(
-        self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
-    ) -> None:
-        """Login with MFA prompts for token and confirms."""
-        mock_client.post.side_effect = [
-            {"mfaRequired": True, "mfaToken": "mfa-token-123"},
-            {"mfaRequired": False},
-        ]
-
-        result = runner.invoke(
-            cli,
-            ["auth", "login", "--email", "user@example.com", "--password", "secret"],
-            input="123456\n",
-        )
-        assert result.exit_code == 0
-        assert "MFA is required" in _strip(result.stderr)
-        assert "Logged in as user@example.com" in _strip(result.stderr)
-
     def test_login_prompts_interactively(
         self, runner: CliRunner, mock_client: MagicMock, mock_config_funcs: dict[str, MagicMock]
     ) -> None:
         """Login without flags prompts for email and password."""
-        mock_client.post.return_value = {"mfaRequired": False}
+        mock_client.post.return_value = {}
         result = runner.invoke(
             cli, ["auth", "login"], input="prompt@test.com\npassword123\n"
         )

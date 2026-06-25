@@ -174,40 +174,6 @@ class _AuthProxy:
         return self._client._post("/auth/reset-password", {"token": token, "password": password})
 
 
-class _MFAProxy:
-    """Proxy providing MFA-related API methods."""
-
-    def __init__(self, client: "SecrynClient") -> None:
-        self._client = client
-
-    def setup(self) -> Any:
-        return self._client._get("/auth/mfa/setup")
-
-    def enable(self, token: str) -> Any:
-        return self._client._post("/auth/mfa/enable", {"token": token})
-
-    def disable(self) -> Any:
-        return self._client._post("/auth/mfa/disable")
-
-    def confirm(self, token: str, mfa_token: str) -> Any:
-        return self._client._post("/auth/mfa/confirm", {"token": token, "mfaToken": mfa_token})
-
-    def recovery(self, code: str, mfa_token: str) -> Any:
-        return self._client._post("/auth/mfa/recovery", {"code": code, "mfaToken": mfa_token})
-
-    def recovery_codes(self) -> Any:
-        return self._client._get("/auth/mfa/recovery-codes")
-
-    def regenerate_codes(self) -> Any:
-        return self._client._post("/auth/mfa/recovery-codes/regenerate")
-
-    def send_backup_code(self, email: str) -> Any:
-        return self._client._post("/auth/mfa/send-backup-code", {"email": email})
-
-    def status(self) -> Any:
-        return self._client._get("/auth/mfa/status")
-
-
 class _UsersProxy:
     """Proxy providing user-related API methods."""
 
@@ -293,8 +259,6 @@ class _InvitesProxy:
         body: dict = {}
         if email:
             body["email"] = email
-        # body or None: send None (no body) when no email is provided,
-        # so the server creates an open invite that anyone can accept.
         return self._client._post(f"/projects/{project_id}/invites", body or None)
 
     def accept(self, slug: str) -> Any:
@@ -322,8 +286,6 @@ class _MembersProxy:
         )
 
     def remove_permissions(self, project_id: str, member_id: str, permissions: List[str]) -> Any:
-        # Uses raw _request instead of _delete because the DELETE endpoint
-        # accepts a JSON body listing the permissions to remove.
         self._client._request(
             "DELETE",
             f"/projects/{project_id}/members/{member_id}/permissions",
@@ -415,7 +377,6 @@ class SecrynClient(_RequestMixin):
 
         # Proxies for API resource groups
         self.auth = _AuthProxy(self)
-        self.mfa = _MFAProxy(self)
         self.users = _UsersProxy(self)
         self.api_keys = _ApiKeysProxy(self)
         self.projects = _ProjectsProxy(self)

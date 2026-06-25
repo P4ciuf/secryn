@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
-import { ApiError } from "@/errors/apiError";
+
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * POST /api/projects/:id/transfer
@@ -16,8 +17,7 @@ import { ApiError } from "@/errors/apiError";
  * @throws 403 if the requester is not the current project owner.
  */
 export const POST = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
   const body = (await request.json()) as { toUserId: string };
@@ -29,7 +29,7 @@ export const POST = withErrorHandler(async (request, ctx: unknown) => {
     );
   }
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const project = await projectService.transferOwnerProject({ id }, body.toUserId);
 
   return NextResponse.json(

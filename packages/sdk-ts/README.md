@@ -56,19 +56,6 @@ await client.auth.resetPassword(token, "new-password");
 client.auth.isAuthenticated(); // true if cookies present
 ```
 
-### MFA
-
-```typescript
-const setup = await client.mfa.setup(); // secret + QR code URL
-await client.mfa.enable(token);
-await client.mfa.confirm(token, mfaToken);
-await client.mfa.recovery(code, mfaToken);
-const status = await client.mfa.status(); // { enabled: boolean }
-const codes = await client.mfa.recoveryCodes();
-await client.mfa.sendBackupCode("user@example.com");
-await client.mfa.disable();
-```
-
 ### Projects
 
 ```typescript

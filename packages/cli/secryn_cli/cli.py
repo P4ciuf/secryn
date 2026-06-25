@@ -141,23 +141,13 @@ def auth_login(client: Client, email: Optional[str], password: Optional[str]) ->
     """Log in to Secryn.
 
     Prompts interactively for email and password if not supplied via flags.
-    Supports MFA: when the account has MFA enabled you will be asked for
-    the TOTP token.
     """
     if not email:
         email = click.prompt("Email", type=str)
     if not password:
         password = click.prompt("Password", hide_input=True, type=str)
 
-    result = client.post("/auth/login", {"email": email, "password": password})
-
-    if result.get("mfaRequired"):
-        echo_info("MFA is required for this account.")
-        token = click.prompt("Enter MFA token", type=str)
-        client.post(
-            "/auth/mfa/confirm",
-            {"token": token, "mfaToken": result["mfaToken"]},
-        )
+    client.post("/auth/login", {"email": email, "password": password})
 
     client.config.user_email = email
     client.save_config()

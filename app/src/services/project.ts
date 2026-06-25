@@ -96,11 +96,11 @@ export class ProjectService {
       name,
       description: desc,
       slug,
-      owner: { connect: { id: this.user.id } },
+      owner: { connect: { id: this.user.id as string } },
     });
 
     const ownMember = await this.repository.createMember({
-      user: { connect: { id: this.user.id } },
+      user: { connect: { id: this.user.id as string } },
       project: { connect: { id: project.id } },
     });
 
@@ -120,7 +120,7 @@ export class ProjectService {
    */
   async deleteProject(where: Prisma.ProjectWhereUniqueInput): Promise<void> {
     const project = await this.getProjectOrThrow(where);
-    ownsProject(this.user.id, project.owner.id);
+    ownsProject(this.user.id as string, project.owner.id);
 
     await this.repository.deleteProject(where);
   }
@@ -146,7 +146,7 @@ export class ProjectService {
     data: { name?: string; description?: string },
   ) {
     const project = await this.getProjectOrThrow(where);
-    ownsProject(this.user.id, project.owner.id);
+    ownsProject(this.user.id as string, project.owner.id);
 
     const { name, description } = data;
     let slug = project.slug;
@@ -174,17 +174,17 @@ export class ProjectService {
    */
   async transferOwnerProject(where: Prisma.ProjectWhereUniqueInput, toUserId: string) {
     const project = await this.getProjectOrThrow(where);
-    ownsProject(this.user.id, project.owner.id);
+    ownsProject(this.user.id as string, project.owner.id);
 
     const user = await this.userService.getUserOrThrow({ id: toUserId });
 
     const member = await this.getMemberOrThrow({
-      user: { id: user.id },
+      user: { id: user.id as string },
       project: { id: project.id },
     });
 
     await this.repository.updateProject(where, {
-      owner: { connect: { id: user.id } },
+      owner: { connect: { id: user.id as string } },
     });
 
     await this.assignAllPermissionToMemberUnsafe(member.id, project.id);
@@ -207,10 +207,10 @@ export class ProjectService {
     if (!project) return null;
 
     const member = await this.repository.findProjectMember({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: project.id },
     });
-    if (!member && project.ownerId !== this.user.id) {
+    if (!member && project.ownerId !== (this.user.id as string)) {
       return null;
     }
     return project;
@@ -239,10 +239,13 @@ export class ProjectService {
    */
   async getUserProjects(): Promise<Array<FullProject>> {
     const prefix = "[ProjectService.getUserProjects]";
-    logger.debug(`${prefix} User: ${this.user.email} (${this.user.id})`);
+    logger.debug(`${prefix} User: ${this.user.email} (${this.user.id as string})`);
 
     const projects = await this.repository.findProjects({
-      OR: [{ ownerId: this.user.id }, { members: { some: { userId: this.user.id } } }],
+      OR: [
+        { ownerId: this.user.id as string },
+        { members: { some: { userId: this.user.id as string } } },
+      ],
     });
 
     logger.debug(`${prefix} Found ${projects.length} projects`);
@@ -273,7 +276,7 @@ export class ProjectService {
     const project = await this.getProjectOrThrow({ id: projectId });
 
     const fromMember = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: project.id },
     });
 
@@ -287,7 +290,7 @@ export class ProjectService {
     }
 
     const existsUserMember = await this.getMember({
-      user: { id: toUser.id },
+      user: { id: toUser.id as string },
       project: { id: project.id },
     });
     if (existsUserMember) throw ApiError.BadRequest("User is already a member of this project");
@@ -374,13 +377,13 @@ export class ProjectService {
     if (invite.expiresAt < new Date()) throw ApiError.BadRequest("Invite has expired");
 
     const existsUserMember = await this.getMember({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: invite.projectId },
     });
     if (existsUserMember) throw ApiError.BadRequest("User is already a member of this project");
 
     await this.repository.createMember({
-      user: { connect: { id: this.user.id } },
+      user: { connect: { id: this.user.id as string } },
       project: { connect: { id: invite.projectId } },
     });
 
@@ -414,7 +417,8 @@ export class ProjectService {
       throw ApiError.Forbidden("You don't have permission to remove members");
     }
 
-    if (member.userId === this.user.id) throw ApiError.BadRequest("You cannot remove yourself");
+    if (member.userId === (this.user.id as string))
+      throw ApiError.BadRequest("You cannot remove yourself");
 
     await this.repository.deleteProjectMember({ id: member.id, projectId: project.id });
   }
@@ -438,7 +442,7 @@ export class ProjectService {
   ) {
     const member = await this.getMemberOrThrow({ id: memberId });
     const adminMember = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: projectId },
     });
 
@@ -454,7 +458,7 @@ export class ProjectService {
       await this.repository.createMemberPermissionAssignment({
         permission: permission,
         projectMember: { connect: { id: member.id } },
-        addedByUser: { connect: { id: this.user.id } },
+        addedByUser: { connect: { id: this.user.id as string } },
       });
     }
   }
@@ -478,7 +482,7 @@ export class ProjectService {
   ) {
     const member = await this.getMemberOrThrow({ id: memberId });
     const adminMember = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: projectId },
     });
 
@@ -542,7 +546,7 @@ export class ProjectService {
   ) {
     const project = await this.getProjectOrThrow({ id: projectId });
     const member = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: project.id },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
@@ -591,7 +595,7 @@ export class ProjectService {
   async deleteSecret(id: string) {
     const secret = await this.getSecretOrThrow(id);
     const member = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: secret.projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
@@ -628,7 +632,7 @@ export class ProjectService {
   async updateSecret(id: string, data: Pick<Prisma.SecretUpdateInput, "name" | "notes" | "value">) {
     const existingSecret = await this.getSecretOrThrow(id);
     const member = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: existingSecret.projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
@@ -678,7 +682,7 @@ export class ProjectService {
     if (!cryptedSecret) return cryptedSecret;
 
     const member = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: cryptedSecret.projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({
@@ -774,7 +778,7 @@ export class ProjectService {
     const prefix = "[Service.getProjectSecrets]";
 
     const member = await this.getMemberOrThrow({
-      user: { id: this.user.id },
+      user: { id: this.user.id as string },
       project: { id: projectId },
     });
     const permission = await this.getPermissionAssignmentOrThrow({

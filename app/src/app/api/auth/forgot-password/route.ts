@@ -20,7 +20,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const authService = await AuthService.Instance(request, null);
+  const authService = await AuthService.Instance(null);
   const result = await authService.forgotPassword(body);
 
   return NextResponse.json({ success: true, ...result }, { status: 200 });

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
-import { ApiError } from "@/errors/apiError";
+
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * POST /api/projects/invites/:slug/accept
@@ -14,11 +15,10 @@ import { ApiError } from "@/errors/apiError";
  * @throws 404 if the invite does not exist or has expired.
  */
 export const POST = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { slug } = await (ctx as { params: Promise<{ slug: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   await projectService.acceptInvite(slug);
 
   return NextResponse.json({ success: true }, { status: 200 });

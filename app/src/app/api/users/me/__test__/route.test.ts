@@ -21,8 +21,15 @@ const {
   mockClearAuthCookie: vi.fn(),
 }));
 
-vi.mock("@/utils/authGuard", () => ({
-  getAuthenticatedUser: mockGetAuthenticatedUser,
+vi.mock("@/auth", () => ({
+  auth: vi
+    .fn()
+    .mockImplementation(() =>
+      mockGetAuthenticatedUser().then((u: unknown) => (u ? { user: u } : null)),
+    ),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  handlers: { GET: vi.fn(), POST: vi.fn() },
 }));
 
 vi.mock("@/services/user", () => ({
@@ -40,7 +47,7 @@ vi.mock("@/services/user", () => ({
 }));
 
 vi.mock("@/utils/cookie", () => ({
-  clearAuthCookie: mockClearAuthCookie,
+  clearCookie: mockClearAuthCookie,
 }));
 
 import { GET, PUT, DELETE } from "../route";
@@ -60,7 +67,6 @@ function createMockFullUser(overrides: Record<string, unknown> = {}) {
     password: "hashed-password",
     role: "USER",
     isVerified: true,
-    isMFAEnabled: false,
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-02"),
     ...overrides,
@@ -91,7 +97,7 @@ describe("GET /api/users/me", () => {
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.user.id).toBe("user-1");
+    expect(body.user.id as string).toBe("user-1");
     expect(body.user.email).toBe("test@example.com");
   });
 });

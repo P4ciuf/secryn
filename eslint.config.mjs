@@ -35,6 +35,7 @@ export default defineConfig([
       "**/env.ts",
       "**/register-paths.js",
       "**/TODO.md",
+      "***/architecture.md",
       "**/.vercel/**",
     ],
   },

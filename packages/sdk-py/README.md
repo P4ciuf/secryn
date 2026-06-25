@@ -48,19 +48,6 @@ client.auth.forgot_password("user@example.com")
 client.auth.reset_password(token, "new-password")
 ```
 
-### MFA
-
-```python
-setup = client.mfa.setup()          # returns secret + QR code URL
-client.mfa.enable(token)
-client.mfa.confirm(token, mfa_token)
-client.mfa.recovery(code, mfa_token)
-client.mfa.status()                 # -> {"enabled": True}
-codes = client.mfa.recovery_codes() # -> {"codes": ["...", ...]}
-client.mfa.send_backup_code("user@example.com")
-client.mfa.disable()
-```
-
 ### Projects
 
 ```python

@@ -13,39 +13,6 @@ export interface RegisterBody {
   username?: string;
 }
 
-export interface LoginMFAResponse {
-  mfaRequired: true;
-  mfaToken: string;
-}
-
-export interface MFAConfirmBody {
-  token: string;
-  mfaToken: string;
-}
-
-export interface MFARecoveryBody {
-  code: string;
-  mfaToken: string;
-}
-
-export interface MFASetupResponse {
-  secret: string;
-  qrCode: string;
-  otpauthUrl: string;
-}
-
-export interface MFAEnableBody {
-  token: string;
-}
-
-export interface MFAStatusResponse {
-  enabled: boolean;
-}
-
-export interface MFARecoveryCodesResponse {
-  codes: string[];
-}
-
 export interface ForgotPasswordBody {
   email: string;
 }

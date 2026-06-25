@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
-import { ApiError } from "@/errors/apiError";
 import type { CreateSecretInput } from "@repo/shared";
+
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/projects/:id/secrets
@@ -15,11 +16,10 @@ import type { CreateSecretInput } from "@repo/shared";
  * @throws 403 if the requester lacks read access.
  */
 export const GET = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const secrets = await projectService.getProjectSecrets(id);
 
   return NextResponse.json(
@@ -52,8 +52,7 @@ export const GET = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 403 if the requester lacks write access.
  */
 export const POST = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
   const body = (await request.json()) as CreateSecretInput;
@@ -70,7 +69,7 @@ export const POST = withErrorHandler(async (request, ctx: unknown) => {
     );
   }
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const secret = await projectService.createSecret(id, {
     name: body.name,
     value: body.value,

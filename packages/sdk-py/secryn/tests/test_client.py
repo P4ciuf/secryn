@@ -14,7 +14,6 @@ from secryn.client import (
     _AuthProxy,
     _InvitesProxy,
     _MembersProxy,
-    _MFAProxy,
     _ProjectsProxy,
     _SecretsProxy,
     _UsersProxy,
@@ -199,7 +198,6 @@ class TestSecrynClient:
 
     def test_all_proxy_attributes_are_set(self, client: SecrynClient) -> None:
         assert isinstance(client.auth, _AuthProxy)
-        assert isinstance(client.mfa, _MFAProxy)
         assert isinstance(client.users, _UsersProxy)
         assert isinstance(client.api_keys, _ApiKeysProxy)
         assert isinstance(client.projects, _ProjectsProxy)
@@ -489,110 +487,6 @@ class TestAuthProxy:
             "http://localhost:3000/api/v1/auth/reset-password",
             json={"token": "reset-token-abc", "password": "newpassword"},
         )
-
-
-# ===================================================================
-# _MFAProxy
-# ===================================================================
-
-
-class TestMFAProxy:
-    def test_setup(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"secret": "JBSWY3DPEHPK3PXP", "qrCode": "data:..."}
-        )
-        result = client.mfa.setup()
-        assert result["secret"] == "JBSWY3DPEHPK3PXP"
-        mock_session.request.assert_called_once_with(
-            "GET", "http://localhost:3000/api/v1/auth/mfa/setup"
-        )
-
-    def test_enable(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"enabled": True}
-        )
-        result = client.mfa.enable("123456")
-        assert result == {"enabled": True}
-        mock_session.request.assert_called_once_with(
-            "POST",
-            "http://localhost:3000/api/v1/auth/mfa/enable",
-            json={"token": "123456"},
-        )
-
-    def test_disable(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"enabled": False}
-        )
-        result = client.mfa.disable()
-        assert result == {"enabled": False}
-
-    def test_confirm(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"confirmed": True}
-        )
-        result = client.mfa.confirm("setup-token", "654321")
-        assert result == {"confirmed": True}
-        mock_session.request.assert_called_once_with(
-            "POST",
-            "http://localhost:3000/api/v1/auth/mfa/confirm",
-            json={"token": "setup-token", "mfaToken": "654321"},
-        )
-
-    def test_recovery(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"token": "jwt-recovery"}
-        )
-        result = client.mfa.recovery("ABCD-EFGH", "111111")
-        assert result == {"token": "jwt-recovery"}
-        mock_session.request.assert_called_once_with(
-            "POST",
-            "http://localhost:3000/api/v1/auth/mfa/recovery",
-            json={"code": "ABCD-EFGH", "mfaToken": "111111"},
-        )
-
-    def test_recovery_codes(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"codes": ["AAAA-BBBB", "CCCC-DDDD"]}
-        )
-        result = client.mfa.recovery_codes()
-        assert result == {"codes": ["AAAA-BBBB", "CCCC-DDDD"]}
-
-    def test_regenerate_codes(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"codes": ["EEEE-FFFF"]}
-        )
-        result = client.mfa.regenerate_codes()
-        assert result == {"codes": ["EEEE-FFFF"]}
-
-    def test_send_backup_code(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"sent": True}
-        )
-        result = client.mfa.send_backup_code("user@example.com")
-        assert result == {"sent": True}
-        mock_session.request.assert_called_once_with(
-            "POST",
-            "http://localhost:3000/api/v1/auth/mfa/send-backup-code",
-            json={"email": "user@example.com"},
-        )
-
-    def test_status(self, client: SecrynClient, mock_session: MagicMock) -> None:
-        mock_session.request.return_value = _make_response(
-            200, json_data={"enabled": True, "backupCodesRemaining": 5}
-        )
-        result = client.mfa.status()
-        assert result["enabled"] is True
-
-    def test_setup_raises_on_401_when_unauthenticated(
-        self, client: SecrynClient, mock_session: MagicMock
-    ) -> None:
-        mock_session.request.return_value = _make_response(
-            401,
-            json_data={"message": "Authentication required", "code": "UNAUTHORIZED"},
-        )
-        with pytest.raises(SecrynApiError) as exc_info:
-            client.mfa.setup()
-        assert exc_info.value.status_code == 401
 
 
 # ===================================================================
