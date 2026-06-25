@@ -7,7 +7,7 @@ vi.mock("next-auth", () => {
   };
 
   class AuthError extends Error {
-    cause: unknown;
+    override cause: unknown;
     constructor(message?: string, cause?: unknown) {
       super(message ?? "Authentication error");
       this.name = "AuthError";
