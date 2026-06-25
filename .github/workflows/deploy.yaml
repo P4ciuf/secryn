@@ -24,9 +24,24 @@ jobs:
             set -e
             cd ~/secryn
 
+            echo "Preserving .env files..."
+            for f in .env app/.env; do
+              [ -f "$f" ] && cp "$f" "/tmp/$(basename "$f").bak"
+            done
+
             echo "Fetching latest changes..."
             git fetch origin main
             git reset --hard origin/main
+
+            echo "Restoring .env files..."
+            for f in .env app/.env; do
+              if [ -f "/tmp/$(basename "$f").bak" ]; then
+                cp "/tmp/$(basename "$f").bak" "$f"
+              elif [ ! -f "$f" ] && [ -f "$f.example" ]; then
+                echo "WARNING: $f not found, creating from $f.example"
+                cp "$f.example" "$f"
+              fi
+            done
 
             echo "Rebuilding and restarting services..."
             docker compose up --build -d
