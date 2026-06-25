@@ -7,8 +7,15 @@ const { mockGetAuthenticatedUser, mockGetUserProjects, mockCreateProject } = vi.
   mockCreateProject: vi.fn(),
 }));
 
-vi.mock("@/utils/authGuard", () => ({
-  getAuthenticatedUser: mockGetAuthenticatedUser,
+vi.mock("@/auth", () => ({
+  auth: vi
+    .fn()
+    .mockImplementation(() =>
+      mockGetAuthenticatedUser().then((u: unknown) => (u ? { user: u } : null)),
+    ),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  handlers: { GET: vi.fn(), POST: vi.fn() },
 }));
 
 vi.mock("@/services/project", () => ({

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import LoginPage from "../page";
 
 const { mockLoginAction } = vi.hoisted(() => ({ mockLoginAction: vi.fn() }));
-vi.mock("@/actions/auth", () => ({
+vi.mock("@/app/(auth)/actions", () => ({
   loginAction: mockLoginAction,
 }));
 

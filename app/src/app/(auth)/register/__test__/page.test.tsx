@@ -3,9 +3,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import RegisterPage from "../page";
 
-const { mockApiFetch } = vi.hoisted(() => ({ mockApiFetch: vi.fn() }));
-vi.mock("@/lib/api", () => ({
-  apiFetch: mockApiFetch,
+const { mockRegisterAction } = vi.hoisted(() => ({ mockRegisterAction: vi.fn() }));
+vi.mock("@/app/(auth)/actions", () => ({
+  registerAction: mockRegisterAction,
 }));
 
 const mockPush = vi.fn();
@@ -48,11 +48,11 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     expect(await screen.findByText("Passwords do not match.")).toBeInTheDocument();
-    expect(mockApiFetch).not.toHaveBeenCalled();
+    expect(mockRegisterAction).not.toHaveBeenCalled();
   });
 
   it("shows error on submit failure", async () => {
-    mockApiFetch.mockRejectedValue(new Error("Email already taken"));
+    mockRegisterAction.mockRejectedValue(new Error("Email already taken"));
     const user = userEvent.setup();
 
     render(<RegisterPage />);
