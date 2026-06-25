@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
-import { ApiError } from "@/errors/apiError";
 import { ProjectMemberPermission } from "@prisma/client";
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
+/**
+ * Normalises a permission string to a {@link ProjectMemberPermission} enum value.
+ * Performs a case-insensitive match against known enum members. Returns null
+ * for unrecognised values so the caller can silently ignore invalid input.
+ *
+ * @param value - A raw permission string from the request body
+ * @returns The matching enum member, or null if no match exists
+ */
 function parsePermission(value: string): ProjectMemberPermission | null {
   const upper = value.toUpperCase();
   if (Object.values(ProjectMemberPermission).includes(upper as ProjectMemberPermission)) {
@@ -24,8 +32,7 @@ function parsePermission(value: string): ProjectMemberPermission | null {
  * @throws 403 if the requester is not a project admin.
  */
 export const PUT = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id, memberId } = await (ctx as { params: Promise<{ id: string; memberId: string }> })
     .params;
@@ -34,7 +41,7 @@ export const PUT = withErrorHandler(async (request, ctx: unknown) => {
     removePermissions?: string[];
   };
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
 
   if (body.addPermissions && body.addPermissions.length > 0) {
     const perms = body.addPermissions

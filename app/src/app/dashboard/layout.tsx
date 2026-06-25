@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ROUTES } from "@/data/routes";
 import { apiFetch } from "@/lib/api";
+import { logoutAction } from "@/app/(auth)/actions";
 
 const NAV_ITEMS = [
   {
@@ -68,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     try {
-      await apiFetch("/auth/logout", { method: "POST" });
+      await logoutAction();
     } catch {
       // continue even if logout fails
     }

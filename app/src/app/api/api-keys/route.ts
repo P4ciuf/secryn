@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ApiKeyService } from "@/services/apiKey";
-import { ApiError } from "@/errors/apiError";
 import type { CreateApiKeyInput, ApiKeyPermission } from "@repo/shared";
+
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/api-keys
@@ -13,11 +14,10 @@ import type { CreateApiKeyInput, ApiKeyPermission } from "@repo/shared";
  *
  * @throws 401 if the request is unauthenticated.
  */
-export const GET = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+export const GET = withErrorHandler(async (_request: Request) => {
+  const user = await getSessionOrThrow(await auth());
 
-  const apiKeyService = await ApiKeyService.Instance(user.id);
+  const apiKeyService = await ApiKeyService.Instance(user.id as string as string);
   const apiKeys = await apiKeyService.getUserApiKeys();
 
   return NextResponse.json(
@@ -39,8 +39,7 @@ export const GET = withErrorHandler(async (request: Request) => {
  * @throws 401 if the request is unauthenticated.
  */
 export const POST = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const body = (await request.json()) as CreateApiKeyInput;
 
@@ -71,7 +70,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     }
   }
 
-  const apiKeyService = await ApiKeyService.Instance(user.id);
+  const apiKeyService = await ApiKeyService.Instance(user.id as string as string);
   const apiKey = await apiKeyService.generateApiKey({
     name: body.name,
     permissions: body.permissions,

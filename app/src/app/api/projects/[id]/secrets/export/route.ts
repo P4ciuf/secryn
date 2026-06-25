@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
-import { ApiError } from "@/errors/apiError";
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/projects/:id/secrets/export
@@ -14,11 +14,10 @@ import { ApiError } from "@/errors/apiError";
  * @throws 403 if the requester lacks read access.
  */
 export const GET = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const envContent = await projectService.exportProjectSecrets(id);
 
   return new NextResponse(envContent, {

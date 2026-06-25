@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ApiKeyService } from "@/services/apiKey";
-import { ApiError } from "@/errors/apiError";
 import type { UpdateApiKeyInput, ApiKeyPermission } from "@repo/shared";
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/api-keys/:id
@@ -15,11 +15,10 @@ import type { UpdateApiKeyInput, ApiKeyPermission } from "@repo/shared";
  * @throws 404 if the API key does not exist or belongs to another user.
  */
 export const GET = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
-  const apiKeyService = await ApiKeyService.Instance(user.id);
+  const apiKeyService = await ApiKeyService.Instance(user.id as string);
   const apiKey = await apiKeyService.getApiKeyOrThrow({ id });
 
   return NextResponse.json({ success: true, apiKey }, { status: 200 });
@@ -36,13 +35,12 @@ export const GET = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 404 if the API key does not exist or belongs to another user.
  */
 export const PUT = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
   const body = (await request.json()) as UpdateApiKeyInput;
 
-  const apiKeyService = await ApiKeyService.Instance(user.id);
+  const apiKeyService = await ApiKeyService.Instance(user.id as string);
 
   if (body.name !== undefined) {
     await apiKeyService.updateApiKeyName(id, body.name);
@@ -84,11 +82,10 @@ export const PUT = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 404 if the API key does not exist or belongs to another user.
  */
 export const DELETE = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
-  const apiKeyService = await ApiKeyService.Instance(user.id);
+  const apiKeyService = await ApiKeyService.Instance(user.id as string as string);
   await apiKeyService.deleteApiKeyById(id);
 
   return NextResponse.json({ success: true }, { status: 200 });

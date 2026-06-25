@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
 import { ApiError } from "@/errors/apiError";
 import type { UpdateSecretInput } from "@repo/shared";
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/projects/:id/secrets/:secretId
@@ -15,11 +16,10 @@ import type { UpdateSecretInput } from "@repo/shared";
  * @throws 404 if the secret does not exist or access is denied.
  */
 export const GET = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { secretId } = await (ctx as { params: Promise<{ secretId: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const secret = await projectService.getSecretOrThrow(secretId);
 
   return NextResponse.json(
@@ -51,13 +51,12 @@ export const GET = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 404 if the secret does not exist or access is denied.
  */
 export const PUT = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { secretId } = await (ctx as { params: Promise<{ secretId: string }> }).params;
   const body = (await request.json()) as UpdateSecretInput;
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const secret = await projectService.updateSecret(secretId, {
     name: body.name,
     value: body.value,
@@ -94,11 +93,10 @@ export const PUT = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 404 if the secret does not exist or access is denied.
  */
 export const DELETE = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { secretId } = await (ctx as { params: Promise<{ secretId: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   await projectService.deleteSecret(secretId);
 
   return NextResponse.json({ success: true }, { status: 200 });

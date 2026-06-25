@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
-import { ApiError } from "@/errors/apiError";
 import type { CreateProjectInput } from "@repo/shared";
+
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/projects
@@ -13,11 +14,10 @@ import type { CreateProjectInput } from "@repo/shared";
  *
  * @throws 401 if the request is unauthenticated.
  */
-export const GET = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+export const GET = withErrorHandler(async (_request: Request) => {
+  const user = await getSessionOrThrow(await auth());
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const projects = await projectService.getUserProjects();
 
   return NextResponse.json(
@@ -47,8 +47,7 @@ export const GET = withErrorHandler(async (request: Request) => {
  * @throws 401 if the request is unauthenticated.
  */
 export const POST = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const body = (await request.json()) as CreateProjectInput;
 
@@ -64,7 +63,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const project = await projectService.createProject(body.name, body.description ?? "");
 
   return NextResponse.json(

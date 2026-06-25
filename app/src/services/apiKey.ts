@@ -61,7 +61,7 @@ export class ApiKeyService {
   }
 
   private hasApiKeyAccess(apiKey: ApiKey): boolean {
-    return apiKey.userId === this.user.id;
+    return apiKey.userId === (this.user.id as string);
   }
 
   /**
@@ -140,7 +140,7 @@ export class ApiKeyService {
 
   /** Returns all decrypted API keys belonging to the scoped user. */
   async getUserApiKeys() {
-    return await this.getManyApiKeys({ userId: this.user.id });
+    return await this.getManyApiKeys({ userId: this.user.id as string });
   }
 
   /** Fetches a decrypted API key by its database ID. Returns null if not found or not owned. */
@@ -186,7 +186,7 @@ export class ApiKeyService {
       expiresAt,
       user: {
         connect: {
-          id: this.user.id,
+          id: this.user.id as string,
         },
       },
       apiKeyPermissions: {

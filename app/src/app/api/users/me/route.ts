@@ -1,36 +1,35 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { UserService } from "@/services/user";
-import { clearAuthCookie } from "@/utils/cookie";
+import { clearCookie } from "@/utils/cookie";
 import { ApiError } from "@/errors/apiError";
 import type { UpdateUserInput } from "@repo/shared";
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/users/me
  *
  * Returns the authenticated user's profile. Does not include sensitive fields
- * such as password hash or MFA secrets.
+ * such as the password hash.
  *
  * @throws 401 if the request is unauthenticated.
  */
-export const GET = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+export const GET = withErrorHandler(async (_request: Request) => {
+  const user = await getSessionOrThrow(await auth());
 
-  const userService = await UserService.Instance(user.id);
-  const fullUser = await userService.getUserOrThrow({ id: user.id });
+  const userService = await UserService.Instance(user.id as string);
+  const fullUser = await userService.getUserOrThrow({ id: user.id as string });
 
   return NextResponse.json(
     {
       success: true,
       user: {
-        id: fullUser.id,
+        id: fullUser.id as string,
         email: fullUser.email,
         username: fullUser.username,
         role: fullUser.role,
         isVerified: fullUser.isVerified,
-        isMFAEnabled: fullUser.isMFAEnabled,
         createdAt: fullUser.createdAt.toISOString(),
         updatedAt: fullUser.updatedAt.toISOString(),
       },
@@ -51,13 +50,12 @@ export const GET = withErrorHandler(async (request: Request) => {
  * @throws 409 if the new email is already taken.
  */
 export const PUT = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const body = (await request.json()) as UpdateUserInput;
 
-  const userService = await UserService.Instance(user.id);
-  const currentUser = await userService.getUserOrThrow({ id: user.id });
+  const userService = await UserService.Instance(user.id as string);
+  const currentUser = await userService.getUserOrThrow({ id: user.id as string });
 
   const updateData: Record<string, string> = {};
 
@@ -88,18 +86,17 @@ export const PUT = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const updatedUser = await userService.updateUser(currentUser.id, updateData);
+  const updatedUser = await userService.updateUser(currentUser.id as string, updateData);
 
   return NextResponse.json(
     {
       success: true,
       user: {
-        id: updatedUser.id,
+        id: updatedUser.id as string,
         email: updatedUser.email,
         username: updatedUser.username,
         role: updatedUser.role,
         isVerified: updatedUser.isVerified,
-        isMFAEnabled: updatedUser.isMFAEnabled,
         createdAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString(),
       },
@@ -116,14 +113,13 @@ export const PUT = withErrorHandler(async (request: Request) => {
  *
  * @throws 401 if the request is unauthenticated.
  */
-export const DELETE = withErrorHandler(async (request: Request) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+export const DELETE = withErrorHandler(async (_request: Request) => {
+  const user = await getSessionOrThrow(await auth());
 
-  const userService = await UserService.Instance(user.id);
-  await userService.getUserOrThrow({ id: user.id });
-  await userService.deleteUser(user.id);
-  await clearAuthCookie();
+  const userService = await UserService.Instance(user.id as string);
+  await userService.getUserOrThrow({ id: user.id as string });
+  await userService.deleteUser(user.id as string);
+  await clearCookie("jwt");
 
   return NextResponse.json({ success: true }, { status: 200 });
 });

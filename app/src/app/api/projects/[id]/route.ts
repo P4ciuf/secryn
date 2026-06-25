@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/errors/apiWrapper";
-import { getAuthenticatedUser } from "@/utils/authGuard";
 import { ProjectService } from "@/services/project";
 import { ApiError } from "@/errors/apiError";
+
+import { getSessionOrThrow } from "@/utils/session";
+import { auth } from "@/auth";
 
 /**
  * GET /api/projects/:id
@@ -14,11 +16,10 @@ import { ApiError } from "@/errors/apiError";
  * @throws 404 if the project does not exist or the requester is not a member.
  */
 export const GET = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const project = await projectService.getProject({ id });
 
   if (!project) throw ApiError.ResourceNotFound("Project");
@@ -62,13 +63,12 @@ export const GET = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 403 if the requester is not the project owner.
  */
 export const PUT = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
   const body = (await request.json()) as { name?: string; description?: string };
 
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   const project = await projectService.updateProject({ id }, body);
 
   return NextResponse.json(
@@ -98,11 +98,10 @@ export const PUT = withErrorHandler(async (request, ctx: unknown) => {
  * @throws 403 if the requester is not the project owner.
  */
 export const DELETE = withErrorHandler(async (request, ctx: unknown) => {
-  const user = await getAuthenticatedUser(request);
-  if (!user) throw ApiError.Unauthorized();
+  const user = await getSessionOrThrow(await auth());
 
   const { id } = await (ctx as { params: Promise<{ id: string }> }).params;
-  const projectService = await ProjectService.Instance(user.id);
+  const projectService = await ProjectService.Instance(user.id as string);
   await projectService.deleteProject({ id });
 
   return NextResponse.json({ success: true }, { status: 200 });

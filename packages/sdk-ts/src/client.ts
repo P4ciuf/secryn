@@ -2,13 +2,6 @@ import { logger } from "./logger.js";
 import type {
   LoginBody,
   RegisterBody,
-  LoginMFAResponse,
-  MFAConfirmBody,
-  MFARecoveryBody,
-  MFASetupResponse,
-  MFAEnableBody,
-  MFAStatusResponse,
-  MFARecoveryCodesResponse,
   ForgotPasswordBody,
   ResetPasswordBody,
   UpdateUserInput,
@@ -246,11 +239,9 @@ export class SecrynClient {
   // Auth
   // =====================================================================
   auth = {
-    login: async (email: string, password: string): Promise<{ ok: boolean } | LoginMFAResponse> => {
+    login: async (email: string, password: string): Promise<{ ok: boolean }> => {
       const body: LoginBody = { email, password };
-      const result = await this.post<{ ok: boolean } | LoginMFAResponse>("/auth/login", body);
-      // Emit an audit log on every login attempt (success or failure is
-      // reflected by whether this call throws).
+      const result = await this.post<{ ok: boolean }>("/auth/login", body);
       logger.audit("SDK_LOGIN", email);
       return result;
     },
@@ -297,41 +288,6 @@ export class SecrynClient {
      * Does not validate the cookie with the server.
      */
     isAuthenticated: (): boolean => this.cookieJar.getCookieHeader() !== "",
-  };
-
-  // =====================================================================
-  // MFA
-  // =====================================================================
-  mfa = {
-    setup: (): Promise<MFASetupResponse> => this.get<MFASetupResponse>("/auth/mfa/setup"),
-
-    enable: (token: string): Promise<MFARecoveryCodesResponse> => {
-      const body: MFAEnableBody = { token };
-      return this.post<MFARecoveryCodesResponse>("/auth/mfa/enable", body);
-    },
-
-    disable: (): Promise<{ ok: boolean }> => this.post<{ ok: boolean }>("/auth/mfa/disable"),
-
-    confirm: (token: string, mfaToken: string): Promise<{ ok: boolean }> => {
-      const body: MFAConfirmBody = { token, mfaToken };
-      return this.post<{ ok: boolean }>("/auth/mfa/confirm", body);
-    },
-
-    recovery: (code: string, mfaToken: string): Promise<{ ok: boolean }> => {
-      const body: MFARecoveryBody = { code, mfaToken };
-      return this.post<{ ok: boolean }>("/auth/mfa/recovery", body);
-    },
-
-    recoveryCodes: (): Promise<MFARecoveryCodesResponse> =>
-      this.get<MFARecoveryCodesResponse>("/auth/mfa/recovery-codes"),
-
-    regenerateCodes: (): Promise<MFARecoveryCodesResponse> =>
-      this.post<MFARecoveryCodesResponse>("/auth/mfa/recovery-codes/regenerate"),
-
-    sendBackupCode: (email: string): Promise<{ message: string }> =>
-      this.post<{ message: string }>("/auth/mfa/send-backup-code", { email }),
-
-    status: (): Promise<MFAStatusResponse> => this.get<MFAStatusResponse>("/auth/mfa/status"),
   };
 
   // =====================================================================
@@ -405,8 +361,6 @@ export class SecrynClient {
     create: <T = Record<string, unknown>>(projectId: string, email?: string): Promise<T> => {
       const body: Record<string, string> = {};
       if (email) body.email = email;
-      // Send body as-is (empty object when no email) so the server creates an
-      // open invite that any authenticated user can accept.
       return this.post<T>(`/projects/${projectId}/invites`, body);
     },
 

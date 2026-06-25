@@ -72,7 +72,7 @@ const log = winston.createLogger({
  * failures never crash the process.
  *
  * Includes an {@code audit} method for security-relevant events (login attempts,
- * secret access, MFA changes) that writes at the {@code info} level with a
+ * secret access) that writes at the {@code info} level with a
  * structured {@code [AUDIT]} prefix for easy filtering in log aggregation tools.
  */
 export const logger = {
@@ -123,7 +123,7 @@ export const logger = {
   /**
    * Records a security-relevant audit event at {@code info} level with a
    * structured {@code [AUDIT]} prefix. Use for login attempts, secret access,
-   * MFA state changes, and other actions that require an immutable trail.
+   * and other actions that require an immutable trail.
    *
    * @param action   - Machine-readable action name (e.g. {@code "LOGIN_SUCCESS"}).
    * @param actor    - Identifier of the user performing the action (typically email).
