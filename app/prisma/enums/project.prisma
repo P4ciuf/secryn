@@ -9,7 +9,9 @@ enum ProjectMemberPermission {
   CREATE_INVITES @map("create_invites")
   DELETE_INVITES @map("delete_invites")
 
+  /// Add members and assign/revoke their permissions (does not include removal).
   MANAGE_MEMBERS @map("manage_members")
+  /// Remove a member from the project entirely.
   REMOVE_MEMBERS @map("remove_members")
 
   /// Grants every available permission in the system.

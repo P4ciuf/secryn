@@ -1,7 +1,6 @@
 /// Represents a registered user account in the system.
-/// A User authenticates via email and password, supports optional MFA
-/// with one-time recovery codes, and participates in Projects through
-/// the ProjectMember join table (many-to-many relationship).
+/// A User authenticates via email and password and participates in
+/// Projects through the ProjectMember join table (many-to-many relationship).
 /// Each User can own multiple Projects and be a member of many others.
 /// UserBan records track moderation actions against the account.
 model User {
@@ -18,18 +17,11 @@ model User {
   role     UserRole @default(USER)
 
   /// Whether the user's email address has been confirmed.
-  isVerified   Boolean @default(false) @map("is_verified")
-  /// Whether the user has configured multi-factor authentication.
-  isMFAEnabled Boolean @default(false) @map("is_mfa_enabled")
-  /// Base32-encoded TOTP secret generated when the user sets up MFA.
-  mfaSecret    String? @map("mfa_secret")
+  isVerified Boolean @default(false) @map("is_verified")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  /// One-time recovery codes for regaining account access when the MFA
-  /// token is unavailable; each code can be consumed at most once.
-  mfaRecoveryCodes MFARecoveryCode[]
   /// Ban records applied to this account.
   bans             UserBan[]         @relation("banned_user")
   /// Ban records this user has placed on other accounts.
@@ -44,25 +36,6 @@ model User {
   passwordResetTokens PasswordResetToken[]
 
   @@map("users")
-}
-
-/// One-time use recovery codes for regaining account access
-/// when the user cannot provide their MFA token.
-/// Codes are marked invalid after use and expire after a set duration.
-model MFARecoveryCode {
-  id   String @id @default(cuid())
-  /// The recovery code value; used for one-time validation.
-  code String @unique
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  /// Starts as true; set to false once the code has been consumed.
-  isValid Boolean @default(true) @map("is_valid")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("mfa_recovery_codes")
 }
 
 /// Records a moderation action that restricts a User's access.
