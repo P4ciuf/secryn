@@ -3,7 +3,7 @@ services:
     image: postgres:18-alpine
     container_name: secryn_db
     restart: unless-stopped
-    env_file: ./app/.env
+    env_file: ./.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
