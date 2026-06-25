@@ -27,6 +27,8 @@
 - [x] Password hashing
 - [x] JWT authentication
 - [x] Authentication middleware
+- [x] NextAuth.js v5 migration _(replaced custom JWT/MFA with credentials provider)_
+- [x] MFA removed _(simplified auth flow; MFA may return in a future phase via passkeys/WebAuthn)_
 
 ## Secret Management
 
@@ -49,11 +51,12 @@
 
 ## API Security
 
-- [x] Request validation _(schema validation on auth + project routes)_
+- [x] Request validation _(schema validation via Zod)_
 - [x] Rate limiting _(`rate limiting on all endpoints`)_
 - [x] Brute-force protection
 - [x] Secure JWT strategy _(httpOnly cookies + bcrypt)_
 - [x] CORS hardening _(`explicit origin allowlist, credentials`)_
+- [x] NextAuth v5 session management
 
 ## Security Review
 
@@ -69,6 +72,7 @@
 
 - [x] Login page
 - [x] Registration page
+- [x] Auth route group reorganization (`(auth)/` with noindex metadata)
 
 ## Project Management
 
@@ -99,12 +103,16 @@
 - [x] Environment variable export
 - [x] CLI planning
 - [x] SDK planning
+- [x] CLI tool implementation
+- [x] Python SDK
+- [x] TypeScript SDK
 
 ## Documentation
 
 - [x] API reference _(Swagger UI at /docs, OpenAPI 3.1.0)_
 - [x] Quick start guide _(README.md Getting Started)_
 - [x] Authentication guide
+- [x] Architecture documentation
 
 ---
 
@@ -137,7 +145,7 @@
 ## Operations
 
 - [x] Environment management _(`EnvUtils`, `.env.example`)_
-- [x] Error tracking _(`AppError`, global error handler)_
+- [x] Error tracking _(`ApiError`, global error handler)_
 - [x] Health checks _(`GET /api/v1/health`)_
 
 ---
@@ -168,6 +176,7 @@
 - [ ] Role-based access control (RBAC)
 - [ ] Secret rotation
 - [ ] CI/CD integrations
+- [ ] Passkeys / WebAuthn MFA support
 - [x] CLI tool
 - [x] SDKs
 - [x] Self-hosted edition

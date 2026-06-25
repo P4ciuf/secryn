@@ -11,19 +11,29 @@ secryn/
 ├── app/                         # Next.js App Router (full-stack)
 │   ├── prisma/                  # Database schema (models, enums, migrations)
 │   ├── src/
-│   │   ├── middleware.ts        # Edge middleware (JWT verification)
+│   │   ├── auth.ts              # NextAuth.js v5 configuration
+│   │   ├── proxy.ts             # Edge middleware (NextAuth session check)
 │   │   ├── app/
 │   │   │   ├── page.tsx         # Landing page
-│   │   │   ├── login/           # Auth pages
-│   │   │   ├── register/
+│   │   │   ├── (auth)/          # Auth route group (noindex metadata)
+│   │   │   │   ├── login/       # Login page
+│   │   │   │   ├── register/    # Register page
+│   │   │   │   ├── forgot-password/
+│   │   │   │   └── reset-password/
 │   │   │   ├── dashboard/       # Protected dashboard + sub-pages
-│   │   │   └── api/             # 30 route handlers
-│   │   ├── services/            # Business logic (auth, user, project, apiKey, jwt)
+│   │   │   └── api/             # 19 route handlers
+│   │   │       └── auth/
+│   │   │           ├── [...nextauth]/  # NextAuth catch-all
+│   │   │           ├── forgot-password/
+│   │   │           └── reset-password/
+│   │   ├── services/            # Business logic (auth, user, project, apiKey)
 │   │   ├── repositories/        # Data access (Prisma wrappers)
 │   │   ├── db/                  # Prisma + Redis lazy singletons
-│   │   ├── utils/               # Crypto, env, email, auth guard, cookie helpers
+│   │   ├── utils/               # Crypto, env, email, cookie, session, serverAction
+│   │   ├── schemas/             # Zod validation schemas
 │   │   ├── errors/              # ApiError class + route error handler HOF
 │   │   ├── lib/                 # Client-side API fetch helper
+│   │   ├── types/               # Shared TypeScript types
 │   │   ├── components/          # Shared UI (ui/, landing/)
 │   │   └── template/            # HTML email templates
 │   ├── Dockerfile               # Multi-stage: builder → runtime
@@ -52,15 +62,16 @@ Request
 NGINX (SSL termination, proxy_pass → app:3000)
   │
   ▼
-Next.js Middleware (middleware.ts)
-  │  Verifies auth-token JWT cookie (Edge runtime, jose)
-  │  Protected routes → redirect /login          (browser)
-  │  Protected API routes → 401 JSON             (API)
+Next.js Edge Middleware (proxy.ts)
+  │  Calls auth() for NextAuth session check
+  │  Protected pages → redirect /login              (browser)
+  │  Protected API routes → 401 JSON                (API)
+  │  Authenticated + auth pages → redirect /dashboard
   │
   ▼
 Route Handler (app/src/app/api/**/route.ts)
   │  Wrapped in withErrorHandler() for centralized error responses
-  │  Extracts authenticated user via getAuthenticatedUser()
+  │  Resolves authenticated user via getSessionOrThrow(await auth())
   │  Creates scoped service instance
   │
   ▼
@@ -81,28 +92,35 @@ Redis (ioredis) → Rate limiting, brute-force counters
 
 ## Authentication & Authorization
 
-### JWT Session Auth (Browser)
+### NextAuth.js v5 (Credentials Provider)
 
-1. **Register**: `POST /api/auth/register` → bcrypt(password, cost 12) → JWT signed (HS256, 30 min) → `auth-token` httpOnly cookie
-2. **Login**: `POST /api/auth/login` → if MFA enabled: returns `{ mfaRequired, mfaToken }` (2-min JWT); otherwise: sets full `auth-token` cookie
-3. **MFA Confirm**: `POST /api/auth/mfa/confirm` → verifies TOTP code → sets full `auth-token`
-4. **MFA Recovery**: `POST /api/auth/mfa/recovery` → consumes one-time HMAC-SHA256 hashed recovery code
-5. **Password Reset**: `POST /api/auth/forgot-password` → 32-byte random token (1h expiry) → `POST /api/auth/reset-password`
-6. **Token Refresh**: `POST /api/auth/refresh` → issues new 30-min JWT (deduplicated in client)
+Secryn uses **NextAuth.js v5** (`app/src/auth.ts`) with a credentials provider for all user authentication:
+
+1. **Register**: The register page calls `registerAction()` (Server Action) which creates the user via `AuthService.register()` then calls NextAuth's `signIn("credentials", ...)` to set the `jwt` session cookie
+2. **Login**: The login page calls `loginAction()` (Server Action) which delegates to NextAuth's `signIn("credentials", ...)`. The `authorize()` callback in `auth.ts` validates email/password via Zod schema and `UserService`
+3. **JWT Callback**: Enriches the NextAuth token with `user.id`, `user.email`, `user.username` — downstream route handlers resolve the caller via `getSessionOrThrow(await auth())` without a database round-trip
+4. **Session Callback**: Maps token fields to `session.user` for middleware and client-side `useSession()`
+5. **Password Reset**: `POST /auth/forgot-password` → 32-byte random token (1h expiry) → `POST /auth/reset-password`
+6. **Token Refresh**: `POST /auth/refresh` extends the session
+
+### Session Resolution
+
+Route handlers use `getSessionOrThrow(await auth())` to resolve the authenticated user:
+
+```typescript
+// app/src/utils/session.ts
+export async function getSessionOrThrow(session: Session | null): Promise<User> {
+  if (!session) throw ApiError.Unauthorized();
+  return session.user;
+}
+```
 
 ### API Key Auth (Programmatic)
 
 - `api-key` HTTP header with `sc_` prefixed keys
-- Only valid on `/secrets` routes
 - Keys encrypted at rest with AES-256-GCM
 - Permission scoped: `READ`, `WRITE` (`ApiKeyPermissions` enum)
-- `AuthService.authenticateRequest()` returns discriminated union: `{ type: "USER" }` or `{ type: "APIKEY" }`
-
-### MFA (TOTP)
-
-- RFC 6238, SHA-1, 30s step, 6-digit codes (otplib)
-- Setup: generate secret → QR code (data URL) → verify → enable → 10 recovery codes
-- Recovery codes: 12-char hex, HMAC-SHA256 hashed, single-use
+- Default 30-day expiry from creation
 
 ### Brute-Force Protection (Redis)
 
@@ -116,8 +134,8 @@ Redis (ioredis) → Rate limiting, brute-force counters
 |------------|-----------|-------------|
 | httpOnly   | true      | true        |
 | secure     | true      | false       |
-| sameSite   | strict    | strict      |
-| maxAge     | 1800s     | 1800s       |
+| sameSite   | lax       | lax         |
+| name       | jwt       | jwt         |
 
 ---
 
@@ -148,8 +166,8 @@ ciphertext + 16-byte auth tag
 
 | Model | Table | Key Fields |
 |-------|-------|-----------|
-| User | `users` | id, email (unique), password (bcrypt), role (USER/ADMIN), isMFAEnabled, mfaSecret |
-| Project | `projects` | id, name, slug (unique), ownerId |
+| User | `users` | id, email (unique), password (bcrypt), username (unique), role (USER/ADMIN), isVerified |
+| Project | `projects` | id, name, slug (unique), ownerId, description |
 | ProjectMember | `project_members` | id, userId, projectId (unique composite) |
 | ProjectInvite | `project_invites` | id, projectId, slug (unique), expiresAt |
 | ProjectMemberPermissionAssignment | `project_member_permission_assignments` | projectMemberId, permission (unique composite) |
@@ -157,7 +175,7 @@ ciphertext + 16-byte auth tag
 | ApiKey | `api_keys` | id, userId, keyName, key (encrypted, unique), isActive, expiresAt |
 | ApiKeyPermission | `api_key_permissions` | apiKeyId, permission (unique composite) |
 | PasswordResetToken | `password_reset_tokens` | userId, token (unique), expiresAt, used |
-| MFARecoveryCode | `mfa_recovery_codes` | userId, code (hashed, unique), isValid |
+| UserBan | `user_bans` | userId, addedBy, reason, ipAddress, isPermanent, expiresAt |
 
 ### Enums
 
@@ -181,25 +199,10 @@ All routes are under `/api/v1` and follow Next.js App Router conventions (`route
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/auth/register` | Create account |
-| POST | `/auth/login` | Authenticate (or MFA challenge) |
-| POST | `/auth/logout` | Clear session |
-| POST | `/auth/refresh` | Extend session |
+| GET | `/auth/[...nextauth]` | NextAuth catch-all (csrf, signin, signout, session, callback) |
+| POST | `/auth/[...nextauth]` | NextAuth catch-all |
 | POST | `/auth/forgot-password` | Request password reset |
 | POST | `/auth/reset-password` | Set new password via token |
-
-### MFA
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/auth/mfa/setup` | Generate TOTP secret + QR code |
-| POST | `/auth/mfa/enable` | Activate MFA |
-| POST | `/auth/mfa/disable` | Deactivate MFA |
-| POST | `/auth/mfa/confirm` | Verify TOTP during login |
-| POST | `/auth/mfa/recovery` | Use backup recovery code |
-| GET | `/auth/mfa/status` | Check MFA status |
-| GET | `/auth/mfa/recovery-codes` | List masked recovery codes |
-| POST | `/auth/mfa/recovery-codes/regenerate` | Rotate recovery codes |
 
 ### Users
 
@@ -256,6 +259,12 @@ All routes are under `/api/v1` and follow Next.js App Router conventions (`route
 | PUT | `/api-keys/:id` | Update API key |
 | DELETE | `/api-keys/:id` | Delete API key |
 
+### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+
 ---
 
 ## Frontend Architecture
@@ -264,25 +273,28 @@ All routes are under `/api/v1` and follow Next.js App Router conventions (`route
 
 ```
 RootLayout
-├── Landing Page         /
-├── Login                /login
-├── Register             /register
-├── ForgotPassword       /forgot-password
-├── ResetPassword        /reset-password/:token
-└── DashboardLayout      /dashboard
-    ├── Overview          /dashboard
-    ├── Projects          /dashboard/projects
-    ├── API Keys          /dashboard/api-keys
-    ├── API Docs          /dashboard/api-docs
-    ├── Webhooks          /dashboard/webhooks
-    └── Settings          /dashboard/settings
+├── Landing Page        /
+├── (auth)              route group — noindex, nofollow
+│   ├── Login           /login
+│   ├── Register        /register
+│   ├── ForgotPassword  /forgot-password
+│   └── ResetPassword   /reset-password/:token
+└── DashboardLayout     /dashboard
+    ├── Overview         /dashboard
+    ├── Projects         /dashboard/projects
+    ├── API Keys         /dashboard/api-keys
+    ├── API Docs         /dashboard/api-docs
+    ├── Webhooks         /dashboard/webhooks
+    └── Settings         /dashboard/settings
 ```
 
 ### Key Patterns
 
+- **Auth**: Login/register via Server Actions wrapping NextAuth's `signIn`/`signOut` with `serverActionHandler` for typed error handling
 - **Client fetch**: `apiFetch<T>(url, options)` — `credentials: "include"`, automatic 401 → refresh → retry, deduplicated concurrent refreshes
-- **Auth guard**: Edge middleware redirects unauthenticated browser requests to `/login`; returns 401 JSON for API routes
-- **Error handling**: `ApiError` class hierarchy with static factories; `withErrorHandler()` HOF wraps route handlers
+- **Auth guard**: Edge middleware (`proxy.ts`) uses `auth()` to check NextAuth session; redirects unauthenticated browser requests to `/login`, returns 401 JSON for API routes
+- **Session resolution**: `getSessionOrThrow(await auth())` in route handlers provides the authenticated user with enriched fields
+- **Error handling**: `ApiError` class with static factories; `withErrorHandler()` HOF wraps route handlers
 - **SEO**: per-route metadata exports, JSON-LD structured data, sitemap, robots.txt
 - **Styling**: Tailwind CSS v4 with CSS custom properties, dark mode via `class` strategy
 
@@ -291,24 +303,24 @@ RootLayout
 ## Infrastructure
 
 ```
-                          INTERNET
-                              │
-                     ┌────────▼────────┐
-                     │   NGINX :443    │  TLS 1.2/1.3, HTTP/2
-                     │  secryn_nginx   │  reverse proxy
-                     └────────┬────────┘
-                              │ proxy_pass http://app:3000
-                     ┌────────▼────────┐
-                     │  Next.js 16 App │
-                     │  secryn_app     │
-                     │    :3000        │
-                     └───┬───────┬─────┘
-                         │       │
-              ┌──────────▼──┐ ┌──▼──────────┐
-              │ PostgreSQL  │ │    Redis     │
-              │  18-alpine  │ │   7-alpine   │
-              │  secryn_db  │ │ secryn_redis │
-              └─────────────┘ └──────────────┘
+                           INTERNET
+                               │
+                      ┌────────▼────────┐
+                      │   NGINX :443    │  TLS 1.2/1.3, HTTP/2
+                      │  secryn_nginx   │  reverse proxy
+                      └────────┬────────┘
+                               │ proxy_pass http://app:3000
+                      ┌────────▼────────┐
+                      │  Next.js 16 App │
+                      │  secryn_app     │
+                      │    :3000        │
+                      └───┬───────┬─────┘
+                          │       │
+               ┌──────────▼──┐ ┌──▼──────────┐
+               │ PostgreSQL  │ │    Redis     │
+               │  18-alpine  │ │   7-alpine   │
+               │  secryn_db  │ │ secryn_redis │
+               └─────────────┘ └──────────────┘
 ```
 
 ### Docker Compose Services
@@ -342,7 +354,7 @@ RootLayout
 
 - Published as `secryn` on npm
 - Internal `CookieJar` for automatic `Set-Cookie` parsing and `Cookie` injection
-- Namespaced proxies: `client.auth`, `client.mfa`, `client.users`, `client.apiKeys`, `client.projects`, `client.invites`, `client.members`, `client.secrets`
+- Namespaced proxies: `client.auth`, `client.users`, `client.apiKeys`, `client.projects`, `client.invites`, `client.members`, `client.secrets`
 
 ### Python SDK (`packages/sdk-py/`)
 
@@ -355,13 +367,13 @@ RootLayout
 - Published as `secryn-cli` on PyPI, command: `sc`
 - Click-based command groups: `auth`, `projects`, `secrets`, `api-keys`, `user`, `config`, `version`
 - Cookie persistence in `~/.config/secryn/cookies.json` (mode 0600)
-- Interactive MFA support during login; table and JSON output modes
+- Table and JSON output modes
 
 ---
 
 ## Configuration
 
-All environment variables defined in `.env.example`:
+All environment variables defined in `app/.env.example`:
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
@@ -372,7 +384,7 @@ All environment variables defined in `.env.example`:
 | POSTGRES_PASSWORD | Yes | DB password |
 | POSTGRES_DB | Yes | Database name |
 | REDIS_URL | Yes | Redis connection string (e.g. `redis://redis:6379`) |
-| JWT_SECRET | Yes | HS256 signing key (min 32 chars) |
+| AUTH_SECRET | Yes | NextAuth secret for JWT signing and encryption (min 32 chars) |
 | ENCRYPTION_KEY | Yes | Master key for AES-256-GCM (min 32 chars) |
 | APP_URL | Yes | Public URL (e.g. `https://secryn.xyz`) |
 | CORS_ORIGINS | No | Additional CORS origins (comma-separated) |
@@ -385,6 +397,6 @@ All environment variables defined in `.env.example`:
 
 - **Framework**: Vitest 4 + React Testing Library (jsdom)
 - **Location**: `__test__/` directories co-located with source files
-- **API tests**: Mocked Prisma/Redis dependencies, test full route handler behavior
-- **Frontend tests**: Mocked `apiFetch`, test page rendering and user interactions
+- **API tests**: Mocked Prisma/Redis/NextAuth dependencies, test full route handler behavior
+- **Frontend tests**: Mocked `apiFetch` and Server Actions, test page rendering and user interactions
 - **CI**: Single `pnpm test` runs all suites; `pnpm test:coverage` for coverage reports

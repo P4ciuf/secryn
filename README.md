@@ -21,27 +21,25 @@ secret retrieval into CI/CD pipelines and deployment workflows.
   Export secrets as a downloadable `.env` file for local development and CI/CD pipelines.
 - **Project Workspaces** — Organize secrets into projects with granular member permissions.
   Transfer ownership between team members.
-- **Authentication & Authorization** — Email/password registration with bcrypt hashing, JWT
-  sessions via httpOnly cookies, and fine-grained permission assignments (read, create, update,
+- **Authentication & Authorization** — Email/password registration with bcrypt hashing, NextAuth.js v5
+  JWT sessions via httpOnly cookies, and fine-grained permission assignments (read, create, update,
   delete secrets, manage members, create invites, and more).
-- **Multi-Factor Authentication** — TOTP-based MFA with QR code setup, one-time recovery codes,
-  email backup code delivery, and brute-force rate limiting.
 - **API Key Management** — Generate, edit, and revoke API keys with read/write permission
   scoping for programmatic access. Keys are encrypted at rest and prefixed with `sc_`.
 - **Team Invites** — Generate 7-day invitation links to add members to projects, with email
   notifications via Resend.
 - **Password Reset** — Self-service forgot-password flow with single-use email tokens and
   anti-enumeration protection (always returns success).
-- **REST API** — Full OpenAPI 3.1.0 spec with Swagger UI at `/docs`. Route prefix `/api/v1`.
-  Cookie-based auth for web sessions and API key header auth for programmatic access.
+- **REST API** — Full API with cookie-based auth for web sessions and API key header auth
+  for programmatic access.
 - **Web Dashboard** — Built with Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, and
-  Radix UI primitives. Dark mode support via `next-themes`.
+  Radix UI primitives. Dark mode support via `class` strategy.
 - **Security-first** — Security response headers (X-Frame-Options, X-Content-Type-Options,
   Referrer-Policy), CORS with explicit allowlist, rate limiting, bcrypt password hashing,
   JWT with httpOnly cookies, AES-256-GCM secret encryption, brute-force login protection
   via Redis, and Prisma with prepared statements via `@prisma/adapter-pg`.
-- **Audit Logging** — Security-relevant events (login success/failure, MFA changes, secret
-  CRUD, password changes) logged at info level for SIEM/log aggregation.
+- **Audit Logging** — Security-relevant events (login success/failure, secret CRUD,
+  password changes) logged at info level for SIEM/log aggregation.
 - **Dockerized** — Production-ready multi-stage Dockerfile for the Next.js app, plus nginx
   reverse proxy with SSL termination and a `docker-compose.yml` for local development with
   PostgreSQL 18 and Redis 7.
@@ -60,6 +58,7 @@ secret retrieval into CI/CD pipelines and deployment workflows.
 | Framework        | Next.js 16 (App Router)         |
 | ORM              | Prisma 7 + PostgreSQL 18        |
 | Cache / Session  | Redis 7 (ioredis)               |
+| Auth             | NextAuth.js v5 (credentials)    |
 | Email            | Resend                          |
 | Frontend         | React 19 + Tailwind CSS v4      |
 | UI Components    | shadcn/ui + Radix UI primitives |
@@ -89,8 +88,8 @@ corepack enable
 pnpm install
 
 # 3. Create environment file from the example
-cp .env.example .env
-# Edit .env with your own secrets before starting the server
+cp app/.env.example app/.env
+# Edit app/.env with your own secrets before starting the server
 
 # 4. Start PostgreSQL and Redis (via Docker)
 docker compose up -d db redis
@@ -106,7 +105,7 @@ pnpm dev       # http://localhost:3000
 To run the full stack with Docker:
 
 ```bash
-cp .env.example .env   # fill in required values
+cp app/.env.example app/.env   # fill in required values
 docker compose up --build
 ```
 
@@ -131,7 +130,7 @@ cd packages/cli
 pipx install -e .
 ```
 
-**Manuale con venv** (quando pipx non e' disponibile)
+**Manual install with venv** (when pipx is not available)
 
 ```bash
 cd packages/cli
@@ -146,96 +145,96 @@ ln -sf $(pwd)/.venv/bin/sc ~/.local/bin/sc
 curl -fsSL https://raw.githubusercontent.com/P4ciuf/secryn/main/packages/cli/install.sh | bash
 ```
 
-### Comandi CLI
+### CLI Commands
 
 ```bash
-sc --help                    # Mostra l'help generale
-sc --api-url <url>           # Override dell'API URL per ogni comando
+sc --help                    # Show general help
+sc --api-url <url>           # Override the API URL for each command
 ```
 
-**Autenticazione**
+**Authentication**
 
 ```bash
-sc auth login                                   # Login interattivo (email + password)
-sc auth login --email <email> --password <pw>   # Login non interattivo
-sc auth logout                                  # Logout e pulizia cookie
-sc auth whoami                                  # Mostra l'utente loggato
-sc auth whoami --json                           # Output in formato JSON
+sc auth login                                   # Interactive login (email + password)
+sc auth login --email <email> --password <pw>   # Non-interactive login
+sc auth logout                                  # Logout and clear cookies
+sc auth whoami                                  # Show the logged-in user
+sc auth whoami --json                           # Output in JSON format
 ```
 
-**Progetti**
+**Projects**
 
 ```bash
-sc projects list                        # Lista tutti i progetti
-sc projects list --json                 # Lista progetti in formato JSON
-sc projects create --name <nome>        # Crea un nuovo progetto
-sc projects create --name <nome>        # Crea progetto con descrizione
+sc projects list                        # List all projects
+sc projects list --json                 # List projects in JSON format
+sc projects create --name <name>        # Create a new project
+sc projects create --name <name>        # Create a project with a description
   --description <desc>
-sc projects delete --id <id>            # Elimina un progetto (con conferma)
-sc projects delete --id <id> -f         # Elimina senza chiedere conferma
+sc projects delete --id <id>            # Delete a project (with confirmation)
+sc projects delete --id <id> -f         # Delete without asking for confirmation
 ```
 
-**Segreti**
+**Secrets**
 
 ```bash
-sc secrets list --project-id <id>             # Lista segreti di un progetto
-sc secrets list --project-id <id> --json      # Lista segreti in formato JSON
-sc secrets get --id <id>                      # Mostra un segreto (valore oscurato)
-sc secrets get --id <id> --show-value         # Mostra il valore in chiaro
-sc secrets get --id <id> --json               # Output in formato JSON
-sc secrets create --project-id <id>           # Crea un nuovo segreto
-  --name <nome> --value <valore>
-sc secrets create --project-id <id>           # Crea un segreto con note
-  --name <nome> --value <valore>
-  --notes <note>
-sc secrets update --id <id>                   # Aggiorna nome, valore e/o note
-  --name <nuovo> --value <nuovo>
-  --notes <nuove>
-sc secrets delete --id <id>                   # Elimina un segreto
-sc secrets delete --id <id> -f                # Elimina senza conferma
-sc secrets export --project-id <id>           # Esporta in formato .env (stdout)
-sc secrets export --project-id <id>           # Esporta su file
+sc secrets list --project-id <id>             # List secrets for a project
+sc secrets list --project-id <id> --json      # List secrets in JSON format
+sc secrets get --id <id>                      # Show a secret (value masked)
+sc secrets get --id <id> --show-value         # Show the plaintext value
+sc secrets get --id <id> --json               # Output in JSON format
+sc secrets create --project-id <id>           # Create a new secret
+  --name <name> --value <value>
+sc secrets create --project-id <id>           # Create a secret with notes
+  --name <name> --value <value>
+  --notes <notes>
+sc secrets update --id <id>                   # Update name, value, and/or notes
+  --name <new> --value <new>
+  --notes <new>
+sc secrets delete --id <id>                   # Delete a secret
+sc secrets delete --id <id> -f                # Delete without confirmation
+sc secrets export --project-id <id>           # Export to .env format (stdout)
+sc secrets export --project-id <id>           # Export to a file
   -o .env
 ```
 
 **API Keys**
 
 ```bash
-sc api-keys list                        # Lista tutte le API keys
-sc api-keys list --json                 # Lista in formato JSON
-sc api-keys create --name <nome>        # Crea una API key (read+write)
-sc api-keys create --name <nome>        # Crea una API key con permessi specifici
+sc api-keys list                        # List all API keys
+sc api-keys list --json                 # List in JSON format
+sc api-keys create --name <name>        # Create an API key (read+write)
+sc api-keys create --name <name>        # Create an API key with specific permissions
   --permissions read
-sc api-keys delete --id <id>            # Elimina una API key
-sc api-keys delete --id <id> -f         # Elimina senza conferma
+sc api-keys delete --id <id>            # Delete an API key
+sc api-keys delete --id <id> -f         # Delete without confirmation
 ```
 
-**Utente e Configurazione**
+**User and Configuration**
 
 ```bash
-sc user info                # Mostra profilo utente
-sc config                   # Mostra percorsi e valori di configurazione
-sc version                  # Versione della CLI
+sc user info                # Show user profile
+sc config                   # Show configuration paths and values
+sc version                  # CLI version
 ```
 
-**Opzioni globali**
+**Global Options**
 
-| Opzione                | Descrizione                                                                                   |
+| Option                 | Description                                                                                   |
 | ---------------------- | --------------------------------------------------------------------------------------------- |
 | `--api-url <url>`      | Override API base URL (default: `http://localhost:3000` in dev, `https://secryn.xyz` in prod) |
-| `SECRYN_API_URL` (env) | Alternativa a `--api-url` via variabile d'ambiente                                            |
-| `SECRYN_HOME` (env)    | Directory di configurazione alternativa                                                       |
-| `--json`               | Output in formato JSON (dove supportato)                                                      |
-| `--force`, `-f`        | Salta le conferme per i comandi distruttivi                                                   |
+| `SECRYN_API_URL` (env) | Alternative to `--api-url` via environment variable                                           |
+| `SECRYN_HOME` (env)    | Alternative configuration directory                                                           |
+| `--json`               | Output in JSON format (where supported)                                                       |
+| `--force`, `-f`        | Skip confirmations for destructive commands                                                   |
 
-### Configurazione
+### Configuration
 
-La CLI salva configurazione e cookie in `~/.config/secryn/`:
+The CLI stores configuration and cookies in `~/.config/secryn/`:
 
-| File           | Contenuto                         |
-| -------------- | --------------------------------- |
-| `config.json`  | API URL, ID utente, email         |
-| `cookies.json` | Cookie di sessione JWT (httpOnly) |
+| File           | Content                       |
+| -------------- | ----------------------------- |
+| `config.json`  | API URL, user ID, email       |
+| `cookies.json` | JWT session cookie (httpOnly) |
 
 ## Usage
 
@@ -248,36 +247,20 @@ After starting the services, access:
 
 #### Auth
 
-| Method | Path                           | Description                                   |
-| ------ | ------------------------------ | --------------------------------------------- |
-| `POST` | `/api/v1/auth/register`        | Register a new user                           |
-| `POST` | `/api/v1/auth/login`           | Login (returns MFA challenge when enabled)    |
-| `POST` | `/api/v1/auth/logout`          | Logout (requires auth)                        |
-| `POST` | `/api/v1/auth/refresh`         | Refresh JWT session without re-authentication |
-| `POST` | `/api/v1/auth/forgot-password` | Request a password reset email                |
-| `POST` | `/api/v1/auth/reset-password`  | Reset password with a single-use token        |
-
-#### MFA
-
-| Method | Path                                         | Description                              |
-| ------ | -------------------------------------------- | ---------------------------------------- |
-| `GET`  | `/api/v1/auth/mfa/setup`                     | Generate TOTP secret and QR code         |
-| `POST` | `/api/v1/auth/mfa/enable`                    | Verify TOTP code and activate MFA        |
-| `POST` | `/api/v1/auth/mfa/disable`                   | Disable MFA and clear recovery codes     |
-| `POST` | `/api/v1/auth/mfa/confirm`                   | Verify TOTP code during MFA-gated login  |
-| `POST` | `/api/v1/auth/mfa/recovery`                  | Authenticate with a backup recovery code |
-| `GET`  | `/api/v1/auth/mfa/status`                    | Check whether MFA is enabled             |
-| `GET`  | `/api/v1/auth/mfa/recovery-codes`            | List valid recovery codes                |
-| `POST` | `/api/v1/auth/mfa/recovery-codes/regenerate` | Invalidate and regenerate recovery codes |
-| `POST` | `/api/v1/auth/mfa/send-backup-code`          | Send a backup code via email             |
+| Method | Path                           | Description                                     |
+| ------ | ------------------------------ | ----------------------------------------------- |
+| `GET`  | `/api/v1/auth/[...nextauth]`   | NextAuth catch-all (sign-in/out, session, csrf) |
+| `POST` | `/api/v1/auth/[...nextauth]`   | NextAuth catch-all (credentials callback)       |
+| `POST` | `/api/v1/auth/forgot-password` | Request a password reset email                  |
+| `POST` | `/api/v1/auth/reset-password`  | Reset password with a single-use token          |
 
 #### Users
 
-| Method   | Path                    | Description                                     |
-| -------- | ----------------------- | ----------------------------------------------- |
-| `GET`    | `/api/v1/users/:userId` | Retrieve a user (use `@me` for current user)    |
-| `PUT`    | `/api/v1/users`         | Update authenticated user's profile or password |
-| `DELETE` | `/api/v1/users`         | Permanently delete the authenticated account    |
+| Method   | Path               | Description                                     |
+| -------- | ------------------ | ----------------------------------------------- |
+| `GET`    | `/api/v1/users/me` | Retrieve authenticated user profile             |
+| `PUT`    | `/api/v1/users/me` | Update authenticated user's profile or password |
+| `DELETE` | `/api/v1/users/me` | Permanently delete the authenticated account    |
 
 #### Projects
 
@@ -291,11 +274,11 @@ After starting the services, access:
 
 #### Project Members
 
-| Method   | Path                                                        | Description                      |
-| -------- | ----------------------------------------------------------- | -------------------------------- |
-| `DELETE` | `/api/v1/projects/:projectId/members/:memberId`             | Remove a member from a project   |
-| `POST`   | `/api/v1/projects/:projectId/members/:memberId/permissions` | Add permissions to a member      |
-| `DELETE` | `/api/v1/projects/:projectId/members/:memberId/permissions` | Remove permissions from a member |
+| Method   | Path                                                 | Description                      |
+| -------- | ---------------------------------------------------- | -------------------------------- |
+| `DELETE` | `/api/v1/projects/:id/members/:memberId`             | Remove a member from a project   |
+| `POST`   | `/api/v1/projects/:id/members/:memberId/permissions` | Add permissions to a member      |
+| `DELETE` | `/api/v1/projects/:id/members/:memberId/permissions` | Remove permissions from a member |
 
 #### Project Invites
 
@@ -306,24 +289,24 @@ After starting the services, access:
 
 #### Secrets
 
-| Method   | Path                                         | Description                                  |
-| -------- | -------------------------------------------- | -------------------------------------------- |
-| `POST`   | `/api/v1/projects/:projectId/secrets`        | Create an encrypted secret in a project      |
-| `GET`    | `/api/v1/projects/:projectId/secrets`        | List all secrets in a project (decrypted)    |
-| `GET`    | `/api/v1/projects/secrets/:id`               | Get a single secret by ID (decrypted)        |
-| `PUT`    | `/api/v1/projects/secrets/:id`               | Update a secret's name, value, or notes      |
-| `DELETE` | `/api/v1/projects/secrets/:id`               | Permanently delete a secret                  |
-| `GET`    | `/api/v1/projects/:projectId/secrets/export` | Export secrets as a downloadable `.env` file |
+| Method   | Path                                     | Description                                  |
+| -------- | ---------------------------------------- | -------------------------------------------- |
+| `POST`   | `/api/v1/projects/:id/secrets`           | Create an encrypted secret in a project      |
+| `GET`    | `/api/v1/projects/:id/secrets`           | List all secrets in a project (decrypted)    |
+| `GET`    | `/api/v1/projects/:id/secrets/:secretId` | Get a single secret by ID (decrypted)        |
+| `PUT`    | `/api/v1/projects/:id/secrets/:secretId` | Update a secret's name, value, or notes      |
+| `DELETE` | `/api/v1/projects/:id/secrets/:secretId` | Permanently delete a secret                  |
+| `GET`    | `/api/v1/projects/:id/secrets/export`    | Export secrets as a downloadable `.env` file |
 
 #### API Keys
 
-| Method   | Path                         | Description                                  |
-| -------- | ---------------------------- | -------------------------------------------- |
-| `POST`   | `/api/v1/api-keys`           | Generate a new API key                       |
-| `GET`    | `/api/v1/api-keys/@all-user` | List all API keys for the authenticated user |
-| `GET`    | `/api/v1/api-keys/:id`       | Get a single API key by ID                   |
-| `PUT`    | `/api/v1/api-keys/:id`       | Update API key name, status, or permissions  |
-| `DELETE` | `/api/v1/api-keys/:id`       | Permanently delete an API key                |
+| Method   | Path                   | Description                                  |
+| -------- | ---------------------- | -------------------------------------------- |
+| `POST`   | `/api/v1/api-keys`     | Generate a new API key                       |
+| `GET`    | `/api/v1/api-keys`     | List all API keys for the authenticated user |
+| `GET`    | `/api/v1/api-keys/:id` | Get a single API key by ID                   |
+| `PUT`    | `/api/v1/api-keys/:id` | Update API key name, status, or permissions  |
+| `DELETE` | `/api/v1/api-keys/:id` | Permanently delete an API key                |
 
 #### Health
 
@@ -333,23 +316,23 @@ After starting the services, access:
 
 ## Configuration
 
-All environment variables are defined in `.env.example`. Copy it to `.env` and fill in the values.
+All environment variables are defined in `app/.env.example`. Copy it to `app/.env` and fill in the values.
 
-| Variable            | Required | Description                                                       |
-| ------------------- | -------- | ----------------------------------------------------------------- |
-| `PORT`              | Yes      | API server port (default: `3000`)                                 |
-| `NODE_ENV`          | Yes      | Environment mode (`development`, `production`, `test`)            |
-| `DATABASE_URL`      | Yes      | PostgreSQL connection string for Prisma                           |
-| `POSTGRES_USER`     | Yes      | PostgreSQL superuser name                                         |
-| `POSTGRES_PASSWORD` | Yes      | PostgreSQL superuser password                                     |
-| `POSTGRES_DB`       | Yes      | PostgreSQL database name                                          |
-| `REDIS_URL`         | Yes      | Redis connection string (e.g. `redis://localhost:6379`)           |
-| `JWT_SECRET`        | Yes      | Secret key for signing JWT tokens (min 32 characters)             |
-| `ENCRYPTION_KEY`    | Yes      | AES-256 key for secret encryption (min 32 characters)             |
-| `EMAIL`             | Yes      | Sender email address for transactional emails (Resend)            |
-| `RESEND_API_KEY`    | Yes      | API key for the Resend email delivery service                     |
-| `APP_URL`           | Yes      | Public URL of the application (e.g. `https://secryn.xyz`)         |
-| `CORS_ORIGINS`      | No       | Comma-separated additional CORS origins (falls back to `APP_URL`) |
+| Variable            | Required | Description                                                        |
+| ------------------- | -------- | ------------------------------------------------------------------ |
+| `PORT`              | Yes      | API server port (default: `3000`)                                  |
+| `NODE_ENV`          | Yes      | Environment mode (`development`, `production`, `test`)             |
+| `DATABASE_URL`      | Yes      | PostgreSQL connection string for Prisma                            |
+| `POSTGRES_USER`     | Yes      | PostgreSQL superuser name                                          |
+| `POSTGRES_PASSWORD` | Yes      | PostgreSQL superuser password                                      |
+| `POSTGRES_DB`       | Yes      | PostgreSQL database name                                           |
+| `REDIS_URL`         | Yes      | Redis connection string (e.g. `redis://localhost:6379`)            |
+| `AUTH_SECRET`       | Yes      | NextAuth secret for JWT signing and encryption (min 32 characters) |
+| `ENCRYPTION_KEY`    | Yes      | AES-256 key for secret encryption (min 32 characters)              |
+| `EMAIL`             | Yes      | Sender email address for transactional emails (Resend)             |
+| `RESEND_API_KEY`    | Yes      | API key for the Resend email delivery service                      |
+| `APP_URL`           | Yes      | Public URL of the application (e.g. `https://secryn.xyz`)          |
+| `CORS_ORIGINS`      | No       | Comma-separated additional CORS origins (falls back to `APP_URL`)  |
 
 ## Project Structure
 
@@ -361,23 +344,25 @@ secryn/
 │   ├── prisma/                 # Database schema (models, enums, migrations)
 │   ├── public/                 # Static assets (logo, manifest)
 │   └── src/
+│       ├── auth.ts             # NextAuth.js v5 configuration
+│       ├── proxy.ts            # Edge middleware (NextAuth session check)
 │       ├── app/                # App Router pages and API routes
-│       │   ├── api/            # Route handlers (auth, MFA, api-keys, projects, secrets, users)
-│       │   ├── dashboard/      # Dashboard pages (projects, api-keys, settings, webhooks)
-│       │   ├── login/          # Login page
-│       │   ├── register/       # Register page
-│       │   ├── forgot-password/ # Password reset request
-│       │   └── reset-password/ # Password reset with token
+│       │   ├── (auth)/         # Auth route group (login, register, forgot/reset password)
+│       │   ├── api/            # Route handlers (auth, api-keys, projects, secrets, users, health)
+│       │   │   └── auth/
+│       │   │       └── [...nextauth]/  # NextAuth catch-all
+│       │   └── dashboard/      # Dashboard pages (projects, api-keys, settings, api-docs, webhooks)
 │       ├── components/         # common/ (EmptyState, Modal, PageHeader, SecretValue),
 │       │                       # landing/ (Hero, Features, CTA, Navbar, Footer),
 │       │                       # ui/ (shadcn/ui primitives, Breadcrumbs)
-│       ├── data/               # Mock data for development and tests
-│       ├── db/                 # Prisma client singleton
+│       ├── data/               # Routes and shared constants
+│       ├── db/                 # Prisma + Redis lazy singletons
 │       ├── lib/                # Typed API client with auto-refresh and error handling
 │       ├── repositories/       # Data-access layer (user, project, apiKey)
-│       ├── services/           # Business logic (auth, user, project, apiKey, crypto)
-│       ├── types/              # Shared TypeScript interfaces for all entities
-│       └── utils/              # Env access, crypto, email, Redis
+│       ├── services/           # Business logic (auth, user, project, apiKey)
+│       ├── schemas/            # Zod validation schemas
+│       ├── types/              # Shared TypeScript types and interfaces
+│       └── utils/              # Crypto, env, email, cookie, session, serverAction wrappers
 ├── nginx/                      # Nginx reverse proxy
 │   └── Dockerfile              # nginx:alpine container with custom config
 ├── nginx.conf                  # HTTP→HTTPS redirect + SSL termination + proxy to app
@@ -391,7 +376,7 @@ secryn/
 │   │   ├── pyproject.toml
 │   │   └── tests/
 │   ├── sdk-ts/                 # TypeScript SDK (secryn)
-│   │   ├── src/                # SecrynClient, CookieJar, logger
+│   │   ├── src/                # SecrynClient, CookieJar, types
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   └── shared/                 # @repo/shared — types, DTOs, logger, and enums for app and SDKs

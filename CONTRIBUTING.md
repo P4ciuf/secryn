@@ -34,8 +34,8 @@ corepack enable
 pnpm install
 
 # Copy and configure environment
-cp .env.example .env
-# Edit .env with valid values (all variables must be set — see README Configuration)
+cp app/.env.example app/.env
+# Edit app/.env with valid values (all variables must be set — see README Configuration)
 
 # Start PostgreSQL and Redis
 docker compose up -d db redis
@@ -60,7 +60,7 @@ Create branches from an up-to-date `main`. Use the following prefixes:
 | `refactor/` | Code restructuring without behavior change | `refactor/user-service`      |
 | `release/`  | Release preparation branches               | `release/v0.1.0`             |
 
-Name branches with a short, hyphenated description. Example: `feature/add-2fa-support`.
+Name branches with a short, hyphenated description. Example: `feature/add-project-transfer`.
 
 ## Commit Convention
 
@@ -92,12 +92,12 @@ Use a more specific scope when appropriate: `prisma`, `auth`, `project`, `docker
 ### Examples
 
 ```text
-feat(api): add project member removal endpoint
-fix(web): correct sidebar collapse on mobile
+feat(auth): add NextAuth credentials provider
+fix(ui): correct sidebar collapse on mobile
 chore(deps): bump prisma to 7.8.0
 docs: add API endpoint table to README
 test(api): cover project invite accept route
-refactor(api): extract JWT logic into auth service
+refactor(auth): migrate to NextAuth v5 session management
 ```
 
 ### Rules
@@ -141,7 +141,7 @@ refactor(api): extract JWT logic into auth service
 
 ## Running Tests
 
-Tests use Vitest. Test files are co-located with their source modules under `__tests__/`.
+Tests use Vitest. Test files are co-located with their source modules under `__test__/`.
 
 ```bash
 # Run all test suites
@@ -155,7 +155,8 @@ pnpm test:coverage
 ```
 
 Test environment variables are configured in each package's `vitest.config.ts` and use
-dummy values — no real credentials are needed.
+dummy values — no real credentials are needed. Route handler tests mock Prisma, Redis,
+and NextAuth dependencies; page tests mock `apiFetch` and Server Actions.
 
 ## Code Style
 
@@ -165,8 +166,7 @@ This project enforces formatting and linting automatically:
   semicolons, trailing commas, 100-char width.
 - **ESLint** — Flat config covering TypeScript, JSON, Markdown, and CSS. Enforces
   `@typescript-eslint/no-unused-vars` (prefix unused args with `_`).
-- **TypeScript** — Strict mode enabled. `noUncheckedIndexedAccess`, `forceConsistentCasingInFileNames`,
-  `verbatimModuleSyntax` (API).
+- **TypeScript** — Strict mode enabled.
 
 Check before committing:
 
@@ -179,6 +179,18 @@ pnpm typecheck
 The pre-commit hook runs `lint-staged`, which auto-fixes ESLint and Prettier issues on
 staged files. If the hook fails, review the output, fix the issues, and stage the changes
 again.
+
+## Core Architecture
+
+- **Auth**: NextAuth.js v5 with credentials provider (`app/src/auth.ts`). Session managed
+  via JWT callbacks that enrich the token with user fields. Route handlers resolve the
+  caller via `getSessionOrThrow(await auth())`.
+- **Middleware**: Next.js Edge Middleware (`app/src/proxy.ts`) checks NextAuth session
+  and redirects/protects routes accordingly.
+- **Server Actions**: Login/register/logout use Server Actions wrapping NextAuth's
+  `signIn`/`signOut` with a `serverActionHandler` HOF for typed error responses.
+- **API client**: `apiFetch<T>()` in `app/src/lib/api.ts` — includes automatic 401
+  refresh, deduplicated concurrent refreshes, and `credentials: "include"`.
 
 ## Reporting Bugs
 
@@ -201,7 +213,7 @@ Open an issue with the title prefixed by `Feature request:`. Describe:
 - Any alternatives you considered.
 - Whether you are willing to implement it yourself.
 
-Feature requests that align with the project roadmap (see `todo.md`) are prioritized.
+Feature requests that align with the project roadmap (see `docs/todo.md`) are prioritized.
 
 ## Questions
 
