@@ -174,9 +174,9 @@ describe("SettingsPage", () => {
     await screen.findByDisplayValue("testuser");
 
     const pwdInputs = getPasswordInputs();
-    await user.type(pwdInputs[0], "oldpassword");
-    await user.type(pwdInputs[1], "newpassword123");
-    await user.type(pwdInputs[2], "newpassword123");
+    await user.type(pwdInputs[0]!, "oldpassword");
+    await user.type(pwdInputs[1]!, "newpassword123");
+    await user.type(pwdInputs[2]!, "newpassword123");
     await user.click(screen.getByRole("button", { name: /change password/i }));
 
     await screen.findByText("Password changed.");
@@ -197,9 +197,9 @@ describe("SettingsPage", () => {
     await screen.findByDisplayValue("testuser");
 
     const pwdInputs = getPasswordInputs();
-    await user.type(pwdInputs[0], "oldpassword");
-    await user.type(pwdInputs[1], "short");
-    await user.type(pwdInputs[2], "short");
+    await user.type(pwdInputs[0]!, "oldpassword");
+    await user.type(pwdInputs[1]!, "short");
+    await user.type(pwdInputs[2]!, "short");
     await user.click(screen.getByRole("button", { name: /change password/i }));
 
     await screen.findByText("Password must be at least 8 characters.");
@@ -220,9 +220,9 @@ describe("SettingsPage", () => {
     await screen.findByDisplayValue("testuser");
 
     const pwdInputs = getPasswordInputs();
-    await user.type(pwdInputs[0], "oldpassword");
-    await user.type(pwdInputs[1], "password123");
-    await user.type(pwdInputs[2], "different123");
+    await user.type(pwdInputs[0]!, "oldpassword");
+    await user.type(pwdInputs[1]!, "password123");
+    await user.type(pwdInputs[2]!, "different123");
     await user.click(screen.getByRole("button", { name: /change password/i }));
 
     await screen.findByText("Passwords do not match.");

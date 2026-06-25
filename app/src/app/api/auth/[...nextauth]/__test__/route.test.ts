@@ -23,7 +23,7 @@ describe("[...nextauth]", () => {
   it("delegates GET to the NextAuth handler", async () => {
     mockGetHandler.mockResolvedValue(new Response(null, { status: 200 }));
     const request = new Request("http://localhost/api/auth/csrf", { method: "GET" });
-    const response = await GET(request);
+    const response = await GET(request as unknown as Parameters<typeof GET>[0]);
 
     expect(mockGetHandler).toHaveBeenCalledTimes(1);
     expect(mockGetHandler).toHaveBeenCalledWith(request);
@@ -50,7 +50,7 @@ describe("[...nextauth]", () => {
       }),
     );
     const request = new Request("http://localhost/api/auth/session", { method: "GET" });
-    const response = await GET(request);
+    const response = await GET(request as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(401);
     const body = await response.json();
