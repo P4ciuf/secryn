@@ -18,18 +18,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Missing test scenarios added across 7 route handler test files: 403 forbidden paths (invites, permissions, secrets), 404 not-found paths (members, secrets, invites/accept), 409 email-conflict (users/me), 400 wrong-password (users/me), and 500 internal-error paths (api-keys/[id]) (`app/src/app/api/**/__test__/route.test.ts`)
 - Python test suites for the CLI package: `Client` (HTTP methods, URL building, error handling, cookie persistence, logout) and `Config` (directory resolution, load/save round-trips, cookie file I/O) (`packages/cli/secryn_cli/tests/`)
 - JSDoc documentation for `resendVerificationEmailAction`, `verifyAccountAction` (`@param token`), `registerAction` (`@throws`), `VerifyButton`/`VerifyButtonProps`, `AuthService.Instance`, `sendVerificationEmail` (`@param to`), `verifyAccount` (`@param token`, `@throws`), `forgotPassword` (`@param`, `@returns`), `resetPassword` (`@param`, `@returns`), `DashboardLayout` (full component description), `isActive`, and `handleLogout` (`app/src/`)
+- Test files for 5 auth layout components (forgot-password, login, register, reset-password, verify/[token]) covering transparent child rendering and noindex/nofollow metadata (`app/src/app/(auth)/**/__test__/layout.test.tsx`)
+- Test file for root `RootLayout` (10 tests) covering child rendering, HTML/body attributes, JSON-LD structured data, viewport config, and exports (metadata, OpenGraph, Twitter, robots, icons) (`app/src/app/__test__/layout.test.tsx`)
+- Test file for `NotFound` page (2 tests) covering 404 heading and home-page link (`app/src/app/__test__/not-found.test.tsx`)
 
 ### Changed
 - `AuthService.sendVerificationEmail` visibility changed from `private` to `public` to support the resend-verification flow (`app/src/services/auth.ts`)
 - Rewrote 7 page/component test suites with expanded coverage: `ForgotPasswordPage` (loading state, link hrefs), `RegisterPage` (success redirect, password-too-short validation, loading, username-as-undefined), `ResetPasswordPage` (password validation, success navigation, API payload), `DashboardPage` (empty-state counts, recent projects, card links, Secured card), `ApiKeysPage` (error state, create flow with one-time key view, toggle enable/disable), `ProjectsPage` (error state, create submit, delete), `SecretsPage` (error state, toggle visibility, create/update/delete, back-to-projects link) (`app/src/app/**/__test__/page.test.tsx`)
 - `verifyAccountAction` test now passes an explicit token argument matching the updated signature (`app/src/app/(auth)/__test__/actions.test.ts`)
 - `verifyAccountAction` body simplified to call `authService.verifyAccount(userId, token)` directly after inline session extraction (`app/src/app/(auth)/actions.ts`)
+- Dashboard layout test expanded (now 16 tests) with coverage for `isLoadingUser` guard (redirect suppressed until fetch completes), unverified-user redirect from API Keys page to dashboard, disabled nav items with `aria-disabled="true"`, and absence of redirect for verified users (`app/src/app/dashboard/__test__/layout.test.tsx`)
+- Dashboard layout JSDoc expanded with `isLoadingUser` state tracking and unverified-redirect behavior description (`app/src/app/dashboard/layout.tsx`)
+- Root layout JSDoc: added `@param children`, expanded JSON-LD description to list all three schema.org entities (Organization, WebSite, SoftwareApplication) (`app/src/app/layout.tsx`)
 
 ### Fixed
 - Verify page test moved from `verify/__test__/` to `verify/[token]/__test__/` and rewritten to handle the page as an async server component that awaits `params` (`app/src/app/(auth)/verify/[token]/__test__/page.test.tsx`)
 
 ### Removed
 - `verify/page.tsx` and `verify/layout.tsx` — flat verify page without a dynamic `token` route segment, replaced by the existing server component at `verify/[token]/page.tsx` (`app/src/app/(auth)/verify/`)
+- Italian inline comment from dashboard layout (redundant `useEffect` guard note describing `isLoadingUser` return) (`app/src/app/dashboard/layout.tsx`)
+- Redundant section-marker HTML comments (Header, Body, CTA Button, Info box, Divider, Footer) from project invitation email template (`app/src/template/projectInvitation.html`)
 
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [3.0.0] - 2026-06-26

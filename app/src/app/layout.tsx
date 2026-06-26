@@ -92,16 +92,20 @@ export const metadata: Metadata = {
     shortcut: "/logo.png",
     apple: "/logo.png",
   },
-  manifest: "/manifest.webmanifest",
-  other: {
-    "google-site-verification": "",
-  },
 };
 
 /**
- * Root layout applying Geist fonts, antialiasing, and a dark gradient background.
- * Wraps every page in the App Router. Includes JSON-LD structured data for
- * Organization and WebSite entities to improve Knowledge Graph signals.
+ * Root layout applying Geist fonts, antialiasing, and a dark gradient
+ * background.
+ *
+ * Wraps every page in the App Router. Injects JSON-LD structured data
+ * with three schema.org entities — {@link https://schema.org/Organization Organization},
+ * {@link https://schema.org/WebSite WebSite}, and
+ * {@link https://schema.org/SoftwareApplication SoftwareApplication} — to
+ * improve Knowledge Graph signals for search engines that consume
+ * structured data.
+ *
+ * @param children - The nested page content rendered inside the body.
  */
 export default function RootLayout({
   children,
