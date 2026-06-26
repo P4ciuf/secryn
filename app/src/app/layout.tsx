@@ -12,6 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Global viewport configuration: responsive scaling, dark theme colour,
+ * and explicit dark colour scheme for browser UI chrome.
+ */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -56,7 +60,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/og-image.png",
+        url: "/logo.png",
         width: 1200,
         height: 630,
         alt: "Secryn - Secure Secrets Management Platform",
