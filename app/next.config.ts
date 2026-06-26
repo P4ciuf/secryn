@@ -9,8 +9,10 @@ import type { NextConfig } from "next";
  * for the two largest client-bundle dependencies.
  */
 const nextConfig: NextConfig = {
+  // File polling is required on Docker/WSL2 volumes because inotify events
+  // from the host don't propagate to the container via 9p/gRPC FUSE mounts.
   watchOptions: {
-    pollIntervalMs: 1000,
+    pollIntervalMs: 300,
   },
 
   // Compress responses for faster page loads (improves LCP / FCP)
@@ -66,6 +68,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Prevent leaking framework version in the X-Powered-By response header.
   poweredByHeader: false,
 
   images: {
