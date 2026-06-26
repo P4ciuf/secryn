@@ -8,6 +8,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Email verification token generation in `AuthService.sendVerificationEmail` — a random 32-byte hex token is stored in Redis (72 h TTL) and embedded in the verification URL, replacing the previous tokenless `/verify` link (`app/src/services/auth.ts`)
+- Token validation in `AuthService.verifyAccount` — accepts a `token` parameter and validates it against Redis before marking the account as verified; invalid or expired tokens are rejected (`app/src/services/auth.ts`)
+- `VerifyButton` now receives a `token` prop forwarded to `verifyAccountAction` via `VerifyButtonProps` interface (`app/src/components/auth/verifyButton.tsx`)
+- `resendVerificationEmailAction` Server Action sourcing the user's email from the session and delegating to `AuthService.sendVerificationEmail` (`app/src/app/(auth)/actions.ts`)
+- Unverified-account warning banner in the dashboard layout — shown when `isVerified` is false, includes a 72‑hour deletion notice and a "Resend verification email" button wired to `resendVerificationEmailAction` (`app/src/app/dashboard/layout.tsx`)
+- Test suite for `DashboardLayout` (10 tests): sidebar rendering, active route highlighting, user email fetch, unverified banner visibility, logout, sidebar toggle, and resend-verification-email (`app/src/app/dashboard/__test__/layout.test.tsx`)
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
+- Missing test scenarios added across 7 route handler test files: 403 forbidden paths (invites, permissions, secrets), 404 not-found paths (members, secrets, invites/accept), 409 email-conflict (users/me), 400 wrong-password (users/me), and 500 internal-error paths (api-keys/[id]) (`app/src/app/api/**/__test__/route.test.ts`)
+- Python test suites for the CLI package: `Client` (HTTP methods, URL building, error handling, cookie persistence, logout) and `Config` (directory resolution, load/save round-trips, cookie file I/O) (`packages/cli/secryn_cli/tests/`)
+- JSDoc documentation for `resendVerificationEmailAction`, `verifyAccountAction` (`@param token`), `registerAction` (`@throws`), `VerifyButton`/`VerifyButtonProps`, `AuthService.Instance`, `sendVerificationEmail` (`@param to`), `verifyAccount` (`@param token`, `@throws`), `forgotPassword` (`@param`, `@returns`), `resetPassword` (`@param`, `@returns`), `DashboardLayout` (full component description), `isActive`, and `handleLogout` (`app/src/`)
+
+### Changed
+- `AuthService.sendVerificationEmail` visibility changed from `private` to `public` to support the resend-verification flow (`app/src/services/auth.ts`)
+- Rewrote 7 page/component test suites with expanded coverage: `ForgotPasswordPage` (loading state, link hrefs), `RegisterPage` (success redirect, password-too-short validation, loading, username-as-undefined), `ResetPasswordPage` (password validation, success navigation, API payload), `DashboardPage` (empty-state counts, recent projects, card links, Secured card), `ApiKeysPage` (error state, create flow with one-time key view, toggle enable/disable), `ProjectsPage` (error state, create submit, delete), `SecretsPage` (error state, toggle visibility, create/update/delete, back-to-projects link) (`app/src/app/**/__test__/page.test.tsx`)
+- `verifyAccountAction` test now passes an explicit token argument matching the updated signature (`app/src/app/(auth)/__test__/actions.test.ts`)
+- `verifyAccountAction` body simplified to call `authService.verifyAccount(userId, token)` directly after inline session extraction (`app/src/app/(auth)/actions.ts`)
+
+### Fixed
+- Verify page test moved from `verify/__test__/` to `verify/[token]/__test__/` and rewritten to handle the page as an async server component that awaits `params` (`app/src/app/(auth)/verify/[token]/__test__/page.test.tsx`)
+
+### Removed
+- `verify/page.tsx` and `verify/layout.tsx` — flat verify page without a dynamic `token` route segment, replaced by the existing server component at `verify/[token]/page.tsx` (`app/src/app/(auth)/verify/`)
+
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
+## [3.0.0] - 2026-06-26
+
+### Added
 - NextAuth.js v5 configuration (`app/src/auth.ts`) with credentials provider, JWT session strategy (cookie named `jwt`), and callbacks that enrich the token with user payload (id, email, username) for downstream route handlers
 - `[...nextauth]` catch-all route handler (`app/src/app/api/auth/[...nextauth]/route.ts`) delegating GET/POST to NextAuth
 - `getSessionOrThrow` utility (`app/src/utils/session.ts`) resolving the authenticated user from a NextAuth session and throwing `401` when absent — replaces the old `getAuthenticatedUser` guard
