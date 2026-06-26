@@ -2,11 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import DashboardLayout from "../layout";
 
-const { mockApiFetch, mockLogoutAction, mockResendVerificationEmailAction } = vi.hoisted(() => ({
-  mockApiFetch: vi.fn(),
-  mockLogoutAction: vi.fn(),
-  mockResendVerificationEmailAction: vi.fn(),
-}));
+const { mockApiFetch, mockLogoutAction, mockResendVerificationEmailAction, mockPush, mockRefresh } =
+  vi.hoisted(() => ({
+    mockApiFetch: vi.fn(),
+    mockLogoutAction: vi.fn(),
+    mockResendVerificationEmailAction: vi.fn(),
+    mockPush: vi.fn(),
+    mockRefresh: vi.fn(),
+  }));
+
+let currentPathname = "/dashboard";
 
 vi.mock("@/lib/api", () => ({
   apiFetch: mockApiFetch,
@@ -17,11 +22,9 @@ vi.mock("@/app/(auth)/actions", () => ({
   resendVerificationEmailAction: mockResendVerificationEmailAction,
 }));
 
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
-  usePathname: () => "/dashboard",
+  usePathname: () => currentPathname,
   useParams: () => ({}),
 }));
 
@@ -35,6 +38,7 @@ vi.mock("next/link", () => ({
     children: React.ReactNode;
     className?: string;
     onClick?: () => void;
+    "aria-disabled"?: boolean;
   }) => (
     <a href={href} {...props}>
       {children}
@@ -62,6 +66,7 @@ vi.mock("@/data/routes", () => ({
 describe("DashboardLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    currentPathname = "/dashboard";
   });
 
   it("renders the sidebar with all navigation items", async () => {
@@ -125,6 +130,68 @@ describe("DashboardLayout", () => {
 
     expect(screen.getByText(/your account will be deleted within 72 hours/i)).toBeInTheDocument();
     expect(screen.getByText("Resend verification email")).toBeInTheDocument();
+  });
+
+  it("redirects unverified user to dashboard when on API Keys page", async () => {
+    currentPathname = "/dashboard/api-keys";
+    mockApiFetch.mockResolvedValue({
+      user: { email: "user@test.com", username: "test", isVerified: false },
+    });
+
+    render(<DashboardLayout>content</DashboardLayout>);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    });
+  });
+
+  it("does not redirect verified user on the API Keys page", async () => {
+    currentPathname = "/dashboard/api-keys";
+    mockApiFetch.mockResolvedValue({
+      user: { email: "user@test.com", username: "test", isVerified: true },
+    });
+
+    render(<DashboardLayout>content</DashboardLayout>);
+
+    await waitFor(() => {
+      expect(screen.getByText("user@test.com")).toBeInTheDocument();
+    });
+
+    expect(mockPush).not.toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("disables the API Keys nav item when user is not verified", async () => {
+    mockApiFetch.mockResolvedValue({
+      user: { email: "user@test.com", username: "test", isVerified: false },
+    });
+
+    render(<DashboardLayout>content</DashboardLayout>);
+
+    await waitFor(() => {
+      expect(screen.getByText("Get verified!")).toBeInTheDocument();
+    });
+
+    const apiKeysLink = screen.getByText("API Keys").closest("a");
+    expect(apiKeysLink).toHaveAttribute("aria-disabled", "true");
+    expect(apiKeysLink).toHaveAttribute("href", "#");
+    expect(apiKeysLink?.className).toContain("cursor-not-allowed");
+    expect(apiKeysLink?.className).toContain("opacity-50");
+  });
+
+  it("does not disable the API Keys nav item when user is verified", async () => {
+    mockApiFetch.mockResolvedValue({
+      user: { email: "user@test.com", username: "test", isVerified: true },
+    });
+
+    render(<DashboardLayout>content</DashboardLayout>);
+
+    await waitFor(() => {
+      expect(screen.getByText("user@test.com")).toBeInTheDocument();
+    });
+
+    const apiKeysLink = screen.getByText("API Keys").closest("a");
+    expect(apiKeysLink).not.toHaveAttribute("aria-disabled", "true");
+    expect(apiKeysLink).toHaveAttribute("href", "/dashboard/api-keys");
   });
 
   it("calls logoutAction and navigates to landing on sign out", async () => {
@@ -199,5 +266,14 @@ describe("DashboardLayout", () => {
     await waitFor(() => {
       expect(screen.getByText("Loading...")).toBeInTheDocument();
     });
+  });
+
+  it("does not redirect unverified user while still loading user data", () => {
+    currentPathname = "/dashboard/api-keys";
+    mockApiFetch.mockImplementation(() => new Promise(() => {}));
+
+    render(<DashboardLayout>content</DashboardLayout>);
+
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });
