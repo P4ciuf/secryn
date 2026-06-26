@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { EnvUtils } from "./env";
 
 // Fixed salt enables deterministic key derivation: the same ENCRYPTION_KEY
