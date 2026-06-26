@@ -1,0 +1,140 @@
+<!--
+  Account Verification email template — sent by AuthService.sendVerificationEmail
+  after a successful registration. Processed by EmailUtils.insertVariables.
+
+  Template variables (replaced server-side before dispatch):
+    {{VERIFICATION_URL}} – The full URL to the verify page
+    {{YEAR}}             – Current year for the copyright footer
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile Verification</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      font-family: &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #0a0a0a; padding: 40px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              background-color: #141414;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+              border: 1px solid #2a2a2a;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                style="
+                  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+                  padding: 32px 40px 40px;
+                  text-align: center;
+                "
+              >
+                <div
+                  style="
+                    display: inline-block;
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid #2f2f2f;
+                    border-radius: 50%;
+                    width: 64px;
+                    height: 64px;
+                    line-height: 64px;
+                    font-size: 30px;
+                    margin-bottom: 20px;
+                  "
+                >
+                  📬
+                </div>
+                <a
+                  href="{{VERIFICATION_URL}}"
+                  style="
+                    margin: 0;
+                    color: #ffffff;
+                    font-size: 28px;
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                    text-decoration: none;
+                  "
+                >
+                  Verify your profile
+                </a>
+                <p style="margin: 10px 0 0; color: #a3a3a3; font-size: 15px">
+                  Verify your profile to complete your registration
+                </p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding: 40px 40px 32px">
+                <table cellpadding="0" cellspacing="0" style="margin: 0 auto 0">
+                  <tr>
+                    <td
+                      align="center"
+                      style="
+                        background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+                        border: 1px solid #3a3a3a;
+                        border-radius: 8px;
+                      "
+                    >
+                      <a
+                        href="{{VERIFICATION_URL}}"
+                        style="
+                          display: inline-block;
+                          padding: 14px 36px;
+                          color: #ffffff;
+                          font-size: 15px;
+                          font-weight: 600;
+                          text-decoration: none;
+                          letter-spacing: 0.3px;
+                        "
+                      >
+                        Verify Profile →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td style="padding: 0 40px">
+                <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 0" />
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 24px 40px 36px; text-align: center">
+                <p style="margin: 0; color: #6b6b6b; font-size: 12px">
+                  © {{YEAR}} Secryn. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

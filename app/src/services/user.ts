@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { userRepository, type FullUser } from "../repositories/user";
 import { ApiError } from "../errors/apiError";
 
@@ -81,7 +81,7 @@ export class UserService {
    */
   async updateUser(
     userId: string,
-    data: { username?: string; email?: string; password?: string },
+    data: { username?: string; email?: string; password?: string; isVerified?: boolean },
   ): Promise<FullUser> {
     return this.repository.updateUser({ id: userId }, data);
   }

@@ -3,10 +3,9 @@ import { UserService } from "./user";
 import { ApiError } from "../errors/apiError";
 import { EnvUtils } from "../utils/env";
 import { getRedis } from "../db/redis";
-import bcrypt from "bcrypt";
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { EmailUtils } from "../utils/email";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "fs";
 import { userRepository } from "../repositories/user";
 import type { User } from "@prisma/client";
 
@@ -18,13 +17,6 @@ import type { User } from "@prisma/client";
  * can be read directly. Use the static {@link Instance} factory to create one.
  */
 export class AuthService {
-  /**
-   * A pre-computed bcrypt hash used as a dummy comparison target when a
-   * login attempt references an email that does not exist. This keeps the
-   * response time constant to prevent user enumeration via timing.
-   */
-  private static readonly DUMMY_HASH: Promise<string> = bcrypt.hash(crypto.randomUUID(), 10);
-
   private constructor(private readonly userService: UserService) {}
 
   static async Instance(userId: string | null): Promise<AuthService> {
@@ -32,12 +24,70 @@ export class AuthService {
     return new AuthService(userService);
   }
 
+  /**
+   * Reads the verification HTML template, inserts the {@code VERIFICATION_URL}
+   * placeholder, and dispatches the email via {@link EmailUtils.sendEmail}.
+   * Failures are intentionally fire-and-forget — logged but not surfaced to
+   * the caller.
+   */
+  private async sendVerificationEmail(to: string): Promise<void> {
+    const emailUtils = new EmailUtils();
+    const appUrl = EnvUtils.variables.appUrl;
+    const verificationUrl = `${appUrl}/verify`;
+
+    const template = emailUtils.getTemplate("verification");
+
+    const html = emailUtils.insertVariables(template, {
+      VERIFICATION_URL: verificationUrl,
+    });
+
+    await emailUtils.sendEmail(to, "Verify your Secryn profile", html);
+  }
+
+  /**
+   * Marks a user account as verified and sends a confirmation email. Throws
+   * if the user is already verified (idempotency guard). The verification
+   * status is persisted via {@link UserService.updateUser} before the email
+   * is dispatched.
+   *
+   * @param id - The user ID to verify
+   * @throws {Error} When the user is already verified
+   */
+  async verifyAccount(id: string): Promise<void> {
+    const user = await this.userService.getUserOrThrow({ id });
+    if (user.isVerified) throw new Error("User is already verified.");
+    await this.userService.updateUser(user.id, { isVerified: true });
+    const emailUtils = new EmailUtils();
+    const html = emailUtils.getTemplate("verifiedAccount");
+    await emailUtils.sendEmail(user.email, "Secryn account verified", html);
+  }
+
+  /**
+   * Creates a new user account, hashing the password and generating a
+   * fallback username if none is provided. On success a verification email is
+   * dispatched asynchronously (not awaited — failures are logged but don't
+   * block the response).
+   *
+   * @param data - Registration payload
+   * @param data.email    - The user's email address (must be unique)
+   * @param data.password - The plain-text password
+   * @param data.username - Optional display name
+   * @returns The newly created {@link User} record
+   * @throws {Error} When the email is already registered or user creation fails
+   */
   async register(data: { email: string; password: string; username?: string }): Promise<User> {
     const existingUser = await this.userService.getUser({ email: data.email });
     if (existingUser) throw new Error("User is already registered.");
 
     const user = await this.userService.createUser(data);
     if (!user) throw new Error("Failed to create user.");
+
+    this.sendVerificationEmail(user.email).catch((err: unknown) => {
+      logger.error("[AuthService] Failed to send verification email", {
+        email: user.email,
+        error: err,
+      });
+    });
 
     return user;
   }
@@ -117,6 +167,15 @@ export class AuthService {
     return { ok: true };
   }
 
+  /**
+   * Reads {@code forgotPassword.html} from disk, replaces the template
+   * placeholders ({@code {{APP_NAME}}}, {@code {{RESET_URL}}}, {@code {{YEAR}}})
+   * with actual values, and sends the resulting HTML via
+   * {@link EmailUtils.sendEmail}. Failures are logged but not propagated.
+   *
+   * @param to    - Recipient email address
+   * @param token - The password-reset token embedded in the reset URL
+   */
   private async sendResetEmail(to: string, token: string): Promise<void> {
     const emailUtils = new EmailUtils();
     const appUrl = EnvUtils.variables.appUrl;
