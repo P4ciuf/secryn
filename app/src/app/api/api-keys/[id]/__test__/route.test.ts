@@ -178,6 +178,18 @@ describe("PUT /api/api-keys/:id", () => {
     expect(res.status).toBe(404);
     expect(body.success).toBe(false);
   });
+
+  it("returns 500 when the service throws an unexpected error", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockUpdateApiKeyName.mockResolvedValue(undefined);
+    mockGetApiKeyOrThrow.mockRejectedValue(new Error("Database connection failed"));
+
+    const res = await PUT(buildRequest({ name: "x" }), buildCtx("key-1"));
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body.success).toBe(false);
+  });
 });
 
 describe("DELETE /api/api-keys/:id", () => {
@@ -210,5 +222,16 @@ describe("DELETE /api/api-keys/:id", () => {
     const body = await res.json();
 
     expect(res.status).toBe(404);
+  });
+
+  it("returns 500 when the service throws an unexpected error", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockDeleteApiKeyById.mockRejectedValue(new Error("Database connection failed"));
+
+    const res = await DELETE(buildRequest(), buildCtx("key-1"));
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body.success).toBe(false);
   });
 });

@@ -72,4 +72,20 @@ describe("POST /api/projects/invites/:slug/accept", () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
   });
+
+  it("returns 404 when the invite does not exist or has expired", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockAcceptInvite.mockRejectedValue(ApiError.ResourceNotFound("Invite"));
+
+    const response = await POST(
+      new Request("http://localhost/api/projects/invites/abc123/accept", {
+        method: "POST",
+      }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.success).toBe(false);
+  });
 });

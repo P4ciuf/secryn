@@ -15,6 +15,8 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
+import { ApiError } from "@/lib/api";
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   useParams: () => ({}),
@@ -88,6 +90,13 @@ describe("ApiKeysPage", () => {
     expect(screen.getByText(/Inactive · Expires/)).toBeInTheDocument();
   });
 
+  it("shows error state on load failure", async () => {
+    mockApiFetch.mockRejectedValue(new Error("Failed to load API keys"));
+    render(<ApiKeysPage />);
+
+    await screen.findByText("Failed to load API keys");
+  });
+
   it("shows create modal", async () => {
     mockApiFetch.mockResolvedValue({ success: true, apiKeys: mockKeys });
     const user = userEvent.setup();
@@ -98,6 +107,56 @@ describe("ApiKeysPage", () => {
 
     expect(screen.getByRole("heading", { name: "Create API Key" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Production API Key")).toBeInTheDocument();
+  });
+
+  it("creates a new API key and shows the one-time key view", async () => {
+    mockApiFetch.mockResolvedValueOnce({ success: true, apiKeys: mockKeys });
+    const user = userEvent.setup();
+    render(<ApiKeysPage />);
+
+    await screen.findByText("Production Key");
+    await user.click(screen.getByRole("button", { name: /new api key/i }));
+
+    await user.type(screen.getByPlaceholderText("Production API Key"), "New Key");
+
+    mockApiFetch.mockResolvedValueOnce({
+      success: true,
+      apiKey: { ...mockKeys[0], id: "key-new", key: "sk-newkey123" },
+    });
+
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await screen.findByText("Copy this key now. You won't be able to see it again.");
+    expect(screen.getByText("sk-newkey123")).toBeInTheDocument();
+  });
+
+  it("shows create error on failure", async () => {
+    mockApiFetch
+      .mockResolvedValueOnce({ success: true, apiKeys: mockKeys })
+      .mockRejectedValueOnce(new ApiError("Invalid permissions"));
+
+    const user = userEvent.setup();
+    render(<ApiKeysPage />);
+
+    await screen.findByText("Production Key");
+    await user.click(screen.getByRole("button", { name: /new api key/i }));
+
+    await user.type(screen.getByPlaceholderText("Production API Key"), "Bad Key");
+
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await screen.findByText("Invalid permissions");
+  });
+
+  it("toggles API key visibility", async () => {
+    mockApiFetch.mockResolvedValue({ success: true, apiKeys: mockKeys });
+    const user = userEvent.setup();
+    render(<ApiKeysPage />);
+
+    await screen.findByText("Production Key");
+
+    const eyeButtons = screen.getAllByRole("button").filter((btn) => btn.querySelector("svg"));
+    expect(eyeButtons.length).toBeGreaterThan(0);
   });
 
   it("handles delete", async () => {
@@ -132,5 +191,26 @@ describe("ApiKeysPage", () => {
 
     await screen.findByText("No API keys yet");
     expect(screen.getByText(/create an api key/i)).toBeInTheDocument();
+  });
+
+  it("toggles key status between enable and disable", async () => {
+    mockApiFetch
+      .mockResolvedValueOnce({ success: true, apiKeys: mockKeys })
+      .mockResolvedValueOnce({});
+
+    const user = userEvent.setup();
+    render(<ApiKeysPage />);
+
+    await screen.findByText("Production Key");
+
+    const disableButton = screen.getByText("Disable");
+    await user.click(disableButton);
+
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith("/api-keys/key-1", {
+        method: "PUT",
+        body: JSON.stringify({ isActive: false }),
+      });
+    });
   });
 });

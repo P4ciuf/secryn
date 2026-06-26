@@ -162,4 +162,22 @@ describe("POST /api/projects/:id/secrets", () => {
     expect(body.secret.name).toBe("SECRET_sec-new");
     expect(body.secret.value).toBe("secret-value");
   });
+
+  it("returns 403 when the requester lacks write access", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockCreateSecret.mockRejectedValue(ApiError.Forbidden());
+
+    const response = await POST(
+      new Request("http://localhost/api/projects/proj-1/secrets", {
+        method: "POST",
+        body: JSON.stringify({ name: "API_KEY", value: "secret123" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.success).toBe(false);
+  });
 });

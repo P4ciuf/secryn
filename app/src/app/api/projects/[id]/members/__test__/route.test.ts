@@ -123,4 +123,18 @@ describe("GET /api/projects/:id/members", () => {
     expect(response.status).toBe(403);
     expect(body.success).toBe(false);
   });
+
+  it("returns 404 when the project does not exist", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetProjectOrThrow.mockRejectedValue(ApiError.ResourceNotFound("Project"));
+
+    const response = await GET(
+      new Request("http://localhost/api/projects/proj-1/members"),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.success).toBe(false);
+  });
 });

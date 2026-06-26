@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import RegisterPage from "../page";
 
@@ -51,6 +51,19 @@ describe("RegisterPage", () => {
     expect(mockRegisterAction).not.toHaveBeenCalled();
   });
 
+  it("shows password too short error", async () => {
+    const user = userEvent.setup();
+    render(<RegisterPage />);
+
+    await user.type(screen.getByLabelText(/^Email$/i), "test@test.com");
+    await user.type(screen.getByLabelText("Password"), "short");
+    await user.type(screen.getByLabelText("Confirm password"), "short");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByText("Password must be at least 8 characters.")).toBeInTheDocument();
+    expect(mockRegisterAction).not.toHaveBeenCalled();
+  });
+
   it("shows error on submit failure", async () => {
     mockRegisterAction.mockRejectedValue(new Error("Email already taken"));
     const user = userEvent.setup();
@@ -63,5 +76,58 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await screen.findByText("Email already taken");
+  });
+
+  it("redirects to dashboard on successful registration", async () => {
+    mockRegisterAction.mockResolvedValue({ success: true });
+    const user = userEvent.setup();
+
+    render(<RegisterPage />);
+
+    await user.type(screen.getByLabelText(/^email$/i), "test@test.com");
+    await user.type(screen.getByLabelText("Password"), "password123");
+    await user.type(screen.getByLabelText("Confirm password"), "password123");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await vi.waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockRefresh).toHaveBeenCalled();
+    });
+  });
+
+  it("passes username as undefined when empty", async () => {
+    mockRegisterAction.mockResolvedValue({ success: true });
+    const user = userEvent.setup();
+
+    render(<RegisterPage />);
+
+    await user.type(screen.getByLabelText(/^email$/i), "test@test.com");
+    await user.type(screen.getByLabelText("Password"), "password123");
+    await user.type(screen.getByLabelText("Confirm password"), "password123");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await vi.waitFor(() => {
+      expect(mockRegisterAction).toHaveBeenCalledWith({
+        email: "test@test.com",
+        password: "password123",
+        username: undefined,
+      });
+    });
+  });
+
+  it("shows loading state during submission", async () => {
+    mockRegisterAction.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ success: true }), 100)),
+    );
+    const user = userEvent.setup();
+
+    render(<RegisterPage />);
+
+    await user.type(screen.getByLabelText(/^email$/i), "test@test.com");
+    await user.type(screen.getByLabelText("Password"), "password123");
+    await user.type(screen.getByLabelText("Confirm password"), "password123");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(screen.getByRole("button", { name: /create account/i })).toBeDisabled();
   });
 });

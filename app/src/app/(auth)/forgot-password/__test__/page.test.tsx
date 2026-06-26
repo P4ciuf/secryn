@@ -1,19 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ForgotPasswordPage from "../page";
 
 const { mockApiFetch } = vi.hoisted(() => ({ mockApiFetch: vi.fn() }));
 vi.mock("@/lib/api", () => ({
   apiFetch: mockApiFetch,
-}));
-
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
-  useParams: () => ({}),
-  usePathname: () => "/forgot-password",
 }));
 
 vi.mock("@/data/routes", () => ({
@@ -58,5 +50,29 @@ describe("ForgotPasswordPage", () => {
     await user.click(screen.getByRole("button", { name: /send reset link/i }));
 
     await screen.findByText("Network error");
+  });
+
+  it("renders links with correct hrefs", () => {
+    render(<ForgotPasswordPage />);
+
+    const secrynLink = screen.getByText("Secryn").closest("a");
+    expect(secrynLink).toHaveAttribute("href", "/");
+
+    const signInLink = screen.getByText("Sign in");
+    expect(signInLink).toHaveAttribute("href", "/login");
+  });
+
+  it("shows loading state during submission", async () => {
+    mockApiFetch.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({}), 100)),
+    );
+    const user = userEvent.setup();
+
+    render(<ForgotPasswordPage />);
+
+    await user.type(screen.getByLabelText("Email address"), "test@test.com");
+    await user.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    expect(screen.getByRole("button", { name: /send reset link/i })).toBeDisabled();
   });
 });
