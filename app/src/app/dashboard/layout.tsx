@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { ROUTES } from "@/data/routes";
 import { apiFetch } from "@/lib/api";
-import { logoutAction } from "@/app/(auth)/actions";
+import { logoutAction, resendVerificationEmailAction } from "@/app/(auth)/actions";
 
 const NAV_ITEMS = [
   {
@@ -47,26 +47,48 @@ const NAV_ITEMS = [
 ];
 
 /**
- * Dashboard shell with a collapsible sidebar navigation. Highlights the active
- * route using path-based matching: the Overview link only activates on an
- * exact match to `/dashboard`, while sub-pages match their prefix.
+ * Authenticated shell that wraps every page under `/dashboard`.
  *
- * Fetches the current user's email on mount for display in the sidebar footer.
+ * **Sidebar** — renders the same `SidebarContent` block in two places: a
+ * persistent 256px-wide column on desktop (hidden below `lg:`) and a
+ * full-screen overlay triggered by the hamburger menu on mobile.
+ *
+ * **Active route** — the Overview link is active only on the exact dashboard
+ * path (`/dashboard`); every other nav item matches by prefix
+ * (`/dashboard/projects`, `/dashboard/projects/123/secrets`, and so on). See
+ * {@link isActive}.
+ *
+ * **User data** — fetches `/users/me` on mount to display the current email
+ * in the sidebar footer and to decide whether the unverified-account warning
+ * banner should be shown. Requests that fail are silently absorbed.
+ *
+ * **Logout** — calls {@link logoutAction} and redirects to the landing page
+ * even if the server-side logout fails (the local session cookie is cleared
+ * by the action).
+ *
+ * @param children - The page content rendered inside the layout shell.
  */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
-    apiFetch<{ user: { email: string; username: string } }>("/users/me")
+    apiFetch<{ user: { email: string; username: string; isVerified: boolean } }>("/users/me")
       .then((res) => {
         if (res.user?.email) setUserEmail(res.user.email);
+        setIsVerified(res.user?.isVerified);
       })
       .catch(() => {});
   }, []);
 
+  /** Perform a client-side logout and always redirect to the landing page.
+   *
+   *  The server action's result is deliberately ignored — the user is sent
+   *  to the landing page even if the server-side session-destruction fails,
+   *  because {@link logoutAction} already clears the local cookie. */
   async function handleLogout() {
     try {
       await logoutAction();
@@ -77,12 +99,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.refresh();
   }
 
+  /** Check whether a sidebar link should be styled as active.
+   *
+   *  The Overview link only activates on an exact match to
+   *  {@link ROUTES.dashboard.path} (`/dashboard`); every other nav item is
+   *  treated as a section root and activates for any sub-path beneath it
+   *  (e.g. `/dashboard/projects/123/secrets` highlights "Projects"). */
   const isActive = (href: string) => {
     if (pathname === href) return true;
     if (href === ROUTES.dashboard.path) return false;
     return pathname.startsWith(href + "/");
   };
 
+  const warningNotVerifiedContent = (
+    <div className=" px-3 py-2.5 rounded-b-lg rounded-e-lg text-sm font-medium bg-slate-800">
+      <h1 className="text-xl">Get verified!</h1>
+      <p>
+        You have limited functionality until you verify your account. If you do not verify it,
+        <span className="text-red-400 font-medium">
+          {" "}
+          your account will be deleted within 72 hours of registration
+        </span>
+      </p>
+      <button
+        onClick={resendVerificationEmailAction}
+        className="text-blue-400 hover:text-blue-500 underline"
+      >
+        Resend verification email
+      </button>
+      <br />
+      <span className="text-slate-400 text-sm">
+        An email was sent to you right after you registered
+      </span>
+    </div>
+  );
+
+  {
+    /* Reusable sidebar block rendered in two slots: desktop persistent
+      column and mobile overlay (toggled by the hamburger menu). */
+  }
   const SidebarContent = (
     <div className="flex flex-col h-full">
       <div className="p-6">
@@ -154,7 +209,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          {!isVerified && warningNotVerifiedContent}
+          {children}
+        </main>
       </div>
     </div>
   );

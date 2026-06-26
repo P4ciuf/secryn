@@ -19,21 +19,34 @@ import type { User } from "@prisma/client";
 export class AuthService {
   private constructor(private readonly userService: UserService) {}
 
+  /**
+   * Creates (or retrieves) an {@link AuthService} scoped to the given user.
+   *
+   * @param userId - The authenticated user's ID, or `null` for unauthenticated
+   *                 flows (e.g. password reset, email verification).
+   */
   static async Instance(userId: string | null): Promise<AuthService> {
     const userService = await UserService.Instance(userId);
     return new AuthService(userService);
   }
 
   /**
-   * Reads the verification HTML template, inserts the {@code VERIFICATION_URL}
-   * placeholder, and dispatches the email via {@link EmailUtils.sendEmail}.
-   * Failures are intentionally fire-and-forget — logged but not surfaced to
-   * the caller.
+   * Generates a verification token, stores it in Redis (72h TTL), builds
+   * a verification URL, and sends an HTML email via the verification
+   * template. Failures are fire-and-forget — logged via `logger.error` but
+   * never surfaced to the caller.
+   *
+   * @param to - Recipient email address.
    */
-  private async sendVerificationEmail(to: string): Promise<void> {
+  async sendVerificationEmail(to: string): Promise<void> {
     const emailUtils = new EmailUtils();
     const appUrl = EnvUtils.variables.appUrl;
-    const verificationUrl = `${appUrl}/verify`;
+    const redisClient = getRedis();
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+
+    await redisClient.set(`verification:${verificationToken}`, to, "EX", 60 * 60 * 72);
+
+    const verificationUrl = `${appUrl}/verify/${verificationToken}`;
 
     const template = emailUtils.getTemplate("verification");
 
@@ -45,21 +58,30 @@ export class AuthService {
   }
 
   /**
-   * Marks a user account as verified and sends a confirmation email. Throws
-   * if the user is already verified (idempotency guard). The verification
-   * status is persisted via {@link UserService.updateUser} before the email
-   * is dispatched.
+   * Marks a user account as verified after validating the token stored in
+   * Redis. Once verified the user record is updated and a confirmation
+   * email is dispatched.
    *
-   * @param id - The user ID to verify
-   * @throws {Error} When the user is already verified
+   * @param id    - The user ID to verify.
+   * @param token - The verification token to validate against Redis.
+   * @throws {Error} When the user is already verified.
+   * @throws {Error} When the token is missing from Redis (invalid or expired).
    */
-  async verifyAccount(id: string): Promise<void> {
+  async verifyAccount(id: string, token: string): Promise<void> {
     const user = await this.userService.getUserOrThrow({ id });
     if (user.isVerified) throw new Error("User is already verified.");
+    const redisClient = getRedis();
+    const isValidToken = await redisClient.get(`verification:${token}`);
+
+    if (!isValidToken) {
+      throw new Error("Invalid verification token.");
+    }
+
     await this.userService.updateUser(user.id, { isVerified: true });
     const emailUtils = new EmailUtils();
     const html = emailUtils.getTemplate("verifiedAccount");
     await emailUtils.sendEmail(user.email, "Secryn account verified", html);
+    await redisClient.del(`verification:${token}`);
   }
 
   /**
@@ -94,9 +116,12 @@ export class AuthService {
 
   /**
    * Initiates a password-reset flow. Rate-limited to 3 requests per email
-   * per 15 minutes. If the email exists, a reset token is generated and
-   * emailed. The response is identical whether the email exists or not to
-   * prevent user enumeration.
+   * per 15 minutes via a Redis counter. Whether the email exists or not the
+   * response is always `{ ok: true }` to prevent user enumeration.
+   *
+   * @param data        - Forgot-password payload from the API layer.
+   * @param data.email  - The email address entered by the user.
+   * @returns Always `{ ok: true }` (anti-enumeration response).
    */
   async forgotPassword(data: ForgotPasswordBody): Promise<{ ok: true }> {
     const redisClient = getRedis();
@@ -146,7 +171,11 @@ export class AuthService {
    * Consumes a password-reset token and sets a new hashed password. The
    * token is marked as used immediately so it cannot be replayed.
    *
-   * @throws 401 if the token is invalid, already used, or expired.
+   * @param data         - Reset-password payload from the API layer.
+   * @param data.token   - The reset token from the password-reset URL.
+   * @param data.password - The new plain-text password.
+   * @returns `{ ok: true }` on success.
+   * @throws {ApiError} 401 if the token is invalid, already used, or expired.
    */
   async resetPassword(data: ResetPasswordBody): Promise<{ ok: true }> {
     const resetToken = await userRepository.findPasswordResetToken(data.token);

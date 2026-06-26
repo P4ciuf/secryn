@@ -2,7 +2,9 @@ import { VerifyButton } from "@/components/auth/verifyButton";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default function VerifyPage() {
+export default async function VerifyPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+
   return (
     <>
       <Link href={"/dashboard"} className="absolute top-3 left-3 text-2xl">
@@ -16,7 +18,7 @@ export default function VerifyPage() {
             confirm your email address.
           </p>
         </div>
-        <VerifyButton />
+        <VerifyButton token={token} />
       </div>
     </>
   );

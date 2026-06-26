@@ -4,11 +4,31 @@ import { useActionState } from "react";
 import { verifyAccountAction } from "@/app/(auth)/actions";
 import { ServerActionResult } from "@/types/serverAction";
 
-export function VerifyButton() {
-  const [state, formAction] = useActionState<ServerActionResult<void>>(verifyAccountAction, {
-    success: false,
-    error: "",
-  });
+/** Props for {@link VerifyButton}. */
+interface VerifyButtonProps {
+  /** The verification token extracted from the URL path segment. */
+  token: string;
+}
+
+/**
+ * Button that triggers account verification via
+ * {@link verifyAccountAction}. Uses React 19's {@link useActionState} to
+ * track the server action's outcome, which also means no manual `useEffect`
+ * or `useState` is needed for the pending / success states.
+ *
+ * Once verified the button becomes disabled and its label switches to
+ * "verified" so the user cannot re-submit.
+ *
+ * @param token - Verification token forwarded to the server action.
+ */
+export function VerifyButton({ token }: VerifyButtonProps) {
+  const [state, formAction] = useActionState<ServerActionResult<void>>(
+    async () => await verifyAccountAction(token),
+    {
+      success: false,
+      error: "",
+    },
+  );
 
   return (
     <button
