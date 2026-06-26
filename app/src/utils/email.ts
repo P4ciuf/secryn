@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 import { EnvUtils } from "./env";
 import { logger } from "@repo/shared";
+import fs from "fs";
+import path from "path";
 
 /**
  * Utility wrapper around the Resend email API.
@@ -34,5 +36,38 @@ export class EmailUtils {
 
     logger.info(`[EmailUtils] Email sent to ${to} (id: ${data?.id})`);
     return data!.id;
+  }
+
+  /**
+   * Reads an HTML email template from {@code src/template/<name>.html},
+   * replaces the {@code {{YEAR}}} placeholder with the current year, and
+   * returns the resulting HTML string. Templates are read synchronously from
+   * disk because they are served at most once per request.
+   *
+   * @param name - The template file name without the {@code .html} extension
+   * @returns The template HTML with {@code {{YEAR}}} substituted
+   */
+  getTemplate(name: string): string {
+    const html = fs.readFileSync(
+      path.join(process.cwd(), "src", "template", `${name}.html`),
+      "utf-8",
+    );
+    return html.replaceAll("{{YEAR}}", new Date().getFullYear().toString());
+  }
+
+  /**
+   * Substitutes placeholders in the template HTML with concrete values.
+   * Placeholders are {@code {{KEY}}} mustache-style tokens; this method
+   * performs a simple string replacement without a template engine.
+   *
+   * @param html - The template HTML containing {@code {{KEY}}} placeholders
+   * @param vars - A mapping of placeholder keys to replacement values
+   * @returns The HTML with all matching placeholders substituted
+   */
+  insertVariables(html: string, vars: Record<string, string>): string {
+    for (const [key, value] of Object.entries(vars)) {
+      html = html.replaceAll(`{{${key}}}`, value);
+    }
+    return html;
   }
 }
