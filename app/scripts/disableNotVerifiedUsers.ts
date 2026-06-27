@@ -2,9 +2,10 @@ import { UserService } from "@/services/user";
 import { logger } from "@repo/shared";
 import { getRedis } from "@/db/redis";
 import { Prisma } from "@prisma/client";
-import cron from "node-cron";
 
+/** Redis key used as a distributed lock to prevent concurrent cron execution. */
 const LOCK_KEY = "cron:disable-not-verified-users";
+/** Auto-expiry in seconds (1 hour) to release the lock if the owning process crashes. */
 const LOCK_TTL = 3600;
 
 /**
@@ -19,7 +20,7 @@ const LOCK_TTL = 3600;
  * @see UserService.disableUsers — the service method that performs the actual
  *   bulk disable operation.
  */
-export const disableUnverifiedUsersAfter7Days = cron.schedule("0 0 * * *", async () => {
+const disableUnverifiedUsersAfter7Days = async () => {
   const redis = getRedis();
 
   const acquired = await redis.set(LOCK_KEY, "1", "EX", LOCK_TTL, "NX");
@@ -41,4 +42,9 @@ export const disableUnverifiedUsersAfter7Days = cron.schedule("0 0 * * *", async
   } finally {
     await redis.del(LOCK_KEY);
   }
-});
+};
+
+// Invoked by cron (tsx runs this script as a standalone process).
+(async () => {
+  await disableUnverifiedUsersAfter7Days();
+})();

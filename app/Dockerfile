@@ -20,6 +20,7 @@ COPY app/next.config.ts ./app/next.config.ts
 COPY app/postcss.config.mjs ./app/postcss.config.mjs
 COPY app/prisma.config.ts ./app/prisma.config.ts
 COPY app/prisma ./app/prisma
+COPY app/scripts ./app/scripts
 COPY app/src ./app/src
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -50,4 +51,7 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD npx prisma db push --accept-data-loss && npx next start
+COPY app/entrypoint.sh ./entrypoint.sh
+RUN chmod +x /secryn/app/entrypoint.sh
+
+ENTRYPOINT ["/secryn/app/entrypoint.sh"]
