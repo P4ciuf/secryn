@@ -1,7 +1,10 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 import { userRepository, type FullUser } from "../repositories/user";
 import { ApiError } from "../errors/apiError";
+import { EmailUtils } from "@/utils/email";
+import { EnvUtils } from "@/utils/env";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -47,6 +50,17 @@ export class UserService {
   }
 
   /**
+   * Retrieves all users matching the given criteria. An empty result set
+   * is returned when no users match — no error is thrown.
+   *
+   * @param where - Optional Prisma filter clause.
+   * @returns All matching users as {@link FullUser} records.
+   */
+  async getUsers(where?: Prisma.UserWhereInput): Promise<FullUser[]> {
+    return this.repository.findUsers(where);
+  }
+
+  /**
    * Finds a user by ID or email, throwing {@link ApiError.ResourceNotFound}
    * when no match is found.
    */
@@ -87,6 +101,22 @@ export class UserService {
   }
 
   /**
+   * Bulk-updates multiple users matching the given criteria. Useful for
+   * batch operations like disabling or re-enabling cohorts of users. The
+   * update payload is restricted to non-sensitive fields — id, email,
+   * password, username, and role cannot be changed through this method.
+   *
+   * @param where - Prisma filter to select which users to update.
+   * @param data  - Subset of UserUpdateInput allowed for bulk operations.
+   */
+  async updateUsers(
+    where: Prisma.UserWhereInput,
+    data: Omit<Prisma.UserUpdateInput, "id" | "email" | "password" | "username" | "role">,
+  ) {
+    return this.repository.updateUsers(where, data);
+  }
+
+  /**
    * Permanently deletes a user and cascades to owned projects and secrets.
    */
   async deleteUser(userId: string): Promise<FullUser> {
@@ -104,5 +134,73 @@ export class UserService {
   async validatePassword(userId: string, pw: string): Promise<boolean> {
     const user = await this.getUserOrThrow({ id: userId });
     return await UserService.comparePassword(pw, user.password);
+  }
+
+  /**
+   * Disables a single user account: sets `isActive` to false, records the
+   * current timestamp in `disabledAt`, generates a 30-day reactivation token,
+   * and sends a deactivation email with a reactivation link.
+   *
+   * @param userId - ID of the user to disable.
+   * @returns The updated user record.
+   */
+  async disableUser(userId: string): Promise<FullUser> {
+    const user = await this.getUserOrThrow({ id: userId });
+    const emailUtils = new EmailUtils();
+    const token = crypto.randomBytes(32).toString("hex");
+    const template = emailUtils.getTemplate("accountDeactivation");
+    const html = emailUtils.insertVariables(template, {
+      EMAIL: user.email,
+      REACTIVATE_URL: `${EnvUtils.variables.appUrl}/reactivate?token=${token}`,
+    });
+
+    await this.repository.createUserReactivationCode({
+      user: { connect: { id: userId } },
+      code: token,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    });
+    await emailUtils.sendEmail(user.email, "account-deactivation", html);
+    return this.repository.updateUser({ id: userId }, { isActive: false, disabledAt: new Date() });
+  }
+
+  /**
+   * Bulk-disables all users matching the given criteria by delegating to
+   * {@link disableUser} for each matched record.
+   *
+   * @param where - Prisma filter to select which users to disable.
+   */
+  async disableUsers(where: Prisma.UserWhereInput) {
+    const users = await this.getUsers(where);
+    return users.forEach(async (u) => await this.disableUser(u.id));
+  }
+
+  /**
+   * Reactivates a previously disabled user: sets `isActive` back to true,
+   * clears `disabledAt`, and sends a welcome-back email.
+   *
+   * @param userId - ID of the user to reactivate.
+   * @returns The updated user record.
+   */
+  async activateUser(userId: string): Promise<FullUser> {
+    const user = await this.getUserOrThrow({ id: userId });
+    const emailUtils = new EmailUtils();
+    const template = emailUtils.getTemplate("accountActivation");
+    const html = emailUtils.insertVariables(template, {
+      EMAIL: user.email,
+      LOGIN_URL: `${EnvUtils.variables.appUrl}/login`,
+    });
+    await emailUtils.sendEmail(user.email, "account-activation", html);
+    return this.repository.updateUser({ id: userId }, { isActive: true, disabledAt: null });
+  }
+
+  /**
+   * Bulk-reactivates all users matching the given criteria by delegating to
+   * {@link activateUser} for each matched record.
+   *
+   * @param where - Prisma filter to select which users to reactivate.
+   */
+  async activateUsers(where: Prisma.UserWhereInput) {
+    const users = await this.getUsers(where);
+    return users.forEach(async (u) => await this.activateUser(u.id));
   }
 }

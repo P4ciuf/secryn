@@ -17,23 +17,29 @@ model User {
   role     UserRole @default(USER)
 
   /// Whether the user's email address has been confirmed.
-  isVerified Boolean @default(false) @map("is_verified")
+  isVerified Boolean   @default(false) @map("is_verified")
+  /// Whether the user is active
+  isActive   Boolean   @default(true) @map("is_active")
+  /// When was the user disabled
+  disabledAt DateTime? @map("disabled_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   /// Ban records applied to this account.
-  bans             UserBan[]         @relation("banned_user")
+  bans                UserBan[]            @relation("banned_user")
   /// Ban records this user has placed on other accounts.
-  addedBans        UserBan[]         @relation("added_by_user")
+  addedBans           UserBan[]            @relation("added_by_user")
   /// Project memberships this user belongs to.
-  members          ProjectMember[]
+  members             ProjectMember[]
   /// Projects for which this user is the owner.
-  projects         Project[]
+  projects            Project[]
   /// API keys created by this user.
-  apiKeys          ApiKey[]
+  apiKeys             ApiKey[]
   /// Password reset tokens requested by this user.
   passwordResetTokens PasswordResetToken[]
+  /// User reactivation codes requested by this user.
+  userReactivationCode UserReactivationCode?
 
   @@map("users")
 }
@@ -70,4 +76,30 @@ model UserBan {
   revokedAt DateTime? @map("revoked_at")
 
   @@map("user_bans")
+}
+
+/// Stores a one-time code that allows a deactivated user to reactivate their
+/// account. The code is sent by email when an account is disabled (e.g. after
+/// 7 days of unverified status) and expires after 30 days. Once consumed,
+/// usedAt is set and the code becomes invalid. Each user can have at most one
+/// pending reactivation code (userId is unique).
+model UserReactivationCode {
+  id String @id @default(cuid())
+
+  /// The user this reactivation code belongs to. Only one code per user.
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Random hex token sent in the reactivation email.
+  code  String @unique
+
+  /// When this code expires; typically 30 days after creation.
+  expiresAt DateTime @map("expires_at")
+  /// Timestamp set when the code is consumed via the reactivation endpoint.
+  usedAt    DateTime? @map("used_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_reactivation_codes")
 }
