@@ -146,7 +146,7 @@
 
 - [x] Environment management _(`EnvUtils`, `.env.example`)_
 - [x] Error tracking _(`ApiError`, global error handler)_
-- [x] Health checks _(`GET /api/v1/health`)_
+- [x] Health checks _(`GET /api/health`)_
 
 ---
 

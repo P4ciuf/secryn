@@ -175,7 +175,8 @@ ciphertext + 16-byte auth tag
 | ApiKey | `api_keys` | id, userId, keyName, key (encrypted, unique), isActive, expiresAt |
 | ApiKeyPermission | `api_key_permissions` | apiKeyId, permission (unique composite) |
 | PasswordResetToken | `password_reset_tokens` | userId, token (unique), expiresAt, used |
-| UserBan | `user_bans` | userId, addedBy, reason, ipAddress, isPermanent, expiresAt |
+| UserBan | `user_bans` | userId, addedBy, reason, ipAddress, isPermanent, expiresAt, isRevoked, revokedAt |
+| UserReactivationCode | `user_reactivation_codes` | userId (unique), code (unique), expiresAt, usedAt |
 
 ### Enums
 
@@ -193,77 +194,78 @@ ciphertext + 16-byte auth tag
 
 ## API Routes
 
-All routes are under `/api/v1` and follow Next.js App Router conventions (`route.ts` files).
+All routes are under `/api` and follow Next.js App Router conventions (`route.ts` files).
 
 ### Auth
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/auth/[...nextauth]` | NextAuth catch-all (csrf, signin, signout, session, callback) |
-| POST | `/auth/[...nextauth]` | NextAuth catch-all |
-| POST | `/auth/forgot-password` | Request password reset |
-| POST | `/auth/reset-password` | Set new password via token |
+| GET | `/api/auth/[...nextauth]` | NextAuth catch-all (csrf, signin, signout, session, callback) |
+| POST | `/api/auth/[...nextauth]` | NextAuth catch-all |
+| POST | `/api/auth/forgot-password` | Request password reset |
+| POST | `/api/auth/reset-password` | Set new password via token |
 
 ### Users
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/users/me` | Get authenticated user profile |
-| PUT | `/users/me` | Update profile or password |
-| DELETE | `/users/me` | Delete account |
+| GET | `/api/users/me` | Get authenticated user profile |
+| PUT | `/api/users/me` | Update profile or password |
+| DELETE | `/api/users/me` | Delete account |
 
 ### Projects
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/projects` | List user projects |
-| POST | `/projects` | Create project |
-| GET | `/projects/:id` | Get project details |
-| PUT | `/projects/:id` | Update project |
-| DELETE | `/projects/:id` | Delete project |
-| POST | `/projects/:id/transfer` | Transfer ownership |
+| GET | `/api/projects` | List user projects |
+| POST | `/api/projects` | Create project |
+| GET | `/api/projects/:id` | Get project details |
+| PUT | `/api/projects/:id` | Update project |
+| DELETE | `/api/projects/:id` | Delete project |
+| POST | `/api/projects/:id/transfer` | Transfer ownership |
 
 ### Members
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/projects/:id/members` | List project members |
-| DELETE | `/projects/:id/members/:memberId` | Remove member |
-| POST | `/projects/:id/members/:memberId/permissions` | Add permissions |
-| DELETE | `/projects/:id/members/:memberId/permissions` | Remove permissions |
+| GET | `/api/projects/:id/members` | List project members |
+| DELETE | `/api/projects/:id/members/:memberId` | Remove member |
+| POST | `/api/projects/:id/members/:memberId/permissions` | Add permissions |
+| DELETE | `/api/projects/:id/members/:memberId/permissions` | Remove permissions |
 
 ### Invites
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/projects/:id/invites` | Create invite |
-| GET | `/projects/invites/:slug` | Accept invite |
+| POST | `/api/projects/:id/invites` | Create invite |
+| GET | `/api/projects/invites/:slug` | Lookup invite |
+| POST | `/api/projects/invites/:slug/accept` | Accept invite |
 
 ### Secrets
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/projects/:id/secrets` | List project secrets |
-| POST | `/projects/:id/secrets` | Create secret |
-| GET | `/projects/:id/secrets/:secretId` | Get single secret |
-| PUT | `/projects/:id/secrets/:secretId` | Update secret |
-| DELETE | `/projects/:id/secrets/:secretId` | Delete secret |
-| GET | `/projects/:id/secrets/export` | Export as .env file |
+| GET | `/api/projects/:id/secrets` | List project secrets |
+| POST | `/api/projects/:id/secrets` | Create secret |
+| GET | `/api/projects/:id/secrets/:secretId` | Get single secret |
+| PUT | `/api/projects/:id/secrets/:secretId` | Update secret |
+| DELETE | `/api/projects/:id/secrets/:secretId` | Delete secret |
+| GET | `/api/projects/:id/secrets/export` | Export as .env file |
 
 ### API Keys
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api-keys` | List user's API keys |
-| POST | `/api-keys` | Create API key |
-| PUT | `/api-keys/:id` | Update API key |
-| DELETE | `/api-keys/:id` | Delete API key |
+| GET | `/api/api-keys` | List user's API keys |
+| POST | `/api/api-keys` | Create API key |
+| PUT | `/api/api-keys/:id` | Update API key |
+| DELETE | `/api/api-keys/:id` | Delete API key |
 
 ### Health
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Health check |
+| GET | `/api/health` | Health check |
 
 ---
 
