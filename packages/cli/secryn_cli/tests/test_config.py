@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 
-import pytest
 from pytest_mock import MockerFixture
 
 from secryn_cli.config import (
