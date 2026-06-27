@@ -18,9 +18,11 @@ model User {
 
   /// Whether the user's email address has been confirmed.
   isVerified Boolean   @default(false) @map("is_verified")
-  /// Whether the user is active
+  /// Whether the account is currently active. Set to false on deactivation;
+  /// a UserReactivationCode is issued to allow the user to restore access.
   isActive   Boolean   @default(true) @map("is_active")
-  /// When was the user disabled
+  /// Timestamp of when the account was deactivated via disableUser.
+  /// Null while the account is active or has been reactivated.
   disabledAt DateTime? @map("disabled_at")
 
   createdAt DateTime @default(now()) @map("created_at")

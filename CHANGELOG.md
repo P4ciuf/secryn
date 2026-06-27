@@ -30,12 +30,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `disableUsers` bulk service method: disables all users matching a Prisma filter via `disableUser` delegation (`app/src/services/user.ts`)
 - `activateUser` service method: sets `isActive` to true, clears `disabledAt`, and sends a welcome-back email (`app/src/services/user.ts`)
 - `activateUsers` bulk service method: reactivates all users matching a Prisma filter via `activateUser` delegation (`app/src/services/user.ts`)
-- `node-cron` dependency for scheduled jobs inside the Next.js application (`app/package.json`)
-- Cron job `disableUnverifiedUsersAfter7Days` running daily at midnight UTC — disables accounts created more than 7 days ago with unverified email, protected by a Redis distributed lock with 1-hour TTL deadlock prevention (`app/src/jobs/disableNotVerifiedUsers.ts`)
+- Cron job `disableUnverifiedUsersAfter7Days` — standalone TypeScript script executed by cron (via `tsx`), running daily at midnight UTC to disable accounts created more than 7 days ago with unverified email, protected by a Redis distributed lock with 1-hour TTL deadlock prevention (`app/scripts/disableNotVerifiedUsers.ts`)
 - Account deactivation email template (`accountDeactivation.html`) with reactivation link, 30-day expiry notice, and dark-theme styling (`app/src/template/accountDeactivation.html`)
 - Account reactivation email template (`accountReactivation.html`) with login link and dark-theme styling (`app/src/template/accountReactivation.html`)
-- Shell script `scripts/disable-unverified-users.sh` for running the disable-unverified-users cron job from the host via Docker compose, with Redis distributed locking and auto-detect compose directory (`scripts/disable-unverified-users.sh`)
 - Prisma migration `20260627134231_add_user_reactivation_fields_and_model` adding `is_active` / `disabled_at` columns to `users` and creating `user_reactivation_codes` table with unique indexes and cascade foreign key (`app/prisma/migrations/`)
+- Container entrypoint script (`app/entrypoint.sh`) that starts crond (busybox), registers an hourly disable-unverified-users cron job, pushes the Prisma schema, and launches Next.js as PID 1 for graceful Docker signal handling (`app/entrypoint.sh`)
 
 ### Changed
 - `AuthService.sendVerificationEmail` visibility changed from `private` to `public` to support the resend-verification flow (`app/src/services/auth.ts`)
@@ -45,6 +44,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard layout test expanded (now 16 tests) with coverage for `isLoadingUser` guard (redirect suppressed until fetch completes), unverified-user redirect from API Keys page to dashboard, disabled nav items with `aria-disabled="true"`, and absence of redirect for verified users (`app/src/app/dashboard/__test__/layout.test.tsx`)
 - Dashboard layout JSDoc expanded with `isLoadingUser` state tracking and unverified-redirect behavior description (`app/src/app/dashboard/layout.tsx`)
 - Root layout JSDoc: added `@param children`, expanded JSON-LD description to list all three schema.org entities (Organization, WebSite, SoftwareApplication) (`app/src/app/layout.tsx`)
+- Dockerfile: replaced inline `CMD` with a dedicated `ENTRYPOINT` script that manages cron via busybox crond and database schema push before starting Next.js (`app/Dockerfile`, `app/entrypoint.sh`)
+- tsconfig: added `scripts/**/*.ts` and `scripts/**/*.mts` to include paths so standalone cron scripts are type-checked (`app/tsconfig.json`)
+- pnpm-workspace: added `esbuild` to allowed builds for `tsx` compatibility (`pnpm-workspace.yaml`)
+- JSDoc documentation added to `UserRepository` public methods: `createUser`, `findUser`, `updateUser`, `findUsers`, `deleteUser`, `findPasswordResetToken`, `createPasswordResetToken`, and `consumePasswordResetToken` (`app/src/repositories/user.ts`)
+- JSDoc documentation added to `BCRYPT_ROUNDS` constant and Prisma field comments for `isActive` and `disabledAt` (`app/src/services/user.ts`, `app/prisma/models/user.prisma`)
 
 ### Fixed
 - Verify page test moved from `verify/__test__/` to `verify/[token]/__test__/` and rewritten to handle the page as an async server component that awaits `params` (`app/src/app/(auth)/verify/[token]/__test__/page.test.tsx`)
@@ -53,6 +57,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `verify/page.tsx` and `verify/layout.tsx` — flat verify page without a dynamic `token` route segment, replaced by the existing server component at `verify/[token]/page.tsx` (`app/src/app/(auth)/verify/`)
 - Italian inline comment from dashboard layout (redundant `useEffect` guard note describing `isLoadingUser` return) (`app/src/app/dashboard/layout.tsx`)
 - Redundant section-marker HTML comments (Header, Body, CTA Button, Info box, Divider, Footer) from project invitation email template (`app/src/template/projectInvitation.html`)
+- `node-cron` dependency — in-app cron scheduling replaced by container-level crond (busybox) invoked via the entrypoint script (`app/package.json`, `app/entrypoint.sh`)
+- `scripts/disable-unverified-users.sh` — host-level shell script using `docker compose exec` replaced by container-internal crond + entrypoint (`app/entrypoint.sh`)
+- `app/src/jobs/disableNotVerifiedUsers.ts` — in-app `cron.schedule`-based job replaced by a standalone script at `app/scripts/disableNotVerifiedUsers.ts` (`app/scripts/disableNotVerifiedUsers.ts`)
 
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
 ## [3.0.0] - 2026-06-26

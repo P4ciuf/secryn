@@ -17,6 +17,13 @@ export type FullUser = Prisma.UserGetPayload<{
  * tokens have their own dedicated methods.
  */
 export class UserRepository {
+  /**
+   * Creates a new user record. The caller must hash the password before
+   * passing it in the data payload.
+   *
+   * @param data - Prisma create input (email, hashed password, username).
+   * @returns The newly created user with bans eagerly loaded.
+   */
   async createUser(data: Prisma.UserCreateInput): Promise<FullUser> {
     return prisma.user.create({
       data,
@@ -24,6 +31,13 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Finds the first user matching the given criteria. Returns null when no
+   * user matches — use in service-layer lookups where absence is not an error.
+   *
+   * @param where - Prisma filter (e.g. by id, email, or compound clauses).
+   * @returns The matched user with bans loaded, or null.
+   */
   async findUser(where: Prisma.UserWhereInput): Promise<FullUser | null> {
     return prisma.user.findFirst({
       where,
@@ -31,6 +45,13 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Updates a single user identified by a unique constraint (id, email, or username).
+   *
+   * @param where - Unique identifier for the target user.
+   * @param data  - Fields to update (partial payload is valid).
+   * @returns The updated user with bans eagerly loaded.
+   */
   async updateUser(
     where: Prisma.UserWhereUniqueInput,
     data: Prisma.UserUpdateInput,
@@ -54,6 +75,13 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Retrieves all users matching the given criteria, or all users when no
+   * filter is provided. Each record includes its bans relationship.
+   *
+   * @param where - Optional Prisma filter clause.
+   * @returns An array of matching users (may be empty).
+   */
   async findUsers(where?: Prisma.UserWhereInput): Promise<FullUser[]> {
     return prisma.user.findMany({
       where,
@@ -61,6 +89,13 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Permanently deletes a user and cascades to related records (bans,
+   * memberships, API keys, password-reset tokens, reactivation codes).
+   *
+   * @param where - Unique identifier for the user to delete.
+   * @returns The deleted user record with bans loaded.
+   */
   async deleteUser(where: Prisma.UserWhereUniqueInput): Promise<FullUser> {
     return prisma.user.delete({
       where,
@@ -68,16 +103,35 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Looks up a password-reset token by its random hex value. Used during the
+   * reset-password flow to validate that the token exists and is still valid.
+   *
+   * @param token - The random hex string embedded in the password-reset email.
+   * @returns The token record, or null if not found.
+   */
   async findPasswordResetToken(
     token: string,
   ): Promise<Prisma.PasswordResetTokenGetPayload<Record<string, never>> | null> {
     return prisma.passwordResetToken.findFirst({ where: { token } });
   }
 
+  /**
+   * Stores a new password-reset token. The caller is responsible for
+   * generating the random token and setting a 1-hour expiry.
+   *
+   * @param data - Full create input (token string, expiresAt, user relation).
+   */
   async createPasswordResetToken(data: Prisma.PasswordResetTokenCreateInput): Promise<void> {
     await prisma.passwordResetToken.create({ data });
   }
 
+  /**
+   * Marks a password-reset token as consumed by setting `used` to true,
+   * preventing the same token from being reused.
+   *
+   * @param id - The CUID of the token record to consume.
+   */
   async consumePasswordResetToken(id: string): Promise<void> {
     await prisma.passwordResetToken.update({
       where: { id },

@@ -6,6 +6,7 @@ import { ApiError } from "../errors/apiError";
 import { EmailUtils } from "@/utils/email";
 import { EnvUtils } from "@/utils/env";
 
+/** Bcrypt salt rounds (2^12 iterations). Balances security with login latency. */
 const BCRYPT_ROUNDS = 12;
 
 /**
