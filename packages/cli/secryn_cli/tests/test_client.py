@@ -123,25 +123,25 @@ class TestClientRequest:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"success": True, "data": [1, 2, 3]}
-        mocker.patch.object(client.session, "request", return_value=mock_response)
+        mock_request = mocker.patch.object(client.session, "request", return_value=mock_response)
         mocker.patch.object(client, "_persist_cookies")
 
         result = client._request("GET", "/projects")
 
         assert result == {"success": True, "data": [1, 2, 3]}
-        client.session.request.assert_called_once()
+        mock_request.assert_called_once()
 
     def test_post_sends_json_body(self, client: Client, mocker: MockerFixture) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 201
         mock_response.json.return_value = {"success": True, "project": {"id": "1"}}
-        mocker.patch.object(client.session, "request", return_value=mock_response)
+        mock_request = mocker.patch.object(client.session, "request", return_value=mock_response)
         mocker.patch.object(client, "_persist_cookies")
 
         result = client._request("POST", "/projects", {"name": "Test"})
 
         assert result["success"] is True
-        client.session.request.assert_called_once_with(
+        mock_request.assert_called_once_with(
             "POST", "http://test.local/api/v1/projects", json={"name": "Test"}
         )
 
