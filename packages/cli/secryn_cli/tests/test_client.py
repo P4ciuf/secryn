@@ -328,7 +328,7 @@ class TestClientLogout:
     def test_clears_cookies_and_resets_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("secryn_cli.client.load_cookies", return_value=None)
         mock_clear = mocker.patch("secryn_cli.client.clear_cookies")
-        mock_save = mocker.patch.object(Config, "__init__", return_value=None)
+        mocker.patch.object(Config, "__init__", return_value=None)
         cfg = Config()
         cfg.user_id = "user-1"
         cfg.user_email = "user@test.com"
