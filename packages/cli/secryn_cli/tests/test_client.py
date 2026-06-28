@@ -299,7 +299,9 @@ class TestClientPersistCookies:
         mock_cookie.expires = 1234567890
         mock_cookie.secure = True
 
-        mocker.patch.object(client.session.cookies, "__iter__", return_value=iter([mock_cookie]))
+        mock_jar = MagicMock()
+        mock_jar.__iter__.return_value = iter([mock_cookie])
+        client.session.cookies = mock_jar
 
         client._persist_cookies()
 
@@ -314,7 +316,7 @@ class TestClientSaveConfig:
 
     def test_delegates_to_config_module(self, mocker: MockerFixture) -> None:
         mocker.patch("secryn_cli.client.load_cookies", return_value=None)
-        mock_save = mocker.patch("secryn_cli.client.save_config")
+        mock_save = mocker.patch("secryn_cli.config.save_config")
         cfg = Config()
         client = Client(cfg)
         client.save_config()
@@ -328,7 +330,6 @@ class TestClientLogout:
     def test_clears_cookies_and_resets_identity(self, mocker: MockerFixture) -> None:
         mocker.patch("secryn_cli.client.load_cookies", return_value=None)
         mock_clear = mocker.patch("secryn_cli.client.clear_cookies")
-        mocker.patch.object(Config, "__init__", return_value=None)
         cfg = Config()
         cfg.user_id = "user-1"
         cfg.user_email = "user@test.com"
