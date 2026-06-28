@@ -1,12 +1,8 @@
-name: CI/CD
+name: CI
 
 on:
   push:
     branches: [main]
-    tags:
-      - "cli-v*"
-      - "py-v*"
-      - "ts-v*"
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -103,5 +99,3 @@ jobs:
         run: cd packages/sdk-ts && pnpm build
       - name: Typecheck
         run: cd packages/sdk-ts && pnpm typecheck
-
-
