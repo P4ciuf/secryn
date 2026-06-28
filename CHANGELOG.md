@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 <!-- eslint-disable-next-line markdown/no-missing-label-refs -->
-## [Unreleased]
+## [3.1.0]
 
 ### Added
 - Email verification token generation in `AuthService.sendVerificationEmail` — a random 32-byte hex token is stored in Redis (72 h TTL) and embedded in the verification URL, replacing the previous tokenless `/verify` link (`app/src/services/auth.ts`)
