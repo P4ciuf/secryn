@@ -3,10 +3,9 @@ import { UserService } from "./user";
 import { ApiError } from "../errors/apiError";
 import { EnvUtils } from "../utils/env";
 import { getRedis } from "../db/redis";
-import bcrypt from "bcrypt";
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { EmailUtils } from "../utils/email";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "fs";
 import { userRepository } from "../repositories/user";
 import type { User } from "@prisma/client";
 
@@ -18,20 +17,86 @@ import type { User } from "@prisma/client";
  * can be read directly. Use the static {@link Instance} factory to create one.
  */
 export class AuthService {
-  /**
-   * A pre-computed bcrypt hash used as a dummy comparison target when a
-   * login attempt references an email that does not exist. This keeps the
-   * response time constant to prevent user enumeration via timing.
-   */
-  private static readonly DUMMY_HASH: Promise<string> = bcrypt.hash(crypto.randomUUID(), 10);
-
   private constructor(private readonly userService: UserService) {}
 
+  /**
+   * Creates (or retrieves) an {@link AuthService} scoped to the given user.
+   *
+   * @param userId - The authenticated user's ID, or `null` for unauthenticated
+   *                 flows (e.g. password reset, email verification).
+   */
   static async Instance(userId: string | null): Promise<AuthService> {
     const userService = await UserService.Instance(userId);
     return new AuthService(userService);
   }
 
+  /**
+   * Generates a verification token, stores it in Redis (72h TTL), builds
+   * a verification URL, and sends an HTML email via the verification
+   * template. Failures are fire-and-forget — logged via `logger.error` but
+   * never surfaced to the caller.
+   *
+   * @param to - Recipient email address.
+   */
+  async sendVerificationEmail(to: string): Promise<void> {
+    const emailUtils = new EmailUtils();
+    const appUrl = EnvUtils.variables.appUrl;
+    const redisClient = getRedis();
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+
+    await redisClient.set(`verification:${verificationToken}`, to, "EX", 60 * 60 * 72);
+
+    const verificationUrl = `${appUrl}/verify/${verificationToken}`;
+
+    const template = emailUtils.getTemplate("verification");
+
+    const html = emailUtils.insertVariables(template, {
+      VERIFICATION_URL: verificationUrl,
+    });
+
+    await emailUtils.sendEmail(to, "Verify your Secryn profile", html);
+  }
+
+  /**
+   * Marks a user account as verified after validating the token stored in
+   * Redis. Once verified the user record is updated and a confirmation
+   * email is dispatched.
+   *
+   * @param id    - The user ID to verify.
+   * @param token - The verification token to validate against Redis.
+   * @throws {Error} When the user is already verified.
+   * @throws {Error} When the token is missing from Redis (invalid or expired).
+   */
+  async verifyAccount(id: string, token: string): Promise<void> {
+    const user = await this.userService.getUserOrThrow({ id });
+    if (user.isVerified) throw new Error("User is already verified.");
+    const redisClient = getRedis();
+    const isValidToken = await redisClient.get(`verification:${token}`);
+
+    if (!isValidToken) {
+      throw new Error("Invalid verification token.");
+    }
+
+    await this.userService.updateUser(user.id, { isVerified: true });
+    const emailUtils = new EmailUtils();
+    const html = emailUtils.getTemplate("verifiedAccount");
+    await emailUtils.sendEmail(user.email, "Secryn account verified", html);
+    await redisClient.del(`verification:${token}`);
+  }
+
+  /**
+   * Creates a new user account, hashing the password and generating a
+   * fallback username if none is provided. On success a verification email is
+   * dispatched asynchronously (not awaited — failures are logged but don't
+   * block the response).
+   *
+   * @param data - Registration payload
+   * @param data.email    - The user's email address (must be unique)
+   * @param data.password - The plain-text password
+   * @param data.username - Optional display name
+   * @returns The newly created {@link User} record
+   * @throws {Error} When the email is already registered or user creation fails
+   */
   async register(data: { email: string; password: string; username?: string }): Promise<User> {
     const existingUser = await this.userService.getUser({ email: data.email });
     if (existingUser) throw new Error("User is already registered.");
@@ -39,14 +104,24 @@ export class AuthService {
     const user = await this.userService.createUser(data);
     if (!user) throw new Error("Failed to create user.");
 
+    this.sendVerificationEmail(user.email).catch((err: unknown) => {
+      logger.error("[AuthService] Failed to send verification email", {
+        email: user.email,
+        error: err,
+      });
+    });
+
     return user;
   }
 
   /**
    * Initiates a password-reset flow. Rate-limited to 3 requests per email
-   * per 15 minutes. If the email exists, a reset token is generated and
-   * emailed. The response is identical whether the email exists or not to
-   * prevent user enumeration.
+   * per 15 minutes via a Redis counter. Whether the email exists or not the
+   * response is always `{ ok: true }` to prevent user enumeration.
+   *
+   * @param data        - Forgot-password payload from the API layer.
+   * @param data.email  - The email address entered by the user.
+   * @returns Always `{ ok: true }` (anti-enumeration response).
    */
   async forgotPassword(data: ForgotPasswordBody): Promise<{ ok: true }> {
     const redisClient = getRedis();
@@ -96,7 +171,11 @@ export class AuthService {
    * Consumes a password-reset token and sets a new hashed password. The
    * token is marked as used immediately so it cannot be replayed.
    *
-   * @throws 401 if the token is invalid, already used, or expired.
+   * @param data         - Reset-password payload from the API layer.
+   * @param data.token   - The reset token from the password-reset URL.
+   * @param data.password - The new plain-text password.
+   * @returns `{ ok: true }` on success.
+   * @throws {ApiError} 401 if the token is invalid, already used, or expired.
    */
   async resetPassword(data: ResetPasswordBody): Promise<{ ok: true }> {
     const resetToken = await userRepository.findPasswordResetToken(data.token);
@@ -117,6 +196,15 @@ export class AuthService {
     return { ok: true };
   }
 
+  /**
+   * Reads {@code forgotPassword.html} from disk, replaces the template
+   * placeholders ({@code {{APP_NAME}}}, {@code {{RESET_URL}}}, {@code {{YEAR}}})
+   * with actual values, and sends the resulting HTML via
+   * {@link EmailUtils.sendEmail}. Failures are logged but not propagated.
+   *
+   * @param to    - Recipient email address
+   * @param token - The password-reset token embedded in the reset URL
+   */
   private async sendResetEmail(to: string, token: string): Promise<void> {
     const emailUtils = new EmailUtils();
     const appUrl = EnvUtils.variables.appUrl;

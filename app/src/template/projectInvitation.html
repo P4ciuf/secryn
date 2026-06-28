@@ -1,3 +1,12 @@
+<!--
+  Project Invitation email template — sent when a project owner invites a
+  collaborator. Processed by EmailUtils.insertVariables.
+
+  Template variables (replaced server-side before dispatch):
+    {{EMAIL}}      – The invitee's email address
+    {{INVITE_URL}} – The full accept-invitation URL with the invite slug
+    {{YEAR}}       – Current year for the copyright footer
+-->
 <!doctype html>
 <html lang="en">
   <head>
@@ -9,7 +18,7 @@
     style="
       margin: 0;
       padding: 0;
-      background-color: #f0f4ff;
+      background-color: #0a0a0a;
       font-family: &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;
     "
   >
@@ -17,7 +26,7 @@
       width="100%"
       cellpadding="0"
       cellspacing="0"
-      style="background-color: #f0f4ff; padding: 40px 0"
+      style="background-color: #0a0a0a; padding: 40px 0"
     >
       <tr>
         <td align="center">
@@ -26,25 +35,26 @@
             cellpadding="0"
             cellspacing="0"
             style="
-              background-color: #ffffff;
+              background-color: #141414;
               border-radius: 12px;
               overflow: hidden;
-              box-shadow: 0 4px 24px rgba(37, 99, 235, 0.1);
+              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+              border: 1px solid #2a2a2a;
             "
           >
-            <!-- Header -->
             <tr>
               <td
                 style="
-                  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
-                  padding: 48px 40px 40px;
+                  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+                  padding: 32px 40px 40px;
                   text-align: center;
                 "
               >
                 <div
                   style="
                     display: inline-block;
-                    background: rgba(255, 255, 255, 0.15);
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid #2f2f2f;
                     border-radius: 50%;
                     width: 64px;
                     height: 64px;
@@ -66,30 +76,29 @@
                 >
                   You're Invited!
                 </h1>
-                <p style="margin: 10px 0 0; color: #bfdbfe; font-size: 15px">
+                <p style="margin: 10px 0 0; color: #a3a3a3; font-size: 15px">
                   You have been invited to collaborate on a project
                 </p>
               </td>
             </tr>
 
-            <!-- Body -->
             <tr>
               <td style="padding: 40px 40px 32px">
-                <p style="margin: 0 0 16px; color: #1e3a5f; font-size: 16px; line-height: 1.6">
+                <p style="margin: 0 0 16px; color: #e5e5e5; font-size: 16px; line-height: 1.6">
                   Hi <strong>{{EMAIL}}</strong>,
                 </p>
-                <p style="margin: 0 0 24px; color: #374151; font-size: 15px; line-height: 1.7">
+                <p style="margin: 0 0 24px; color: #a3a3a3; font-size: 15px; line-height: 1.7">
                   A team member has invited you to join a project. Collaborate, share ideas, and
                   build something great together.
                 </p>
 
-                <!-- CTA Button -->
                 <table cellpadding="0" cellspacing="0" style="margin: 0 auto 32px">
                   <tr>
                     <td
                       align="center"
                       style="
-                        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+                        background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+                        border: 1px solid #3a3a3a;
                         border-radius: 8px;
                       "
                     >
@@ -111,18 +120,17 @@
                   </tr>
                 </table>
 
-                <!-- Info box -->
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
                     <td
                       style="
-                        background: #eff6ff;
-                        border-left: 4px solid #2563eb;
+                        background: #1c1c1c;
+                        border-left: 4px solid #525252;
                         border-radius: 0 8px 8px 0;
                         padding: 16px 20px;
                       "
                     >
-                      <p style="margin: 0; color: #1e40af; font-size: 13px; line-height: 1.6">
+                      <p style="margin: 0; color: #d4d4d4; font-size: 13px; line-height: 1.6">
                         🔒 &nbsp;This invitation is personal and intended only for you. If you
                         weren't expecting this, you can safely ignore this email.
                       </p>
@@ -132,20 +140,18 @@
               </td>
             </tr>
 
-            <!-- Divider -->
             <tr>
               <td style="padding: 0 40px">
-                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 0" />
+                <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 0" />
               </td>
             </tr>
 
-            <!-- Footer -->
             <tr>
               <td style="padding: 24px 40px 36px; text-align: center">
-                <p style="margin: 0 0 6px; color: #9ca3af; font-size: 12px">
+                <p style="margin: 0 0 6px; color: #6b6b6b; font-size: 12px">
                   You received this email because someone invited you to a project.
                 </p>
-                <p style="margin: 0; color: #9ca3af; font-size: 12px">
+                <p style="margin: 0; color: #6b6b6b; font-size: 12px">
                   © {{YEAR}} Secryn. All rights reserved.
                 </p>
               </td>

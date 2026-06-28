@@ -103,4 +103,22 @@ describe("POST /api/projects/:id/invites", () => {
     expect(body.invite.id).toBe("inv-1");
     expect(body.invite.slug).toBe("abc123");
   });
+
+  it("returns 403 when the requester is not a project admin", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockCreateInvite.mockRejectedValue(ApiError.Forbidden());
+
+    const response = await POST(
+      new Request("http://localhost/api/projects/proj-1/invites", {
+        method: "POST",
+        body: JSON.stringify({ email: "invitee@example.com" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.success).toBe(false);
+  });
 });

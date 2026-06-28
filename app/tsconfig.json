@@ -30,7 +30,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "scripts/**/*.ts",
+    "scripts/**/*.mts"
   ],
   "exclude": ["node_modules", "dist", "__tests__", "**/*.test*"],
   "references": [{ "path": "../packages/shared" }]

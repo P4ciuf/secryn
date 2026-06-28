@@ -82,4 +82,18 @@ describe("DELETE /api/projects/:id/members/:memberId", () => {
     expect(response.status).toBe(403);
     expect(body.success).toBe(false);
   });
+
+  it("returns 404 when the member or project does not exist", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockRemoveMemberToProject.mockRejectedValue(ApiError.ResourceNotFound("Member"));
+
+    const response = await DELETE(
+      new Request("http://localhost/api/projects/proj-1/members/mem-1", { method: "DELETE" }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.success).toBe(false);
+  });
 });

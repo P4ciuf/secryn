@@ -163,6 +163,73 @@ describe("PUT /api/users/me", () => {
     expect(body.success).toBe(true);
     expect(body.user.username).toBe("newname");
   });
+
+  it("returns 400 when the current password is incorrect", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    const currentUser = createMockFullUser();
+    mockGetUserOrThrow.mockResolvedValue(currentUser);
+    mockGetUser.mockResolvedValue(null);
+    mockComparePassword.mockResolvedValue(false);
+
+    const response = await PUT(
+      new Request("http://localhost/api/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ currentPassword: "wrong", newPassword: "newpass123" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.success).toBe(false);
+    expect(body.message).toBe("Current password is incorrect.");
+  });
+
+  it("returns 409 when the new email is already in use", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    const currentUser = createMockFullUser();
+    mockGetUserOrThrow.mockResolvedValue(currentUser);
+    mockGetUser.mockResolvedValue({ id: "user-99", email: "taken@example.com" });
+
+    const response = await PUT(
+      new Request("http://localhost/api/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ email: "taken@example.com" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.success).toBe(false);
+    expect(body.message).toBe("Email is already in use.");
+  });
+
+  it("returns 200 on successful password change", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    const currentUser = createMockFullUser();
+    mockGetUserOrThrow.mockResolvedValue(currentUser);
+    mockGetUser.mockResolvedValue(null);
+    mockComparePassword.mockResolvedValue(true);
+    mockHashPassword.mockResolvedValue("new-hashed-password");
+    const updatedUser = createMockFullUser({ password: "new-hashed-password" });
+    mockUpdateUser.mockResolvedValue(updatedUser);
+
+    const response = await PUT(
+      new Request("http://localhost/api/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ currentPassword: "oldpass", newPassword: "newpass123" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockComparePassword).toHaveBeenCalledWith("oldpass", "hashed-password");
+    expect(mockHashPassword).toHaveBeenCalledWith("newpass123");
+    expect(mockUpdateUser).toHaveBeenCalledWith("user-1", { password: "new-hashed-password" });
+  });
 });
 
 describe("DELETE /api/users/me", () => {

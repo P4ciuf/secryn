@@ -45,7 +45,7 @@ Requires Python 3.10+.
 sc auth login --email user@example.com --password "your-password"
 
 # Or use a custom API URL
-sc --api-url https://api.secryn.xyz/api/v1 auth login
+sc --api-url https://secryn.xyz/api auth login
 ```
 
 The CLI stores configuration and session cookies in `~/.config/secryn/`.
@@ -117,12 +117,12 @@ sc version                  # Show CLI version
 
 ## Global Options
 
-| Option            | Description                                              |
-| ----------------- | -------------------------------------------------------- |
-| `--api-url <url>` | Override API base URL (default: `http://localhost:3000`) |
-| `--json`          | Output in JSON format (where supported)                  |
-| `--force`, `-f`   | Skip confirmation for destructive commands               |
-| `--help`          | Show help for any command or subcommand                  |
+| Option            | Description                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| `--api-url <url>` | Override API base URL (default: `http://localhost:3000/api`) |
+| `--json`          | Output in JSON format (where supported)                      |
+| `--force`, `-f`   | Skip confirmation for destructive commands                   |
+| `--help`          | Show help for any command or subcommand                      |
 
 ## Environment Variables
 

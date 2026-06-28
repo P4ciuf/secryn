@@ -7,11 +7,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
-# pyrefly: ignore [missing-import]
 import pytest
-# pyrefly: ignore [missing-import]
 from click.testing import CliRunner
-# pyrefly: ignore [missing-import]
 from pytest_mock import MockerFixture
 
 from secryn_cli import __version__

@@ -3,7 +3,7 @@
 > A secure, developer-focused secrets management platform. Store, encrypt, and access API keys,
 > tokens, and environment variables safely through a dashboard, CLI, and API.
 >
-> **Production**: [secryn.xyz](https://secryn.xyz) — **API**: [secryn.xyz/api](https://secryn.xyz/api/v1/health)
+> **Production**: [secryn.xyz](https://secryn.xyz) — **API**: [secryn.xyz/api](https://secryn.xyz/api/health)
 
 ## Overview
 
@@ -52,7 +52,7 @@ secret retrieval into CI/CD pipelines and deployment workflows.
 
 | Layer            | Technology                      |
 | ---------------- | ------------------------------- |
-| Language         | TypeScript 5+                   |
+| Language         | TypeScript 6+                   |
 | Runtime          | Node.js 22+                     |
 | Package Manager  | pnpm 11.5                       |
 | Framework        | Next.js 16 (App Router)         |
@@ -241,98 +241,95 @@ The CLI stores configuration and cookies in `~/.config/secryn/`:
 After starting the services, access:
 
 - **Web Dashboard** at [http://localhost:3000](http://localhost:3000) (dev) or [https://secryn.xyz](https://secryn.xyz) (prod)
-- **API** at [http://localhost:3000/api/v1](http://localhost:3000/api/v1) (dev) or [https://secryn.xyz/api/v1](https://secryn.xyz/api/v1) (prod)
+- **API** at [http://localhost:3000/api](http://localhost:3000/api) (dev) or [https://secryn.xyz/api](https://secryn.xyz/api) (prod)
 
 ### API Endpoints
 
 #### Auth
 
-| Method | Path                           | Description                                     |
-| ------ | ------------------------------ | ----------------------------------------------- |
-| `GET`  | `/api/v1/auth/[...nextauth]`   | NextAuth catch-all (sign-in/out, session, csrf) |
-| `POST` | `/api/v1/auth/[...nextauth]`   | NextAuth catch-all (credentials callback)       |
-| `POST` | `/api/v1/auth/forgot-password` | Request a password reset email                  |
-| `POST` | `/api/v1/auth/reset-password`  | Reset password with a single-use token          |
+| Method | Path                        | Description                                     |
+| ------ | --------------------------- | ----------------------------------------------- |
+| `GET`  | `/api/auth/[...nextauth]`   | NextAuth catch-all (sign-in/out, session, csrf) |
+| `POST` | `/api/auth/[...nextauth]`   | NextAuth catch-all (credentials callback)       |
+| `POST` | `/api/auth/forgot-password` | Request a password reset email                  |
+| `POST` | `/api/auth/reset-password`  | Reset password with a single-use token          |
 
 #### Users
 
-| Method   | Path               | Description                                     |
-| -------- | ------------------ | ----------------------------------------------- |
-| `GET`    | `/api/v1/users/me` | Retrieve authenticated user profile             |
-| `PUT`    | `/api/v1/users/me` | Update authenticated user's profile or password |
-| `DELETE` | `/api/v1/users/me` | Permanently delete the authenticated account    |
+| Method   | Path            | Description                                     |
+| -------- | --------------- | ----------------------------------------------- |
+| `GET`    | `/api/users/me` | Retrieve authenticated user profile             |
+| `PUT`    | `/api/users/me` | Update authenticated user's profile or password |
+| `DELETE` | `/api/users/me` | Permanently delete the authenticated account    |
 
 #### Projects
 
-| Method   | Path                            | Description                     |
-| -------- | ------------------------------- | ------------------------------- |
-| `POST`   | `/api/v1/projects`              | Create a project                |
-| `GET`    | `/api/v1/projects/:id`          | Get project details             |
-| `PUT`    | `/api/v1/projects/:id`          | Update project name/description |
-| `DELETE` | `/api/v1/projects/:id`          | Delete a project                |
-| `POST`   | `/api/v1/projects/:id/transfer` | Transfer project ownership      |
+| Method   | Path                         | Description                     |
+| -------- | ---------------------------- | ------------------------------- |
+| `POST`   | `/api/projects`              | Create a project                |
+| `GET`    | `/api/projects/:id`          | Get project details             |
+| `PUT`    | `/api/projects/:id`          | Update project name/description |
+| `DELETE` | `/api/projects/:id`          | Delete a project                |
+| `POST`   | `/api/projects/:id/transfer` | Transfer project ownership      |
 
 #### Project Members
 
-| Method   | Path                                                 | Description                      |
-| -------- | ---------------------------------------------------- | -------------------------------- |
-| `DELETE` | `/api/v1/projects/:id/members/:memberId`             | Remove a member from a project   |
-| `POST`   | `/api/v1/projects/:id/members/:memberId/permissions` | Add permissions to a member      |
-| `DELETE` | `/api/v1/projects/:id/members/:memberId/permissions` | Remove permissions from a member |
+| Method   | Path                                              | Description                      |
+| -------- | ------------------------------------------------- | -------------------------------- |
+| `DELETE` | `/api/projects/:id/members/:memberId`             | Remove a member from a project   |
+| `POST`   | `/api/projects/:id/members/:memberId/permissions` | Add permissions to a member      |
+| `DELETE` | `/api/projects/:id/members/:memberId/permissions` | Remove permissions from a member |
 
 #### Project Invites
 
-| Method | Path                             | Description             |
-| ------ | -------------------------------- | ----------------------- |
-| `POST` | `/api/v1/projects/:id/invites`   | Create a project invite |
-| `GET`  | `/api/v1/projects/invites/:slug` | Accept a project invite |
+| Method | Path                          | Description             |
+| ------ | ----------------------------- | ----------------------- |
+| `POST` | `/api/projects/:id/invites`   | Create a project invite |
+| `GET`  | `/api/projects/invites/:slug` | Accept a project invite |
 
 #### Secrets
 
-| Method   | Path                                     | Description                                  |
-| -------- | ---------------------------------------- | -------------------------------------------- |
-| `POST`   | `/api/v1/projects/:id/secrets`           | Create an encrypted secret in a project      |
-| `GET`    | `/api/v1/projects/:id/secrets`           | List all secrets in a project (decrypted)    |
-| `GET`    | `/api/v1/projects/:id/secrets/:secretId` | Get a single secret by ID (decrypted)        |
-| `PUT`    | `/api/v1/projects/:id/secrets/:secretId` | Update a secret's name, value, or notes      |
-| `DELETE` | `/api/v1/projects/:id/secrets/:secretId` | Permanently delete a secret                  |
-| `GET`    | `/api/v1/projects/:id/secrets/export`    | Export secrets as a downloadable `.env` file |
+| Method   | Path                                  | Description                                  |
+| -------- | ------------------------------------- | -------------------------------------------- |
+| `POST`   | `/api/projects/:id/secrets`           | Create an encrypted secret in a project      |
+| `GET`    | `/api/projects/:id/secrets`           | List all secrets in a project (decrypted)    |
+| `GET`    | `/api/projects/:id/secrets/:secretId` | Get a single secret by ID (decrypted)        |
+| `PUT`    | `/api/projects/:id/secrets/:secretId` | Update a secret's name, value, or notes      |
+| `DELETE` | `/api/projects/:id/secrets/:secretId` | Permanently delete a secret                  |
+| `GET`    | `/api/projects/:id/secrets/export`    | Export secrets as a downloadable `.env` file |
 
 #### API Keys
 
-| Method   | Path                   | Description                                  |
-| -------- | ---------------------- | -------------------------------------------- |
-| `POST`   | `/api/v1/api-keys`     | Generate a new API key                       |
-| `GET`    | `/api/v1/api-keys`     | List all API keys for the authenticated user |
-| `GET`    | `/api/v1/api-keys/:id` | Get a single API key by ID                   |
-| `PUT`    | `/api/v1/api-keys/:id` | Update API key name, status, or permissions  |
-| `DELETE` | `/api/v1/api-keys/:id` | Permanently delete an API key                |
+| Method   | Path                | Description                                  |
+| -------- | ------------------- | -------------------------------------------- |
+| `POST`   | `/api/api-keys`     | Generate a new API key                       |
+| `GET`    | `/api/api-keys`     | List all API keys for the authenticated user |
+| `GET`    | `/api/api-keys/:id` | Get a single API key by ID                   |
+| `PUT`    | `/api/api-keys/:id` | Update API key name, status, or permissions  |
+| `DELETE` | `/api/api-keys/:id` | Permanently delete an API key                |
 
 #### Health
 
-| Method | Path             | Description  |
-| ------ | ---------------- | ------------ |
-| `GET`  | `/api/v1/health` | Health check |
+| Method | Path          | Description  |
+| ------ | ------------- | ------------ |
+| `GET`  | `/api/health` | Health check |
 
 ## Configuration
 
 All environment variables are defined in `app/.env.example`. Copy it to `app/.env` and fill in the values.
 
-| Variable            | Required | Description                                                        |
-| ------------------- | -------- | ------------------------------------------------------------------ |
-| `PORT`              | Yes      | API server port (default: `3000`)                                  |
-| `NODE_ENV`          | Yes      | Environment mode (`development`, `production`, `test`)             |
-| `DATABASE_URL`      | Yes      | PostgreSQL connection string for Prisma                            |
-| `POSTGRES_USER`     | Yes      | PostgreSQL superuser name                                          |
-| `POSTGRES_PASSWORD` | Yes      | PostgreSQL superuser password                                      |
-| `POSTGRES_DB`       | Yes      | PostgreSQL database name                                           |
-| `REDIS_URL`         | Yes      | Redis connection string (e.g. `redis://localhost:6379`)            |
-| `AUTH_SECRET`       | Yes      | NextAuth secret for JWT signing and encryption (min 32 characters) |
-| `ENCRYPTION_KEY`    | Yes      | AES-256 key for secret encryption (min 32 characters)              |
-| `EMAIL`             | Yes      | Sender email address for transactional emails (Resend)             |
-| `RESEND_API_KEY`    | Yes      | API key for the Resend email delivery service                      |
-| `APP_URL`           | Yes      | Public URL of the application (e.g. `https://secryn.xyz`)          |
-| `CORS_ORIGINS`      | No       | Comma-separated additional CORS origins (falls back to `APP_URL`)  |
+| Variable         | Required | Description                                                        |
+| ---------------- | -------- | ------------------------------------------------------------------ |
+| `PORT`           | Yes      | API server port (default: `3000`)                                  |
+| `NODE_ENV`       | Yes      | Environment mode (`development`, `production`, `test`)             |
+| `DATABASE_URL`   | Yes      | PostgreSQL connection string for Prisma                            |
+| `REDIS_URL`      | Yes      | Redis connection string (e.g. `redis://localhost:6379`)            |
+| `AUTH_SECRET`    | Yes      | NextAuth secret for JWT signing and encryption (min 32 characters) |
+| `ENCRYPTION_KEY` | Yes      | AES-256 key for secret encryption (min 32 characters)              |
+| `EMAIL`          | Yes      | Sender email address for transactional emails (Resend)             |
+| `RESEND_API_KEY` | Yes      | API key for the Resend email delivery service                      |
+| `APP_URL`        | Yes      | Public URL of the application (e.g. `http://localhost:5173`)       |
+| `CORS_ORIGINS`   | No       | Comma-separated additional CORS origins (falls back to `APP_URL`)  |
 
 ## Project Structure
 

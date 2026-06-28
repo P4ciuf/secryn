@@ -5,7 +5,7 @@ import {
   type ApiKeyWithPermissions,
 } from "../repositories/apiKey";
 import { UserService } from "./user";
-import { randomBytes } from "node:crypto";
+import { randomBytes } from "crypto";
 import { CryptoUtils } from "../utils/crypto";
 import type { ApiKey, ApiKeyPermission, CreateApiKeyInput } from "@repo/shared";
 import { ApiError } from "../errors/apiError";
@@ -125,6 +125,11 @@ export class ApiKeyService {
     return this.normalizeApiKey(apiKey);
   }
 
+  /**
+   * Fetches, validates ownership, mutates, then re-fetches the API key so
+   * the caller receives the canonical post-update state with decrypted key
+   * material and ISO-formatted dates.
+   */
   private async updateApiKey(where: Prisma.ApiKeyWhereUniqueInput, data: Prisma.ApiKeyUpdateInput) {
     const apiKey = await this.getApiKeyOrThrow(where);
     this.hasAccessOrThrow(apiKey);
@@ -132,6 +137,10 @@ export class ApiKeyService {
     return this.getApiKeyOrThrow(where);
   }
 
+  /**
+   * Fetches, validates ownership, then deletes the API key. The repository
+   * call cascades to the join table automatically via Prisma schema relations.
+   */
   private async deleteApiKey(where: Prisma.ApiKeyWhereUniqueInput) {
     const apiKey = await this.getApiKeyOrThrow(where);
     this.hasAccessOrThrow(apiKey);

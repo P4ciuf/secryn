@@ -8,6 +8,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Email verification token generation in `AuthService.sendVerificationEmail` — a random 32-byte hex token is stored in Redis (72 h TTL) and embedded in the verification URL, replacing the previous tokenless `/verify` link (`app/src/services/auth.ts`)
+- Token validation in `AuthService.verifyAccount` — accepts a `token` parameter and validates it against Redis before marking the account as verified; invalid or expired tokens are rejected (`app/src/services/auth.ts`)
+- `VerifyButton` now receives a `token` prop forwarded to `verifyAccountAction` via `VerifyButtonProps` interface (`app/src/components/auth/verifyButton.tsx`)
+- `resendVerificationEmailAction` Server Action sourcing the user's email from the session and delegating to `AuthService.sendVerificationEmail` (`app/src/app/(auth)/actions.ts`)
+- Unverified-account warning banner in the dashboard layout — shown when `isVerified` is false, includes a 72‑hour deletion notice and a "Resend verification email" button wired to `resendVerificationEmailAction` (`app/src/app/dashboard/layout.tsx`)
+- Test suite for `DashboardLayout` (10 tests): sidebar rendering, active route highlighting, user email fetch, unverified banner visibility, logout, sidebar toggle, and resend-verification-email (`app/src/app/dashboard/__test__/layout.test.tsx`)
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
+- Missing test scenarios added across 7 route handler test files: 403 forbidden paths (invites, permissions, secrets), 404 not-found paths (members, secrets, invites/accept), 409 email-conflict (users/me), 400 wrong-password (users/me), and 500 internal-error paths (api-keys/[id]) (`app/src/app/api/**/__test__/route.test.ts`)
+- Python test suites for the CLI package: `Client` (HTTP methods, URL building, error handling, cookie persistence, logout) and `Config` (directory resolution, load/save round-trips, cookie file I/O) (`packages/cli/secryn_cli/tests/`)
+- JSDoc documentation for `resendVerificationEmailAction`, `verifyAccountAction` (`@param token`), `registerAction` (`@throws`), `VerifyButton`/`VerifyButtonProps`, `AuthService.Instance`, `sendVerificationEmail` (`@param to`), `verifyAccount` (`@param token`, `@throws`), `forgotPassword` (`@param`, `@returns`), `resetPassword` (`@param`, `@returns`), `DashboardLayout` (full component description), `isActive`, and `handleLogout` (`app/src/`)
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
+- Test files for 5 auth layout components (forgot-password, login, register, reset-password, verify/[token]) covering transparent child rendering and noindex/nofollow metadata (`app/src/app/(auth)/**/__test__/layout.test.tsx`)
+- Test file for root `RootLayout` (10 tests) covering child rendering, HTML/body attributes, JSON-LD structured data, viewport config, and exports (metadata, OpenGraph, Twitter, robots, icons) (`app/src/app/__test__/layout.test.tsx`)
+- Test file for `NotFound` page (2 tests) covering 404 heading and home-page link (`app/src/app/__test__/not-found.test.tsx`)
+- `isActive` (boolean, default true) and `disabledAt` (nullable DateTime) fields to `User` model for soft-disabling accounts (`app/prisma/models/user.prisma`)
+- `UserReactivationCode` model with unique `userId`, unique `code`, `expiresAt`, and `usedAt` fields — stores one-time reactivation tokens sent to deactivated users; each user can have at most one pending code (`app/prisma/models/user.prisma`)
+- `updateUsers` bulk-update repository method returning the count of affected rows (`app/src/repositories/user.ts`)
+- `createUserReactivationCode`, `consumeUserReactivationCode`, and `findUserReactivationCode` repository methods for reactivation code lifecycle management (`app/src/repositories/user.ts`)
+- `getUsers` service method returning all users matching a Prisma filter; `updateUsers` bulk service method for batch operations restricted to non-sensitive fields (`app/src/services/user.ts`)
+- `disableUser` service method: sets `isActive` to false, records `disabledAt`, generates a 30-day reactivation token stored via `UserReactivationCode`, and sends a deactivation email with a reactivation link (`app/src/services/user.ts`)
+- `disableUsers` bulk service method: disables all users matching a Prisma filter via `disableUser` delegation (`app/src/services/user.ts`)
+- `activateUser` service method: sets `isActive` to true, clears `disabledAt`, and sends a welcome-back email (`app/src/services/user.ts`)
+- `activateUsers` bulk service method: reactivates all users matching a Prisma filter via `activateUser` delegation (`app/src/services/user.ts`)
+- Cron job `disableUnverifiedUsersAfter7Days` — standalone TypeScript script executed by cron (via `tsx`), running daily at midnight UTC to disable accounts created more than 7 days ago with unverified email, protected by a Redis distributed lock with 1-hour TTL deadlock prevention (`app/scripts/disableNotVerifiedUsers.ts`)
+- Account deactivation email template (`accountDeactivation.html`) with reactivation link, 30-day expiry notice, and dark-theme styling (`app/src/template/accountDeactivation.html`)
+- Account reactivation email template (`accountReactivation.html`) with login link and dark-theme styling (`app/src/template/accountReactivation.html`)
+- Prisma migration `20260627134231_add_user_reactivation_fields_and_model` adding `is_active` / `disabled_at` columns to `users` and creating `user_reactivation_codes` table with unique indexes and cascade foreign key (`app/prisma/migrations/`)
+- Container entrypoint script (`app/entrypoint.sh`) that starts crond (busybox), registers an hourly disable-unverified-users cron job, pushes the Prisma schema, and launches Next.js as PID 1 for graceful Docker signal handling (`app/entrypoint.sh`)
+
+### Changed
+- `AuthService.sendVerificationEmail` visibility changed from `private` to `public` to support the resend-verification flow (`app/src/services/auth.ts`)
+- Rewrote 7 page/component test suites with expanded coverage: `ForgotPasswordPage` (loading state, link hrefs), `RegisterPage` (success redirect, password-too-short validation, loading, username-as-undefined), `ResetPasswordPage` (password validation, success navigation, API payload), `DashboardPage` (empty-state counts, recent projects, card links, Secured card), `ApiKeysPage` (error state, create flow with one-time key view, toggle enable/disable), `ProjectsPage` (error state, create submit, delete), `SecretsPage` (error state, toggle visibility, create/update/delete, back-to-projects link) (`app/src/app/**/__test__/page.test.tsx`)
+- `verifyAccountAction` test now passes an explicit token argument matching the updated signature (`app/src/app/(auth)/__test__/actions.test.ts`)
+- `verifyAccountAction` body simplified to call `authService.verifyAccount(userId, token)` directly after inline session extraction (`app/src/app/(auth)/actions.ts`)
+- Dashboard layout test expanded (now 16 tests) with coverage for `isLoadingUser` guard (redirect suppressed until fetch completes), unverified-user redirect from API Keys page to dashboard, disabled nav items with `aria-disabled="true"`, and absence of redirect for verified users (`app/src/app/dashboard/__test__/layout.test.tsx`)
+- Dashboard layout JSDoc expanded with `isLoadingUser` state tracking and unverified-redirect behavior description (`app/src/app/dashboard/layout.tsx`)
+- Root layout JSDoc: added `@param children`, expanded JSON-LD description to list all three schema.org entities (Organization, WebSite, SoftwareApplication) (`app/src/app/layout.tsx`)
+- Dockerfile: replaced inline `CMD` with a dedicated `ENTRYPOINT` script that manages cron via busybox crond and database schema push before starting Next.js (`app/Dockerfile`, `app/entrypoint.sh`)
+- tsconfig: added `scripts/**/*.ts` and `scripts/**/*.mts` to include paths so standalone cron scripts are type-checked (`app/tsconfig.json`)
+- pnpm-workspace: added `esbuild` to allowed builds for `tsx` compatibility (`pnpm-workspace.yaml`)
+- JSDoc documentation added to `UserRepository` public methods: `createUser`, `findUser`, `updateUser`, `findUsers`, `deleteUser`, `findPasswordResetToken`, `createPasswordResetToken`, and `consumePasswordResetToken` (`app/src/repositories/user.ts`)
+- JSDoc documentation added to `BCRYPT_ROUNDS` constant and Prisma field comments for `isActive` and `disabledAt` (`app/src/services/user.ts`, `app/prisma/models/user.prisma`)
+
+### Fixed
+- Verify page test moved from `verify/__test__/` to `verify/[token]/__test__/` and rewritten to handle the page as an async server component that awaits `params` (`app/src/app/(auth)/verify/[token]/__test__/page.test.tsx`)
+
+### Removed
+- `verify/page.tsx` and `verify/layout.tsx` — flat verify page without a dynamic `token` route segment, replaced by the existing server component at `verify/[token]/page.tsx` (`app/src/app/(auth)/verify/`)
+- Italian inline comment from dashboard layout (redundant `useEffect` guard note describing `isLoadingUser` return) (`app/src/app/dashboard/layout.tsx`)
+- Redundant section-marker HTML comments (Header, Body, CTA Button, Info box, Divider, Footer) from project invitation email template (`app/src/template/projectInvitation.html`)
+- `node-cron` dependency — in-app cron scheduling replaced by container-level crond (busybox) invoked via the entrypoint script (`app/package.json`, `app/entrypoint.sh`)
+- `scripts/disable-unverified-users.sh` — host-level shell script using `docker compose exec` replaced by container-internal crond + entrypoint (`app/entrypoint.sh`)
+- `app/src/jobs/disableNotVerifiedUsers.ts` — in-app `cron.schedule`-based job replaced by a standalone script at `app/scripts/disableNotVerifiedUsers.ts` (`app/scripts/disableNotVerifiedUsers.ts`)
+
+<!-- eslint-disable-next-line markdown/no-missing-label-refs -->
+## [3.0.0] - 2026-06-26
+
+### Added
 - NextAuth.js v5 configuration (`app/src/auth.ts`) with credentials provider, JWT session strategy (cookie named `jwt`), and callbacks that enrich the token with user payload (id, email, username) for downstream route handlers
 - `[...nextauth]` catch-all route handler (`app/src/app/api/auth/[...nextauth]/route.ts`) delegating GET/POST to NextAuth
 - `getSessionOrThrow` utility (`app/src/utils/session.ts`) resolving the authenticated user from a NextAuth session and throwing `401` when absent — replaces the old `getAuthenticatedUser` guard

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ProjectsPage from "../page";
 
@@ -14,6 +14,8 @@ vi.mock("@/lib/api", () => ({
     }
   },
 }));
+
+import { ApiError } from "@/lib/api";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -81,6 +83,13 @@ describe("ProjectsPage", () => {
     expect(screen.getByText("/alpha")).toBeInTheDocument();
   });
 
+  it("shows error state on load failure", async () => {
+    mockApiFetch.mockRejectedValue(new Error("Failed to load projects"));
+    render(<ProjectsPage />);
+
+    await screen.findByText("Failed to load projects");
+  });
+
   it("shows create modal", async () => {
     mockApiFetch.mockResolvedValue({ success: true, projects: [] });
     const user = userEvent.setup();
@@ -90,6 +99,70 @@ describe("ProjectsPage", () => {
     await user.click(screen.getByRole("button", { name: /new project/i }));
 
     expect(screen.getByPlaceholderText("My Project")).toBeInTheDocument();
+  });
+
+  it("creates a new project", async () => {
+    mockApiFetch.mockResolvedValueOnce({ success: true, projects: [] });
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await screen.findByText("No projects yet");
+    await user.click(screen.getByRole("button", { name: /new project/i }));
+
+    await user.type(screen.getByPlaceholderText("My Project"), "New Project");
+    await user.type(screen.getByPlaceholderText("Optional description"), "A test project");
+
+    mockApiFetch.mockResolvedValueOnce({});
+
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith("/projects", {
+        method: "POST",
+        body: JSON.stringify({ name: "New Project", description: "A test project" }),
+      });
+    });
+  });
+
+  it("shows create error on failure", async () => {
+    mockApiFetch
+      .mockResolvedValueOnce({ success: true, projects: [] })
+      .mockRejectedValueOnce(new ApiError("Name already taken"));
+
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    await screen.findByText("No projects yet");
+    await user.click(screen.getByRole("button", { name: /new project/i }));
+
+    await user.type(screen.getByPlaceholderText("My Project"), "Dup");
+
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await screen.findByText("Name already taken");
+  });
+
+  it("handles delete with confirm dialog", async () => {
+    mockApiFetch.mockResolvedValue({ success: true, projects: mockProjects });
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<ProjectsPage />);
+
+    await screen.findByText("Project Alpha");
+
+    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    const user = userEvent.setup();
+    await user.click(deleteButtons[0] as Element);
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Delete project "Project Alpha"? This will remove all secrets.',
+    );
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith("/projects/p1", {
+        method: "DELETE",
+      });
+    });
+
+    confirmSpy.mockRestore();
   });
 
   it("renders empty state", async () => {

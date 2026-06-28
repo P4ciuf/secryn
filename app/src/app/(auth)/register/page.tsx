@@ -9,8 +9,10 @@ import { registerAction } from "@/app/(auth)/actions";
 
 /**
  * Registration page with client-side password-length and match validation
- * before submitting. On success the user is logged in and redirected to the
- * dashboard. This page is noindexed.
+ * before submitting to the server action. On success the user is logged in and
+ * redirected to the dashboard via {@link useRouter.push}. The page inherits
+ * `robots: { index: false }` from the auth group {@code layout.tsx}, so
+ * search engines never crawl it.
  */
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,6 +23,12 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Client-side form handler that validates password length and match before
+   * delegating to {@link registerAction}. On success the user is redirected to
+   * the dashboard and the RSC payload is refreshed to pick up the new session
+   * cookie. Errors from the server action are surfaced via the `error` state.
+   */
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -135,7 +143,7 @@ export default function RegisterPage() {
           </button>
           <p className="text-center text-sm text-slate-400">
             Already have an account?{" "}
-            <Link href={ROUTES.login} className="text-blue-400 hover:text-blue-300">
+            <Link href="/verify" className="text-blue-400 hover:text-blue-300">
               Sign in
             </Link>
           </p>

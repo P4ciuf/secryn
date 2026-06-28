@@ -129,4 +129,40 @@ describe("PUT /api/projects/:id/members/:memberId/permissions", () => {
     expect(mockAddPermissionsToMember).toHaveBeenCalledTimes(1);
     expect(mockRemovePermissionsFromMember).toHaveBeenCalledTimes(1);
   });
+
+  it("returns 403 when the requester is not a project admin", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockAddPermissionsToMember.mockRejectedValue(ApiError.Forbidden());
+
+    const response = await PUT(
+      new Request("http://localhost/api/projects/proj-1/members/mem-1/permissions", {
+        method: "PUT",
+        body: JSON.stringify({ addPermissions: ["READ_SECRETS"] }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.success).toBe(false);
+  });
+
+  it("returns 404 when the member or project does not exist", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockAddPermissionsToMember.mockRejectedValue(ApiError.ResourceNotFound("Member"));
+
+    const response = await PUT(
+      new Request("http://localhost/api/projects/proj-1/members/mem-1/permissions", {
+        method: "PUT",
+        body: JSON.stringify({ addPermissions: ["READ_SECRETS"] }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.success).toBe(false);
+  });
 });

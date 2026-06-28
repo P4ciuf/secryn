@@ -6,13 +6,12 @@ Secryn uses **NextAuth.js v5** with a credentials provider for user authenticati
 
 ## Overview
 
-| Mechanism            | Transport                 | Use Case                               |
-|----------------------|---------------------------|----------------------------------------|
-| Email + Password     | NextAuth credentials      | Account creation & login               |
-| JWT (httpOnly cookie)| Cookie: `jwt`             | Web session (NextAuth-managed expiry)  |
-| Password Reset       | `POST /auth/forgot-password` → `POST /auth/reset-password` | Self-service recovery |
-| API Key              | Header: `api-key`         | Programmatic access                    |
-| Token Refresh        | `POST /auth/refresh`      | Silent session extension               |
+| Mechanism            | Transport                     | Use Case                               |
+|----------------------|-------------------------------|----------------------------------------|
+| Email + Password     | NextAuth credentials          | Account creation & login               |
+| JWT (httpOnly cookie)| Cookie: `jwt`                 | Web session (NextAuth-managed expiry)  |
+| Password Reset       | `POST /api/auth/forgot-password` → `POST /api/auth/reset-password` | Self-service recovery |
+| API Key              | Header: `api-key`             | Programmatic access                    |
 
 ---
 
@@ -22,12 +21,14 @@ The `User` entity (Prisma schema at `app/prisma/models/user.prisma`):
 
 | Field        | Type     | Description                              |
 |------------- |----------|------------------------------------------|
-| `id`         | UUID     | Primary key                              |
+| `id`         | cuid     | Primary key                              |
 | `email`      | String   | Unique login identifier                  |
 | `username`   | String   | Display name (auto-generated if omitted) |
 | `password`   | String   | bcrypt hash (cost factor 12)             |
 | `role`       | Enum     | `USER` or `ADMIN`                        |
 | `isVerified` | Boolean  | Email verification flag                  |
+| `isActive`   | Boolean  | Whether the account is active            |
+| `disabledAt` | DateTime | When the account was deactivated         |
 | `createdAt`  | DateTime | Account creation timestamp               |
 | `updatedAt`  | DateTime | Last modification timestamp              |
 
@@ -209,9 +210,7 @@ JWTs are transported via the `jwt` httpOnly cookie:
 
 ### Token Refresh
 
-`POST /api/auth/refresh`
-
-Silently extends the session without re-authentication. The frontend API client (`app/src/lib/api.ts`) automatically intercepts **401 responses** and attempts a token refresh before retrying the original request. Concurrent refreshes are deduplicated.
+The frontend API client (`app/src/lib/api.ts`) automatically intercepts **401 responses** and attempts a session refresh via `POST /api/auth/refresh` before retrying the original request. Concurrent refreshes are deduplicated.
 
 ### Logout
 
@@ -231,7 +230,7 @@ The client-side dashboard calls `logoutAction()`, which clears the `jwt` cookie 
 
 ### Forgot Password
 
-`POST /api/v1/auth/forgot-password`
+`POST /api/auth/forgot-password`
 
 ```json
 { "email": "user@example.com" }
@@ -244,7 +243,7 @@ The client-side dashboard calls `logoutAction()`, which clears the `jwt` cookie 
 
 ### Reset Password
 
-`POST /api/v1/auth/reset-password`
+`POST /api/auth/reset-password`
 
 ```json
 {
@@ -276,7 +275,7 @@ API keys provide programmatic access for CI/CD pipelines, scripts, and SDKs.
 Include the key in the `api-key` HTTP header:
 
 ```text
-GET /api/v1/projects/abc123/secrets
+GET /api/projects/abc123/secrets
 api-key: sc_a1b2c3d4e5f67890...
 ```
 
@@ -293,12 +292,12 @@ api-key: sc_a1b2c3d4e5f67890...
 
 ## Auth API Endpoints
 
-All endpoints under `/api/v1/auth`. Login/register/logout are handled by NextAuth's `[...nextauth]` catch-all route handler + Server Actions — they are not individual API routes.
+All endpoints under `/api/auth`. Login/register/logout are handled by NextAuth's `[...nextauth]` catch-all route handler + Server Actions — they are not individual API routes.
 
 | Method | Endpoint                 | Auth Required | Description                    |
 |--------|--------------------------|:-------------:|--------------------------------|
-| POST   | `/auth/forgot-password`  | No            | Request password reset link    |
-| POST   | `/auth/reset-password`   | No            | Set new password via token     |
+| POST   | `/api/auth/forgot-password` | No         | Request password reset link    |
+| POST   | `/api/auth/reset-password`  | No         | Set new password via token     |
 
 NextAuth catch-all route:
 
@@ -330,39 +329,39 @@ NextAuth catch-all route:
 
 ## Full API Reference
 
-All endpoints are prefixed with `/api/v1`.
+All endpoints are prefixed with `/api`.
 
 | Method | Endpoint                                     | Auth Required | Description                     |
 |--------|----------------------------------------------|:-------------:|----------------------------------|
-| POST   | `/auth/forgot-password`                      | No            | Request password reset link      |
-| POST   | `/auth/reset-password`                       | No            | Set new password via token       |
-| POST   | `/auth/refresh`                              | Yes           | Extend session (NextAuth route)  |
-| GET    | `/users/me`                                  | Yes           | Get authenticated user profile   |
-| PUT    | `/users/me`                                  | Yes           | Update profile or password       |
-| DELETE | `/users/me`                                  | Yes           | Delete account                   |
-| GET    | `/projects`                                  | Yes           | List user projects               |
-| POST   | `/projects`                                  | Yes           | Create project                   |
-| GET    | `/projects/:id`                              | Yes           | Get project details              |
-| PUT    | `/projects/:id`                              | Yes           | Update project                   |
-| DELETE | `/projects/:id`                              | Yes           | Delete project                   |
-| POST   | `/projects/:id/transfer`                     | Yes           | Transfer ownership               |
-| GET    | `/projects/:id/members`                      | Yes           | List members                     |
-| DELETE | `/projects/:id/members/:memberId`            | Yes           | Remove member                    |
-| POST   | `/projects/:id/members/:memberId/permissions`| Yes           | Add member permissions           |
-| DELETE | `/projects/:id/members/:memberId/permissions`| Yes           | Remove member permissions        |
-| POST   | `/projects/:id/invites`                      | Yes           | Create invite                    |
-| GET    | `/projects/invites/:slug`                    | Yes           | Accept invite                    |
-| GET    | `/projects/:id/secrets`                      | Yes           | List project secrets             |
-| POST   | `/projects/:id/secrets`                      | Yes           | Create secret                    |
-| GET    | `/projects/:id/secrets/:secretId`            | Yes           | Get single secret                |
-| PUT    | `/projects/:id/secrets/:secretId`            | Yes           | Update secret                    |
-| DELETE | `/projects/:id/secrets/:secretId`            | Yes           | Delete secret                    |
-| GET    | `/projects/:id/secrets/export`               | Yes           | Export as .env file              |
-| GET    | `/api-keys`                                  | Yes           | List user's API keys             |
-| POST   | `/api-keys`                                  | Yes           | Create API key                   |
-| PUT    | `/api-keys/:id`                              | Yes           | Update API key                   |
-| DELETE | `/api-keys/:id`                              | Yes           | Delete API key                   |
-| GET    | `/health`                                    | No            | Health check                     |
+| POST   | `/api/auth/forgot-password`                  | No            | Request password reset link      |
+| POST   | `/api/auth/reset-password`                   | No            | Set new password via token       |
+| GET    | `/api/users/me`                              | Yes           | Get authenticated user profile   |
+| PUT    | `/api/users/me`                              | Yes           | Update profile or password       |
+| DELETE | `/api/users/me`                              | Yes           | Delete account                   |
+| GET    | `/api/projects`                              | Yes           | List user projects               |
+| POST   | `/api/projects`                              | Yes           | Create project                   |
+| GET    | `/api/projects/:id`                          | Yes           | Get project details              |
+| PUT    | `/api/projects/:id`                          | Yes           | Update project                   |
+| DELETE | `/api/projects/:id`                          | Yes           | Delete project                   |
+| POST   | `/api/projects/:id/transfer`                 | Yes           | Transfer ownership               |
+| GET    | `/api/projects/:id/members`                  | Yes           | List members                     |
+| DELETE | `/api/projects/:id/members/:memberId`        | Yes           | Remove member                    |
+| POST   | `/api/projects/:id/members/:memberId/permissions`| Yes       | Add member permissions           |
+| DELETE | `/api/projects/:id/members/:memberId/permissions`| Yes       | Remove member permissions        |
+| POST   | `/api/projects/:id/invites`                  | Yes           | Create invite                    |
+| GET    | `/api/projects/invites/:slug`                | Yes           | Lookup invite                    |
+| POST   | `/api/projects/invites/:slug/accept`         | Yes           | Accept invite                    |
+| GET    | `/api/projects/:id/secrets`                  | Yes           | List project secrets             |
+| POST   | `/api/projects/:id/secrets`                  | Yes           | Create secret                    |
+| GET    | `/api/projects/:id/secrets/:secretId`        | Yes           | Get single secret                |
+| PUT    | `/api/projects/:id/secrets/:secretId`        | Yes           | Update secret                    |
+| DELETE | `/api/projects/:id/secrets/:secretId`        | Yes           | Delete secret                    |
+| GET    | `/api/projects/:id/secrets/export`           | Yes           | Export as .env file              |
+| GET    | `/api/api-keys`                              | Yes           | List user's API keys             |
+| POST   | `/api/api-keys`                              | Yes           | Create API key                   |
+| PUT    | `/api/api-keys/:id`                          | Yes           | Update API key                   |
+| DELETE | `/api/api-keys/:id`                          | Yes           | Delete API key                   |
+| GET    | `/api/health`                                | No            | Health check                     |
 
 ---
 
@@ -373,7 +372,7 @@ All endpoints are prefixed with `/api/v1`.
 The frontend (`app/`) uses a typed `fetch`-based API client at `app/src/lib/api.ts` that:
 
 - Sends all requests with `credentials: "include"` so cookies are transmitted automatically
-- Intercepts **401 errors** and silently calls `POST /auth/refresh`
+- Intercepts **401 errors** and silently calls `POST /api/auth/refresh`
 - Deduplicates concurrent refresh calls
 - Redirects to `/login` if the session is truly expired
 
@@ -413,16 +412,10 @@ Cookies are persisted in `~/.config/secryn/cookies.json` with `0600` permissions
 ```typescript
 import { SecrynClient } from "secryn";
 
-const client = new SecrynClient({ baseUrl: "https://secryn.xyz/api/v1" });
+const client = new SecrynClient({ baseUrl: "https://secryn.xyz/api" });
 
 // Login
 await client.auth.login("user@example.com", "secret1234");
-
-// Refresh token
-await client.auth.refresh();
-
-// Check session
-const authed = client.auth.isAuthenticated();
 
 // Logout
 await client.auth.logout();
@@ -435,7 +428,7 @@ The SDK includes an internal `CookieJar` class that parses `Set-Cookie` headers 
 ```python
 from secryn import SecrynClient
 
-client = SecrynClient(base_url="https://secryn.xyz/api/v1")
+client = SecrynClient(base_url="https://secryn.xyz/api")
 
 # Login
 client.auth.login(email="user@example.com", password="secret1234")
@@ -454,6 +447,7 @@ client.auth.logout()
 | `REDIS_URL`      | Redis connection string for rate limiting     | Yes      |
 | `NODE_ENV`       | `production` or `development` (affects cookies)| No      |
 | `APP_URL`        | Frontend base URL (used in reset emails)      | Yes      |
+| `ENCRYPTION_KEY` | Master key for AES-256-GCM encryption         | Yes      |
 | `RESEND_API_KEY` | Resend API key for transactional emails       | No*      |
 
 \* Required for forgot-password emails.

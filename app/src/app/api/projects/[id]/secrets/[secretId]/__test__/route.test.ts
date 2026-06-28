@@ -148,6 +148,24 @@ describe("PUT /api/projects/:id/secrets/:secretId", () => {
     expect(body.success).toBe(true);
     expect(body.secret.name).toBe("UPDATED_KEY");
   });
+
+  it("returns 404 when the secret does not exist", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockUpdateSecret.mockRejectedValue(ApiError.ResourceNotFound("Secret"));
+
+    const response = await PUT(
+      new Request("http://localhost/api/projects/proj-1/secrets/sec-1", {
+        method: "PUT",
+        body: JSON.stringify({ name: "UPDATED_KEY", value: "new-value" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.success).toBe(false);
+  });
 });
 
 describe("DELETE /api/projects/:id/secrets/:secretId", () => {
@@ -180,5 +198,19 @@ describe("DELETE /api/projects/:id/secrets/:secretId", () => {
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+  });
+
+  it("returns 404 when the secret does not exist", async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockDeleteSecret.mockRejectedValue(ApiError.ResourceNotFound("Secret"));
+
+    const response = await DELETE(
+      new Request("http://localhost/api/projects/proj-1/secrets/sec-1", { method: "DELETE" }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.success).toBe(false);
   });
 });
