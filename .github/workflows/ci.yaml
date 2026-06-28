@@ -1,51 +1,107 @@
-name: CI
+name: CI/CD
 
 on:
   push:
     branches: [main]
+    tags:
+      - "cli-v*"
+      - "py-v*"
+      - "ts-v*"
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
-  build-and-test:
+  # ------------------------------------------------------------------
+  # CI – App (Next.js)
+  # ------------------------------------------------------------------
+  app:
+    name: App
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 11.5.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm db:generate
+      - run: pnpm --filter @repo/shared build
+      - run: pnpm typecheck
+      - run: pnpm --workspace-concurrency=1 test
+      - run: pnpm --filter app build
+      - run: docker compose build
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+  # ------------------------------------------------------------------
+  # CI – CLI (Python)
+  # ------------------------------------------------------------------
+  cli:
+    name: CLI
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: cd cli && pip install -e ".[dev]" pytest pytest-mock
+      - run: cd cli && ruff check .
+      - run: cd cli && pip install mypy && mypy secryn_cli/
+      - run: cd cli && python -m pytest secryn_cli/tests/ -v
 
-      - name: Run lint
-        run: pnpm lint
+  # ------------------------------------------------------------------
+  # CI – SDK Python
+  # ------------------------------------------------------------------
+  sdk-py:
+    name: SDK Python
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: cd packages/sdk-py && pip install -e ".[dev]"
+      - run: cd packages/sdk-py && ruff check .
+      - run: cd packages/sdk-py && mypy secryn/
+      - run: cd packages/sdk-py && pip install ".[dev]" && python -m pytest secryn/tests/ -v
 
-      - name: Run formatter
-        run: pnpm format:check
+  # ------------------------------------------------------------------
+  # CI – SDK TypeScript
+  # ------------------------------------------------------------------
+  sdk-ts:
+    name: SDK TS
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build SDK
+        run: cd packages/sdk-ts && pnpm build
+      - name: Typecheck
+        run: cd packages/sdk-ts && pnpm typecheck
 
-      - name: prisma generate
-        run: pnpm db:generate
 
-      - name: build packages/shared
-        run: pnpm --filter @repo/shared build
-
-      - name: Run typecheck
-        run: pnpm typecheck
-
-      - name: Run tests
-        run: pnpm --workspace-concurrency=1 test
